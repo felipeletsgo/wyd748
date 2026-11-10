@@ -40,8 +40,8 @@ func TestAncientGemBonusesBelowPlusTen(t *testing.T) {
 	ch.Equip[4] = model.Item{Index: 203, Eff: [6]byte{43, 7}}
 
 	got := w.equipmentGemBonuses(ch)
-	if got.dropPercent != 8 || got.expPercent != 2 || got.forceDamage != 20 ||
-		got.absorbDamage != 20 {
+	if got.dropPercent != 8 || got.expPercent != 2 || got.forceDamage != 40 ||
+		got.absorbDamage != 40 {
 		t.Fatalf("incorrect Ancient bonuses: %+v", got)
 	}
 }
@@ -52,8 +52,37 @@ func TestEquipmentGemBonusesIncludeNativeNecklaceSlot(t *testing.T) {
 	}}
 	ch := &model.Char{}
 	ch.Equip[9] = model.Item{Index: 640, Eff: [6]byte{43, 234}}
-	if got := w.equipmentGemBonuses(ch); got != (equipmentGemBonus{dropPercent: 8, forceDamage: 20}) {
+	if got := w.equipmentGemBonuses(ch); got != (equipmentGemBonus{dropPercent: 8, forceDamage: 40}) {
 		t.Fatalf("necklace gem bonus=%+v, want diamond drop bonus", got)
+	}
+}
+
+func TestKRAncientWeaponsStackCatalogAndGemBonuses(t *testing.T) {
+	w := &World{items: reportTestCatalog(t).Items}
+	p := &Player{Char: &model.Char{}}
+	p.Char.Equip[6] = model.Item{Index: 3702, Eff: [6]byte{43, 231}} // Emerald Karicass +10
+	if got := w.equipmentGemBonuses(p.Char).forceDamage; got != 140 {
+		t.Fatalf("Karicass piercing=%d, want 60 catalog + 40 Ancient + 40 refinement", got)
+	}
+	p.Char.Equip[6] = model.Item{Index: 3644, Eff: [6]byte{43, 253}} // Garnet Cronus Saver +15
+	if got := w.weaponCriticalDamage(p); got != 37 {
+		t.Fatalf("Cronus Saver critical damage=%d, want 37", got)
+	}
+	if got := w.equipmentGemBonuses(p.Char).absorbDamage; got != 280 {
+		t.Fatalf("Cronus Saver absorption=%d, want 40 Ancient + 240 refinement", got)
+	}
+	p.Char.Score = testScore(model.Score{Attack: 1000, Accuracy: 1000})
+	target := &Player{Char: &model.Char{Score: testScore(model.Score{})}}
+	roll := fixedRNG{value: 0}.Intn
+	for _, hit := range []struct {
+		critical bool
+		attack   int
+	}{{false, 1000}, {true, 1670}} {
+		got := playerPhysicalFollowupHitPlayerWithRNG(p, target, false, hit.critical, w.weaponCriticalDamage(p), roll)
+		want := uint32(hitDamageWithRNG(hit.attack, 0, 0, roll))
+		if !got.Hit || got.Damage != want {
+			t.Fatalf("critical=%t: hit=%+v, want %d damage", hit.critical, got, want)
+		}
 	}
 }
 

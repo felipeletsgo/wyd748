@@ -495,31 +495,33 @@ void TMFieldScene::SetSanc()
 	m_nMySanc = BASE_GetItemSanc(&g_pObjectManager->m_stMobData.Equip[4]);
 }
 
-int TMFieldScene::GetItemFromGround(unsigned int dwServerTime)
+int TMFieldScene::GetItemFromGround(unsigned int dwServerTime, bool prioritizePickup)
 {
-	if (g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill] == 31)
+	const int selectedSlot = g_pObjectManager->m_cSelectShortSkill;
+	if (field_action::ValidShortSkillSlot(selectedSlot) && g_pObjectManager->m_cShortSkill[selectedSlot] == 31)
 		return 0;
 
 	auto pOverItem = m_pMouseOverItem;
-	if (!pOverItem)
+	if (!pOverItem || !pOverItem->m_bMouseOver)
+		return 0;
+	const int groundCells = BASE_GetItemAbility(&pOverItem->m_stItem, EF_GROUND);
+	if (prioritizePickup && !field_action::CanPrioritizeGroundPickup(pOverItem->m_stItem.sIndex, groundCells))
 		return 0;
 	// A03-04 family: wrap-safe "now <= last pickup + 1000".
 	if (field_time::NotAfter(dwServerTime, m_dwGetItemTime, 1000))
-		return 0;
-	if (!pOverItem->m_bMouseOver)
-		return 0;
+		return prioritizePickup;
 	if (pOverItem->m_stItem.sIndex >= 1733 && pOverItem->m_stItem.sIndex <= 1736)
 		return 1;
 	if (pOverItem->m_stItem.sIndex >= 3145 && pOverItem->m_stItem.sIndex <= 3149)
 		return 1;
 
-	if (BASE_GetItemAbility(&pOverItem->m_stItem, 34) <= 0)
+	if (groundCells <= 0)
 	{
 		GetItem(pOverItem);
 		return 1;
 	}
 
-	if (BASE_GetItemAbility(&pOverItem->m_stItem, 34) == 10 && pOverItem->m_stItem.sIndex >= 4100 && pOverItem->m_stItem.sIndex < 4200)
+	if (groundCells == 10 && pOverItem->m_stItem.sIndex >= 4100 && pOverItem->m_stItem.sIndex < 4200)
 	{
 		if (m_pGambleStore && m_pGambleStore->m_bVisible == 1)
 			return 1;

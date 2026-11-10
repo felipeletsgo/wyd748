@@ -36,8 +36,8 @@ FFFFAA C / I or G / S
 AAFFAA Open Character / Inventory / Skills.
 FFFFAA P / M / X / H
 AAFFAA Open Party / Minimap / Quests / Help.
-FFFFAA A / D (mode 0)
-AAFFAA Select C.C. mode 1 / mode 2.
+FFFFAA A (mode 0) / D
+AAFFAA Toggle C.C. / Open the drop list.
 FFFFAA N / Tab
 AAFFAA Toggle character names / change the camera.
 FFFFAA Enter / +

@@ -1779,94 +1779,94 @@ FFFFFFFF
 FFFF0000 б╪ Cost of resurrection and the
 FFFF0000 decrement of life is same with that
 3900
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF Increase experiences obtained
-FFFFFFFF by 16 %
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +16%.
 FFFFFFFF
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 3901
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF equip on the equipment slot
-FFFFFFFF Increase item drop rates by 32%.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF Item drop rate: +32%.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
 FFFFFFFF
 FFFFFFFF
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
 FFFFFFFF
 3902
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF Increase experiences obtained
-FFFFFFFF by 16 % Increase item drop
-FFFFFFFF rates by 32%.
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +16%.
+FFFFFFFF Item drop rate: +32%.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
 FFFFFFFF
 3903
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF increase experiences obtained
-FFFFFFFF by 32 %.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +16%.
 FFFFFFFF
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 3904
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF increase item drop rates
-FFFFFFFF by 32%.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF Item drop rate: +32%.
 FFFFFFFF
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 3905
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF Increase experiences obtained
-FFFFFFFF by 16% Increase item drop
-FFFFFFFF rates by 32%.
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +16%.
+FFFFFFFF Item drop rate: +32%.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
 FFFFFFFF
 3906
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF Increase experiences obtained
-FFFFFFFF by 16%.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +16%.
 FFFFFFFF
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 3907
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF increase item drop rates
-FFFFFFFF by 32%.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF Item drop rate: +32%.
 FFFFFFFF
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 3908
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Equip on the equipment slot
-FFFFFFFF Increase experiences obtained
-FFFFFFFF by 16%. Increase item drop
-FFFFFFFF rates by 32%.
-FFFF0000 > if the item is not equipped,
-FFFF0000 time will not be reduced.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +16%.
+FFFFFFFF Item drop rate: +32%.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
 FFFFFFFF
 3909
 FFFF00FF Special Item
@@ -1888,26 +1888,56 @@ FFFFFFFF
 FFFF0000 > Right click to activate scroll
 FFFF0000 > Memorizing jewel can be used
 FFFF0000 > Remaining time:/kt
+3911
+FFFF00FF Premium familiar
+FFFFFFFF
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +32%.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+3912
+FFFF00FF Premium familiar
+FFFFFFFF
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +32%.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+3913
+FFFF00FF Premium familiar
+FFFFFFFF
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +32%.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 3914
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Attached to equipment slot and when
-FFFFFFFF attached, experience gaining amount
-FFFFFFFF is increased 16%, item drop rate
-FFFFFFFF is increased 32%
-FFFF0000 воик Possessing item is possible to be
-FFFF0000 sold by pressing Shift + right part
-FFFF0000 of Mouse.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +16%.
+FFFFFFFF Item drop rate: +32%.
+FFFFFFFF Shift + right-click to sell items.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
+FFFFFFFF
 3915
-FFFF00FF Special Item
+FFFF00FF Premium familiar
 FFFFFFFF
-FFFFFFFF Attached to equipment slot and when
-FFFFFFFF attached, experience gaining amount
-FFFFFFFF is increased 18%, item drop rate
-FFFFFFFF is increased 50%
-FFFF0000 воик Possessing item is possible to be
-FFFF0000 sold by pressing Shift + right part
-FFFF0000 of Mouse.
+FFFFFFFF Bonus while equipped.
+FFFFFFFF EXP gain: +18%.
+FFFFFFFF Item drop rate: +50%.
+FFFFFFFF Shift + right-click to sell items.
+FFFFFFFF Groups stackable items you pick up.
+FFFFFFFF
+FFFF0000 Timer pauses when unequipped.
 3980
 FFFF00FF Special Item
 FFFFFFFF

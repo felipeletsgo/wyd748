@@ -6,12 +6,20 @@ const statusPointsPerLevel = 5
 const masteryPointsPerLevel = 2
 const skillPointsPerLevel = 3
 
-// Atributos naturais das quatro classes (BaseSIDCHM do Basedef.cpp).
-var baseClassStats = [4][4]uint16{
+// Legacy baselines remain available for existing score records and templates.
+var legacyClassStats = [4][4]uint16{
 	{8, 4, 7, 6},  // TK
 	{5, 8, 5, 5},  // FM
 	{6, 6, 9, 5},  // BM
 	{8, 9, 13, 6}, // HT
+}
+
+// Native 7.59 class baselines at 0x63A000, in STR/INT/DEX/CON order.
+var baseClassStats = [4][4]uint16{
+	{12, 4, 7, 13}, // TK
+	{5, 15, 5, 11}, // FM
+	{11, 11, 9, 5}, // BM
+	{8, 9, 13, 6},  // HT
 }
 
 var baseClassHPMP = [4][2]int{
@@ -157,33 +165,34 @@ func celestialArchTierBonus(tier byte) int {
 	}
 }
 
-// celestialStatusPointBudget porta BASE_GetBonusScorePoint da 7.54:
-//
-//	1001 + cristais*100 + faixaArch + nivelAtivo*10
-//	     + nivelDaOutraForma*6 + 290 a partir do nivel interno 190.
-//
-// O nivel da outra forma contribui para o ORCAMENTO da ativa. Nao existe uma
-// carteira compartilhada: EXP e atributos ja distribuidos continuam separados.
+// Native 7.59 derives face effect 86 from the other form at character load.
+// Derive it directly from the saved level without changing the client face.
 func celestialStatusPointBudget(ch *model.Char) int {
 	if ch == nil || ch.Score == nil {
 		return 0
 	}
-	total := 1001 + int(ch.ArchCrystals)*100 +
-		celestialArchTierBonus(ch.CelestialArchTier) +
-		int(ch.Score.Level)*10
+	level := int(ch.Score.Level)
+	faceBonus := 1
 	if ch.AlternateCelestial != nil && ch.AlternateCelestial.Score != nil {
-		total += int(ch.AlternateCelestial.Score.Level) * 6
+		faceBonus = int(ch.AlternateCelestial.Score.Level)/2 + 2
 	}
-	if ch.Score.Level > 189 {
-		total += 290
+	total := 1000 + int(ch.ArchCrystals)*100 +
+		celestialArchTierBonus(ch.CelestialArchTier) + level*6 + faceBonus*7
+	total += maxInt(0, faceBonus-60) * 3
+	for _, threshold := range [...]int{75, 80, 85, 90, 95} {
+		total += maxInt(0, faceBonus-threshold) * 4
 	}
-	return maxInt(0, total)
+	total += maxInt(0, level-120) * 4
+	for _, threshold := range [...]int{149, 159, 169, 179, 189} {
+		total += maxInt(0, level-threshold) * 2
+	}
+	return total
 }
 
 func mortalSkillPointBudget(level int) int {
 	total := level * skillPointsPerLevel
 	if level > 199 {
-		total += level - 199
+		total += minInt(level, 354) - 199
 	}
 	return maxInt(0, total)
 }
@@ -193,25 +202,27 @@ func skillPointBudget(ch *model.Char) int {
 		return 0
 	}
 	if isCelestialEvolution(ch) {
-		// BASE_GetBonusSkillPoint do WYD 7.48: Celestial/Sub recebe uma base de
-		// 1600 e preserva a curva 3/4 pontos por nivel.
-		return 1600 + mortalSkillPointBudget(int(ch.Score.Level)) + int(ch.SkillPointBonus)
+		// The supported Celestial range ends at displayed level 200.
+		return 1600 + int(ch.SkillPointBonus)
 	}
 	if isArch(ch) {
 		// BASE_GetBonusSkillPoint: todo Arch nasce com 168 pontos de
 		// habilidade alem do mesmo ganho por nivel do Mortal.
-		return mortalSkillPointBudget(int(ch.Score.Level)) + 168 + int(ch.SkillPointBonus)
+		level := int(ch.Score.Level)
+		return level*skillPointsPerLevel + maxInt(0, level-199) + 168 + int(ch.SkillPointBonus)
 	}
 	return mortalSkillPointBudget(int(ch.Score.Level)) + int(ch.SkillPointBonus)
 }
 
 func masteryPointLimit(ch *model.Char, detail int) int {
 	limit := 200
-	if detail >= 1 && detail <= 3 && ch.LearnedSkill&(1<<uint(detail*8-1)) != 0 {
-		limit = 255
-	}
-	if ch.SecondaryLearnedSkill&(1<<0|1<<4|1<<8) != 0 {
-		limit = 320
+	if detail >= 1 && detail <= 3 {
+		if ch.LearnedSkill&(1<<uint(detail*8-1)) != 0 {
+			limit = 255
+		}
+		if ch.SecondaryLearnedSkill&(1<<uint((detail-1)*4)) != 0 {
+			limit = 320
+		}
 	}
 	if isCelestialEvolution(ch) {
 		return limit
@@ -267,33 +278,33 @@ func syncStatusPoints(ch *model.Char) {
 		&ch.Score.Str, &ch.Score.Int,
 		&ch.Score.Dex, &ch.Score.Con,
 	}
-	var spent uint32
+	var allocated [4]uint32
+	var spent uint64
 	for i, value := range stats {
-		if *value > uint32(natural[i]) {
-			spent += *value - uint32(natural[i])
+		base := uint32(natural[i])
+		previousBase := base
+		if !ch.Score.NativeBaseStats {
+			previousBase = uint32(legacyClassStats[ch.Class][i])
 		}
+		allocated[i] = max(*value, previousBase) - previousBase
+		*value = base + allocated[i]
+		spent += uint64(allocated[i])
 	}
-	total := uint32(statusPointBudget(ch))
-	if spent > total {
-		overflow := spent - total
-		for i, value := range stats {
-			base := uint32(natural[i])
-			if *value <= base {
-				continue
-			}
-			remove := *value - base
-			if remove > overflow {
-				remove = overflow
-			}
-			*value -= remove
-			overflow -= remove
-			if overflow == 0 {
-				break
+	ch.Score.NativeBaseStats = true
+	total := uint64(statusPointBudget(ch))
+	for spent > total {
+		largest := 0
+		for i := 1; i < len(allocated); i++ {
+			if allocated[i] > allocated[largest] {
+				largest = i
 			}
 		}
-		spent = total
+		remove := uint32(min(uint64(allocated[largest]), spent-total))
+		allocated[largest] -= remove
+		*stats[largest] -= remove
+		spent -= uint64(remove)
 	}
-	ch.Score.StatusPts = total - spent
+	ch.Score.StatusPts = uint32(total - spent)
 }
 
 func applyBonus(ch *model.Char, bonusType, detail int) bool {
@@ -308,7 +319,7 @@ func applyBonus(ch *model.Char, bonusType, detail int) bool {
 			return false
 		}
 		points := uint32(1)
-		if e.StatusPts >= 300 {
+		if e.StatusPts > 300 {
 			points = 100
 		}
 		if points > e.StatusPts {

@@ -97,3 +97,30 @@ func TestGeneratorAliasesPreserveExactIdentityAndRejectAmbiguity(t *testing.T) {
 		t.Fatalf("area metadata selected an NPC: %v %v", used, err)
 	}
 }
+
+func TestSpawnNamesExcludeInteractionOnlyAndBossBaseReferences(t *testing.T) {
+	group := model.NPCGener{Index: 3, Enabled: true, Leader: "Field_Mob", Follower: "Field_Mob"}
+	instance := model.VolatileInstance{Spawns: []model.VolatileInstanceSpawn{{NPC: "Instance_Mob"}}}
+	sources := Sources{
+		Generators: []model.NPCGener{group},
+		Bosses:     model.BossCatalog{Bosses: []model.BossConfig{{ID: "boss", NPC: "Boss_Base", Summons: []model.BossSummon{{NPC: "Boss_Add"}}}}},
+		Quests:     model.QuestFile{Quests: []model.QuestDef{{ID: 1, NPC: "Quest_Guard"}}},
+		QuestZones: []model.QuestZone{{Name: "Zone", NPC: "Zone_Guard"}},
+		Volatiles:  model.VolatileCatalog{Default: model.VolatileRule{Instance: &instance}},
+	}
+	npcs := []model.NPCDef{{Name: "Field_Mob"}, {Name: "Instance_Mob"}, {Name: "Boss_Base"}, {Name: "Boss_Add"}, {Name: "Quest_Guard"}, {Name: "Zone_Guard"}}
+	got, err := SpawnNames(npcs, sources)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Field_Mob", "Instance_Mob", "Boss_Add"} {
+		if !got[name] {
+			t.Errorf("spawn source %q is missing", name)
+		}
+	}
+	for _, name := range []string{"Boss_Base", "Quest_Guard", "Zone_Guard"} {
+		if got[name] {
+			t.Errorf("non-spawn reference %q entered the monster list", name)
+		}
+	}
+}

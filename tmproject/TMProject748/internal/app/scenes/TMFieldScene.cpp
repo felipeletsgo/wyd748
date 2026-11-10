@@ -616,13 +616,8 @@ TMFieldScene::~TMFieldScene()
 	auto pSoundManager = g_pSoundManager;
 	if (pSoundManager)
 	{
-		auto pSoundData = pSoundManager->GetSoundData(107);
-		if (pSoundData && pSoundData->IsSoundPlaying())
-			pSoundData->Stop();
-
-		pSoundData = pSoundManager->GetSoundData(6);
-		if (pSoundData && pSoundData->IsSoundPlaying())
-			pSoundData->Stop();
+		pSoundManager->StopSound(107);
+		pSoundManager->StopSound(TMHouse::WaterfallSound);
 	}
 
 	if (g_pCurrentScene && g_pApp
@@ -669,6 +664,11 @@ int TMFieldScene::InitializeScene()
 
 int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)
 {
+    if (idwControlID >= 0x7F410001u && idwControlID <= 0x7F410007u)
+    {
+        if (idwControlID == 0x7F410003u && idwEvent != 0) return 1;
+        return DropSearchControl(idwControlID);
+    }
 	if (!m_pMyHuman || !m_pControlContainer)
 		return 1;
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
@@ -2846,7 +2846,9 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 		}
 		break;
 		case chat_submit::Command::ServerQuery:
-			{ extractedResult = 1; return ExtractedFlow::Return; }
+			// /srv <channel> belongs to the server's channel-transfer handler.
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
+			break;
 		case chat_submit::Command::Nickname:
 		{
 			if (chat_submit::IsBlockedByProgress(m_pMyHuman->m_fProgressRate))
@@ -3016,11 +3018,6 @@ ExtractedFlow TMFieldScene::OnPgtPartyButton(int& extractedResult)
 	}
 	auto pHuman = (TMHuman*)g_pObjectManager->GetHumanByID(m_dwOpID);
 	if (!pHuman)
-	{
-		m_pPGTOver = 0;
-		{ extractedResult = 1; return ExtractedFlow::Return; }
-	}
-	else if (pHuman->m_bParty)
 	{
 		m_pPGTOver = 0;
 		{ extractedResult = 1; return ExtractedFlow::Return; }
@@ -3847,13 +3844,17 @@ int TMFieldScene::OnCharEvent(char iCharCode, int lParam)
 	if (OnKeyCamView(iCharCode, lParam))
 		return 1;
 
+    if (iCharCode == 'd' || iCharCode == 'D')
+    {
+        ToggleDropSearch();
+        return 1;
+    }
 	if (g_nKeyType)
 		return 0;
 
 	if (iCharCode == 'a' || iCharCode == 'A')
 		return ToggleNativeCCMode(1);
-	if (iCharCode == 'd' || iCharCode == 'D')
-		return ToggleNativeCCMode(2);
+
 
 	if (OnKeyTotoEnter(iCharCode, lParam))
 		return 1;
@@ -3956,6 +3957,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 
 	switch (pStd->Type)
 	{
+	case drop_list::ResultOpcode:
+		return OnDropSearchResult(buf, pStd->Size);
 	case MSG_CreateMob_Opcode:
 	case MSG_CreateMobTrade_Opcode:
 		// The 7.48 STRUCT_MOB materializer is byte-compatible and intentionally
@@ -4172,6 +4175,8 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	if (!g_pTimerManager)
 		return 0;
 	dwServerTime = g_pTimerManager->GetServerTime();
+	if (g_pSoundManager && dwServerTime - TMHouse::m_dwVisibleWaterFall >= 2 * TMHouse::WaterfallRefreshMs)
+		g_pSoundManager->StopSound(TMHouse::WaterfallSound);
 	// A nearby BerialGuard refreshes its aura every rendered frame. Once none
 	// does, return to the ground's own light state and reapply the weather the
 	// server sent last (also while the aura was active).
@@ -4225,6 +4230,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	}
 	TMScene::FrameMove(dwServerTime);
 	UpdateGambleRequestTimeout();
+	UpdateDropSearch();
 	const auto statusRevision = BASE_PollHttpRequests();
 	if (statusRevision != m_channelStatusRevision)
 	{

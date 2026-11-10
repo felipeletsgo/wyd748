@@ -120,7 +120,7 @@
 120	Auto_Trade
 121	Helper(H)
 122	Systems(ESC)
-123	Party(P,D)
+123	Party(P)
 124     Normal
 125	Party
 126     Whisper
@@ -263,3 +263,27 @@
 264	Nell: purchase was not completed. Open the shop again.
 265	Nell: waiting for the server to confirm your purchase.
 266	Nell: web unavailable. The standard shop will be used.
+267	Drop list (D)
+268	Monsters
+269	Items
+270	Search
+271	Item
+272	Monster
+273	Base chance
+274	With bonus
+275	Previous
+276	Next
+277	Close
+278	Loading...
+279	No results. Try another name or tab.
+280	Search again in a moment.
+281	Server did not answer. Search again.
+282	Chance per eligible kill; combines independent item rolls.
+283	Your bonus changes normal rates; fixed rewards are unchanged.
+284	* Events/bosses can add rules; EXP-only areas have no drops.
+285	Search monsters by name.
+286	Search items by name or ID.
+287	Drop bonus:
+288	Drop bonus: loading
+289	Drop bonus unavailable.
+290	Reduce UI scale in Settings to open the drop list.

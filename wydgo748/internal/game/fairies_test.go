@@ -49,9 +49,12 @@ func TestFairyBonusMatrix(t *testing.T) {
 	}{
 		{name: "green", index: 3900, exp: 16},
 		{name: "blue", index: 3901, drop: 32},
-		{name: "red", index: 3902, exp: 8, drop: 16},
+		{name: "red", index: 3902, exp: 16, drop: 32},
+		{name: "green 7 days with increased EXP", index: 3911, exp: 32},
+		{name: "green 15 days", index: 3912, exp: 32},
+		{name: "green 30 days", index: 3913, exp: 32},
 		{name: "silver", index: 3914, exp: 16, drop: 32},
-		{name: "gold", index: 3915, exp: 24, drop: 48},
+		{name: "gold", index: 3915, exp: 18, drop: 50},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ch := &model.Char{}

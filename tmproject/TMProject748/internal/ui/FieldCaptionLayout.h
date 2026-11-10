@@ -14,6 +14,8 @@ struct Band {
 // rectangles. Reserve actual text/value space, not the artwork's notch width.
 inline bool IsBoundedCaption(unsigned int parent, unsigned int control)
 {
+    if (parent == 0x7F410000u)
+        return true;
     if (parent == 513 && control >= 5768 && control <= 5785)
         return true;
     return (parent == 1905 && (control == 5786 || (control >= 5788 && control <= 5791))) ||

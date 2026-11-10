@@ -46,8 +46,8 @@ func (w *World) prepareNativeConsumable(p *Player, slot byte, rule model.Volatil
 		if ch.ArchCrystals != step-1 {
 			return reject("You must take the oaths in order.")
 		}
-		if ch.Exp < archCrystalExpCost {
-			return reject("You need 100 million experience for this oath.")
+		if ch.Exp < archCrystalMinExp {
+			return reject("You need at least 1.95 billion experience to take this oath.")
 		}
 		ch.ArchCrystals, ch.Exp = step, ch.Exp-archCrystalExpCost
 		ch.Score.Level = levelForExp(ch.Exp)

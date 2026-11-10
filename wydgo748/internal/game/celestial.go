@@ -12,14 +12,18 @@ import (
 )
 
 const (
-	idealStoneItem       = uint16(model.CelestialIdealStoneItem)
-	mysteriousStoneItem  = uint16(4148)
-	furyStoneItem        = uint16(3020)
-	arcanaCytheraItem    = uint16(3507)
-	celestialSoulBit     = uint32(1 << 30)
-	celestialFaceType    = byte(3)
-	subCelestialFaceType = byte(4)
-	subCelestialFameCost = model.SubCelestialFameCost
+	idealStoneItem            = uint16(model.CelestialIdealStoneItem)
+	mysteriousStoneItem       = uint16(4148)
+	furyStoneItem             = uint16(3020)
+	arcanaCytheraItem         = uint16(3507)
+	celestialSoulBit          = uint32(1 << 30)
+	celestialSpecialMask      = uint32(0xFF000000)
+	cytheraEquipSlot          = 1
+	celestialFuryUnlockChance = 60
+	celestialArcanaChance     = 30
+	celestialFaceType         = byte(3)
+	subCelestialFaceType      = byte(4)
+	subCelestialFameCost      = model.SubCelestialFameCost
 )
 
 var cityBounds = [...]struct{ minX, minY, maxX, maxY uint16 }{
@@ -97,7 +101,7 @@ func newCelestialScore(class byte, previous *model.Score) *model.Score {
 	}
 	natural := baseClassStats[class]
 	score := &model.Score{
-		Version: model.ScoreVersion,
+		Version: model.ScoreVersion, NativeBaseStats: true,
 		// Normal Ideal Stone branch (isHardCore=0) in WYD 7.48.
 		Attack: 488, Defense: 954,
 		MaxHP: uint32(baseClassHPMP[class][0]),
@@ -354,6 +358,11 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
+	if ch.Equip[cytheraEquipSlot].Index != 0 {
+		s.Send(wire.MessagePanel(w.msg("_WG_Remove_Helmet_Before_Celestial")))
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		return
+	}
 	tier := celestialArchTier(ch.Score.Level)
 	cytheraIndex := celestialCytheraForTier(tier)
 	if tier == 0 || cytheraIndex == 0 {
@@ -382,7 +391,7 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	ch.SecondaryLearnedSkill = 0
 	ch.ShortSkill = emptyShortSkills()
 	ch.Affects = itemBuffsOnly(ch.Affects) // potion buffs survive the conversion
-	ch.Equip[1] = cythera
+	ch.Equip[cytheraEquipSlot] = cythera
 	kingdom := model.KingdomFromCape(snapshot.Equip[model.CapeSlot].Index)
 	cape, _ := model.KingdomCapeAtTier(model.CapeTierMaster, kingdom)
 	if snapshot.Equip[model.CapeSlot].UID != "" {
@@ -466,7 +475,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 	ch.AlternateCelestial = &model.CelestialForm{
 		Evolution: "subcelestial", Class: byte(subClass), Face: subFace,
 		Score:        newCelestialScore(byte(subClass), ch.Score),
-		LearnedSkill: celestialSoulBit,
+		LearnedSkill: ch.LearnedSkill & celestialSpecialMask,
 		ShortSkill:   emptyShortSkills(),
 	}
 	ch.AlternateCelestial.Score.Defense = celestialBaseDefense(ch.ArchCrystals)
@@ -485,7 +494,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		s.Send(wire.MessagePanel(w.msg("_WG_Fame_Required_Create_SubCelestial")))
 		return
 	}
-	syncProgression(ch) // Includes six points per alternate-form level.
+	syncProgression(ch)
 	w.recalcPlayer(ch)
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch = snapshot
@@ -570,17 +579,17 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 		return
 	}
 	if ch.Score.Level < maxCelestialLevel {
-		if ch.Score.Level != 89 || ch.CelestialLevel90Unlocked ||
-			!advancedEvolution(ch, "celestial") {
+		if ch.Score.Level < 89 || ch.CelestialLevel90Unlocked {
 			s.Send(wire.MessagePanel(w.msg("_WG_Unlock_Only_Available_Celestial_Level")))
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
 		snapshot, oldCounters := cloneCharacterState(ch), copyCounters(p)
-		ch.CelestialLevel90Unlocked = true
+		unlocked := w.intn(100) < celestialFuryUnlockChance
+		ch.CelestialLevel90Unlocked = unlocked
 		spendCounters(p, map[string]uint32{fameCounter: 500})
 		consumeOne(item)
-		if !grantLevel90Cythera(ch) {
+		if unlocked && !grantLevel90Cythera(ch) {
 			*ch, p.SpecialCoins = snapshot, oldCounters
 			s.Send(wire.MessagePanel(w.msg("_WG_Free_One_Inventory_Slot_Second_Cythera")))
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -592,11 +601,15 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 			return
 		}
 		w.resendInventory(p)
-		s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Level_Has_Been_Unlocked")))
+		if unlocked {
+			s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Level_Has_Been_Unlocked")))
+		} else {
+			s.Send(wire.MessagePanel(w.msg("_WG_Fury_Unlock_Failed")))
+		}
 		return
 	}
-	if ch.CelestialArcana || ch.Equip[1].Index != 3502 || itemSanc(ch.Equip[1]) < 11 {
-		s.Send(wire.MessagePanel(w.msg("_WG_Equip_Mystic_Cythera_Or_Higher")))
+	if ch.CelestialArcana || !arcanaBaseCythera(ch.Equip[cytheraEquipSlot].Index) {
+		s.Send(wire.MessagePanel(w.msg("_WG_Equip_Arcana_Base_Cythera")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -613,7 +626,7 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 	}
 	spendCounters(p, map[string]uint32{fameCounter: 500})
 	consumeOne(item)
-	success := w.intn(2) != 0
+	success := w.intn(100) < celestialArcanaChance
 	if success {
 		ch.Equip[1].Index = arcanaCytheraItem
 		ch.CelestialArcana = true
@@ -632,6 +645,10 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 	} else {
 		s.Send(wire.MessagePanel(w.msg("_NN_CombineFailed")))
 	}
+}
+
+func arcanaBaseCythera(index uint16) bool {
+	return index >= 3500 && index <= 3502
 }
 
 func celestialCytheraMilestone(level uint32) (tier byte, ac, hp byte) {

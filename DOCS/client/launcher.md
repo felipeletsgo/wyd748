@@ -1,17 +1,80 @@
 # WYD launcher and client patches
 
-## Active baseline 7.48.100 (2026-11-02)
+## Active release 7.48.108 (2026-11-09)
 
-The owner authorized restart and activation. Release `20261103T010701Z` now runs
-minimum revision 100 on both channels. The feed is `[WYD]` plus `48100 notice.txt`.
+Release `20261109T231129Z` requires revision 108 on both game channels.
+The feed appends `48108 patch-48108.zip` and preserves all previous entries.
+The ten public ZIP entries match their recorded hashes. The portal advertises
+7.48.108. Revision 107 receives the update notice. Revision 108 reaches credential
+validation. Real-client launcher extraction and gameplay remain pending.
+See the [release receipt](../../.agents/research/release-748108-20261109.json).
+
+## Previous release 7.48.107 (2026-11-09)
+
+Release `20261109T160924Z` requires revision 107 on both game channels.
+The feed appends `48107 patch-48107.zip` and preserves all previous entries.
+The two public ZIP entries match their recorded hashes. The portal advertises
+7.48.107. Revision 106 receives the update notice. Revision 107 reaches credential
+validation. Post-activation gameplay remains pending.
+See the [release receipt](../../.agents/research/release-748107-20261109.json).
+
+## Previous release 7.48.106 (2026-11-09)
+
+Release `20261109T040919Z` requires revision 106 on both game channels.
+The feed appends `48106 patch-48106.zip` and preserves all previous entries.
+The public ZIP and executable match their recorded hashes. The portal advertises
+7.48.106. Revision 105 receives the update notice. Revision 106 reaches credential
+validation. In-game acceptance remains pending.
+See the [release receipt](../../.agents/research/release-748106-20261109.json).
+
+## Previous release 7.48.105 (2026-11-08)
+
+Release `20261109T011640Z` requires revision 105 on both game channels. The
+feed retains previous entries and appends `48105 patch-48105.zip`. The public
+ZIP and its executable hash match the package. The portal advertises 7.48.105.
+Revision 104 receives the update notice. Revision 105 reaches credential
+validation. Actual client acceptance remains pending.
+See the [release receipt](../../.agents/research/release-748105-20261108.json).
+
+## Previous release 7.48.104 (2026-11-08)
+
+The owner authorized publication and the restart of both game channels.
+Release `20261109T004923Z` requires revision 104. The feed appends
+`48104 patch-48104.zip`. The public HTTPS ZIP and its 21 entry hashes matched.
+The portal advertises 7.48.104. Both channels reject revision 103 and send
+revision 104 to credential validation. Actual client acceptance remains pending.
+See the [release receipt](../../.agents/research/release-748104-20261108.json).
+
+## Previous release 7.48.103 (2026-11-08)
+
+The owner approved the installed local candidate and requested publication. Earlier explicit authority covers restarting the two game channels for this continuing droplist rollout. Release `20261108T150126Z` runs minimum revision 103 on both channels. The feed appends `48103 patch-48103.zip` and preserves earlier entries. The four-file patch contains `WYD.exe` and root/EN/PT `UIString.txt`. Its public HTTPS download and all entry hashes matched; ZIP SHA-256 is `5739f3df256a823fd31acacecfc91d7e2fdaf265ef667e337725087f4369703e`.
+
+The public site advertises 7.48.103. Existing clients update through the adapted native launcher; the full baseline remains on Google Drive. Both game processes use the verified new executable. Revision 102 receives the update notice and revision 103 reaches credential validation in PT/EN. API and log-reader process IDs, private settings and schema v20 were preserved. A fresh database backup passed verification. The owner approved the local candidate; detailed scenario coverage and post-activation gameplay remain unrecorded. News remains a review draft. Rollback is `/srv/wyd-go/releases/20261108T123541Z`. See the [release receipt](../../.agents/research/release-748103-20261108.json).
+
+## Previous active release 7.48.102 (2026-11-08)
+
+The owner authorized publication and restart. Release `20261108T123541Z` ran minimum revision 102 before 7.48.103 activation. Its feed appended `48102 patch-48102.zip`. The four-file patch contained `WYD.exe` and root/EN/PT `UIString.txt`; it attempted to correct drop-search overlay and feedback. The server filtered unused NPC templates. The public ZIP and every entry hash matched; ZIP SHA-256 is `81aec6a09b26287dcca7fca832bf2961b01b962d4506858952a1ba6bd4db12eb`.
+
+The public site advertised 7.48.102. Both channels restarted with verified executable hashes. Revision 101 was rejected and 102 reached credential validation in PT/EN. API and log-reader processes, settings and schema v20 were preserved. A fresh database backup passed verification. The owner's screenshots rejected label occlusion, panel size and footer placement; revision 103 supersedes those defects. See the [dated release receipt](../../.agents/research/release-748102-20261108.json).
+
+## Previous active release 7.48.101 (2026-11-08)
+
+The owner authorized publication and restart of the two game channels. Release `20261108T112940Z` ran minimum revision 101 before 7.48.102 activation. Its feed preserved 48100 and added `48101 patch-48101.zip`. The website receipt and download pages advertised 7.48.101; the full client remained the 7.48.100 Google Drive archive. Existing installations received patch 48101 through the adapted native launcher.
+
+All 1,076 game files and 6,661 site files passed hash verification. The nine-file patch was downloaded over HTTPS and its digest matched. Revision 100 is rejected and 101 reaches credential validation on both channels, with PT/EN messages. A database backup passed archive listing. Player API and log reader process IDs and private settings were preserved. Gameplay acceptance and local client installation remain pending. News remains an unpublished draft. See the [release receipt](../../.agents/research/release-748101-20261108.json).
+
+## Previous active baseline 7.48.100 (2026-11-02)
+
+The owner authorized restart and activation. Release `20261103T010701Z` ran
+minimum revision 100 on both channels. The feed was `[WYD]` plus `48100 notice.txt`.
 Earlier feeds and ZIPs remain in `/srv/wyd-go/patch-archive/20261103T010659Z/`.
-The website requires the verified Google Drive full client with native HTTPS.
-Subsequent patches start at 48101. Older clients must install the new full client.
+The website used the verified Google Drive full client with native HTTPS.
+Subsequent patches started at 48101. At that time, older clients had to install the new full client.
 
 The database backup, 1,076 payload hashes, running game hashes, readiness and
 version admission passed. Revisions 18 and 99 are rejected; 100 reaches credential
 validation in PT and EN. Only game processes restarted. Private settings and
-schema v20 remain unchanged. News remains an unpublished review draft. Actual
+schema v20 were unchanged. News remains an unpublished review draft. Actual
 gameplay and native UI acceptance remain pending.
 See the [activation receipt](../../.agents/research/release-748100-https.json).
 
@@ -1144,10 +1207,13 @@ The alternative C++ launcher, self-update implementation, format-1 feed builder,
 publisher and tests were removed. Existing native settings, language selection,
 site integration and `update.htm`/ZIP updates remain the supported product.
 
-The full-client ZIP is downloaded through the HTTPS portal. This does not change
-the native launcher's HTTP patch transport. HTTPS updating and automatic VC++
-installation remain unresolved for the native launcher; they are not delivered
-by retaining the installer in the full-client archive.
+The later native-launcher follow-up added HTTPS-only transport through its
+existing language extension while preserving the native feed and ZIP protocol.
+The client now updates through that adapted launcher. Automatic VC++
+installation remains unavailable: the external full client includes the signed
+Microsoft installer for manual use, and clean-machine acceptance remains open.
+See [native HTTPS transport](#native-https-transport-distributed-externally-2026-11-02)
+and the [active release](#active-release-748105-2026-11-08).
 
 The earlier publication evidence remains in
 [release 748018](../../.agents/research/release-748018.json), marked superseded.

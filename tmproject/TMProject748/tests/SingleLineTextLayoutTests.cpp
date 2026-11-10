@@ -32,6 +32,9 @@ int RunSingleLineTextLayoutTests(int& checks)
     check(font_layout::Measure(chunks, 3) == 400, "all texture chunks contribute to width");
     check(field_caption_layout::IsBoundedCaption(513, 5769), "resistance caption opts in");
     check(field_caption_layout::IsBoundedCaption(1905, 5786), "skill points caption opts in");
+    check(field_caption_layout::IsBoundedCaption(0x7F410000u, 0) &&
+        field_caption_layout::IsBoundedCaption(0x7F410000u, 0x7F410003u),
+        "drop-search captions and editable queries opt into measured width limits");
     for (unsigned int id = 5781; id <= 5785; ++id)
         check(field_caption_layout::IsBoundedCaption(513, id), "character title opts in");
     for (unsigned int id = 5788; id <= 5791; ++id)
@@ -117,6 +120,15 @@ int RunSingleLineTextLayoutTests(int& checks)
         {1889, 6050, 14, 40, 90, 2, 2, "Confian\xE7" "a"},
         {1889, 6052, 14, 220, 90, 2, 2, "Espada M\xE1gica"},
         {1905, 5786, 51, 400, 60, 8, 2, "Pts. Hab."},
+        {0x7F410000u, 0, 414, 76, 84, 2, 2, "Base chance"},
+        {0x7F410000u, 0, 414, 76, 84, 2, 2, "Chance base"},
+        {0x7F410000u, 0, 506, 76, 96, 2, 2, "With bonus"},
+        {0x7F410000u, 0, 506, 76, 96, 2, 2, "Com b\xF4nus"},
+        {0x7F410000u, 0, 410, 56, 192, 2, 2, "B\xF4nus de drop: +100%"},
+        {0x7F410000u, 0, 16, 284, 588, 2, 2, "Chance per eligible kill; combines independent item rolls."},
+        {0x7F410000u, 0, 16, 284, 588, 2, 2, "Chance por abate eleg\xEDvel; combina rolagens independentes."},
+        {0x7F410000u, 0, 16, 300, 588, 2, 2, "Your bonus changes normal rates; fixed rewards are unchanged."},
+        {0x7F410000u, 0, 16, 300, 588, 2, 2, "Seu b\xF4nus altera taxas normais; recompensas fixas n\xE3o mudam."},
     };
 
     // Measure the reported captions and representative values with real GDI
@@ -129,7 +141,8 @@ int RunSingleLineTextLayoutTests(int& checks)
         "White Magic", "Black Magic", "Special Magic", "Sephira", "Faith",
         "Transmutation", "Magic Sword", "Elemental", "Summon", "Nature",
         "Survival", "Trade", "Capture", "My Info", "Kingdom", "Skill Mastery",
-        "A long caption crossing the forty-two-byte texture boundary"
+        "A long caption crossing the forty-two-byte texture boundary",
+        "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
     };
     for (float uiScale : {1.0f, 1.25f, 1.5f, 2.0f}) {
         for (int weight : {500, 700}) {

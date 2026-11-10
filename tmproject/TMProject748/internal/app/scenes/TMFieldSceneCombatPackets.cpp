@@ -11,11 +11,13 @@
 #include "TMUtil.h"
 #include "TMSkinMesh.h"
 #include "TMItem.h"
+#include "../../game/entities/MonsterVisualScale.h"
 #include "TMSkillMagicArrow.h"
 #include "TMSkillJudgement.h"
 #include "TMSkillPoison.h"
 #include "TMSkillMeteorStorm.h"
 #include "TMSkillThunderBolt.h"
+#include "../../wire/CorruptedCrystalAppearance.h"
 #include "TMSkillSlowSlash.h"
 #include "TMSkillMagicShield.h"
 #include "TMSkillFreezeBlade.h"
@@ -1443,6 +1445,22 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 // Extracted from TMFieldScene::OnPacketAttack; behavior is unchanged.
 ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, TMHuman*& pTarget, float& fHeight, int& extractedResult)
 {
+	if (pAttacker->m_nSkinMeshType == corrupted_crystal::SkinType &&
+		pAttack->SkillIndex == corrupted_crystal::ThunderSkill &&
+		static_cast<unsigned char>(pAttack->Motion) == corrupted_crystal::PulseMotion)
+	{
+		for (int i = 0; m_pEffectContainer && i < targetCount; ++i)
+		{
+			const auto* target = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
+			if (target && target != pAttacker)
+			{
+				const TMVector3 position(target->m_vecPosition.x, target->m_fHeight, target->m_vecPosition.y);
+				m_pEffectContainer->AddChild(new TMSkillThunderBolt(position, TMSkillThunderBolt::CorruptedCrystal));
+			}
+		}
+		return ExtractedFlow::Next;
+	}
+
 	if (pAttack->SkillIndex == 4) // Possessed
 	{
 		pAttacker->m_cPunish = 1;
@@ -1541,7 +1559,8 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			pAttacker->m_stEffectEvent.dwTime = g_pTimerManager->GetServerTime() + 500;
 		}
 	}
-	if (pAttacker->m_nClass == 62 && pAttacker->m_stLookInfo.FaceMesh == 2 && pAttack->SkillIndex == 108 && pTarget)
+	if (pAttacker->m_nClass == 62 && pAttacker->m_stLookInfo.FaceMesh == 2 && pAttack->SkillIndex == 108 && pTarget &&
+		!(pAttacker->m_sHeadIndex == 396 && monster_visual_scale::IsSummonName(pAttacker->m_szName)))
 	{
 		TMVector3 vecStart{ pAttacker->m_vecPosition.x, pAttacker->m_fHeight + 1.0f, pAttacker->m_vecPosition.y };
 		TMVector3 vecDest{ pTarget->m_vecPosition.x, pTarget->m_fHeight, pTarget->m_vecPosition.y };
@@ -1561,18 +1580,17 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 		if (pEffect && m_pEffectContainer)
 			m_pEffectContainer->AddChild(pEffect);
 	}
-	else if (pAttack->SkillIndex == 3) // Pursuit
+	else if (pAttack->SkillIndex == 3 || pAttack->SkillIndex == 13) // Rescue or Growth
 	{
-		if (pAttacker)
+		if (m_pEffectContainer)
 		{
-			TMVector3 vecPos{ pAttacker->m_vecPosition.x, pAttacker->m_fHeight + 1.0f, pAttacker->m_vecPosition.y };
-			vecPos.y -= 0.5f;
-
-			auto pHoly = new TMSkillHolyTouch(vecPos, 1);
-
-			if (pHoly && m_pEffectContainer)
-				m_pEffectContainer->AddChild(pHoly);
+			const TMVector3 position{ pAttacker->m_vecPosition.x, pAttacker->m_fHeight + 0.5f, pAttacker->m_vecPosition.y };
+			m_pEffectContainer->AddChild(new TMSkillHolyTouch(position, 1));
 		}
+	}
+	else if (pAttack->SkillIndex == 100) // Cancellation
+	{
+		GetSoundAndPlay(156, 0, 0);
 	}
 	else if (pAttack->SkillIndex == 5) // Fanaticism
 	{

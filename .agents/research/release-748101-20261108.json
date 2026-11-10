@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "dateLocal": "2026-11-08",
+  "classification": "EXTENSAO_COORDENADA",
+  "authorization": "Owner authorized upload and explicitly authorized publishing the patch and restarting only both game channels.",
+  "mode": "working-tree",
+  "head": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "clientVersion": "7.48.101",
+  "minimumRevision": 101,
+  "feedVersion": 48101,
+  "priorRelease": "/srv/wyd-go/releases/20261103T010701Z",
+  "activeRelease": "/srv/wyd-go/releases/20261108T112940Z",
+  "rollback": "/srv/wyd-go/releases/20261103T010701Z",
+  "published": true,
+  "activated": true,
+  "gameplayAccepted": false,
+  "databaseBackup": {
+    "path": "/var/backups/wyd-go/wydgo-20261108T013328Z.dump",
+    "sizeBytes": 552757,
+    "sha256": "bf30585695b2d6608158409f7153277dc7adc1789751ed23cc75c4808b3a94d0",
+    "pgRestoreListPassed": true
+  },
+  "server": {
+    "path": "/srv/wyd-go/current/game/wyd-server",
+    "sha256": "4df66e235ef36734987173fd58ef79460022036880e27f16d3b8bc4dd43321f6",
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 14390468,
+      "sha256": "d989611065422b488cbf5b7515ab3df1c835163f80935a9fab2b478dc960d2ab"
+    },
+    "payloadFiles": 1076,
+    "payloadHashesVerified": 1076,
+    "changedPaths": [
+      "game/data/content/quests.json",
+      "game/data/spawns/NPCGener.txt",
+      "game/wyd-server"
+    ],
+    "sourceRecordsVerified": 2332
+  },
+  "clientPatch": {
+    "version": 48101,
+    "url": "https://wyd.forjago.com/patch/patch-48101.zip",
+    "sizeBytes": 1151974,
+    "sha256": "8d0b114a64792d936df2ec09c612f84a0cc83f764acc23d44ac06af476b2d170",
+    "files": [
+      {
+        "path": "EN/UI/UIString.txt",
+        "source": "tmproject/client748/EN/UI/UIString.txt",
+        "size": 4553,
+        "sha256": "7b8bb0ccd8ef7d8c3aa872697906a43a27d65619c149fd0e3c8c3fcfd7d7f10d"
+      },
+      {
+        "path": "EN/UI/interface.txt",
+        "source": "tmproject/client748/EN/UI/interface.txt",
+        "size": 2368,
+        "sha256": "0ef7b3b4d84d34d3dd316b4582c365082025c964d449f2ad07bad34788ff91c8"
+      },
+      {
+        "path": "ItemListWide.csv",
+        "source": "tmproject/client748/ItemListWide.csv",
+        "size": 225,
+        "sha256": "4e777cf0c799525527226b0d8e39446ad70927c52fd044f2cb81c4e880e6837b"
+      },
+      {
+        "path": "PT/UI/UIString.txt",
+        "source": "tmproject/client748/PT/UI/UIString.txt",
+        "size": 4921,
+        "sha256": "c65a7a09c884edad5c91b1e7d8140cb19300d75beccc6f818424e6d3756c8892"
+      },
+      {
+        "path": "PT/UI/interface.txt",
+        "source": "tmproject/client748/PT/UI/interface.txt",
+        "size": 2700,
+        "sha256": "895fbe9e2868f9e8c2ec28d54b9cadf77a4648822e497eee9c3eae0e4bad92fc"
+      },
+      {
+        "path": "UI/UIString.txt",
+        "source": "tmproject/client748/UI/UIString.txt",
+        "size": 4553,
+        "sha256": "7b8bb0ccd8ef7d8c3aa872697906a43a27d65619c149fd0e3c8c3fcfd7d7f10d"
+      },
+      {
+        "path": "UI/interface.txt",
+        "source": "tmproject/client748/UI/interface.txt",
+        "size": 2368,
+        "sha256": "0ef7b3b4d84d34d3dd316b4582c365082025c964d449f2ad07bad34788ff91c8"
+      },
+      {
+        "path": "WYD.exe",
+        "source": "tmproject/build/TMProject748/Release/WYD.exe",
+        "size": 2082816,
+        "sha256": "4b620dd93d325dbe81f3e4935247067a9ee3724f520b767afc50f68f16845088"
+      },
+      {
+        "path": "WydCrashReporter.dll",
+        "source": "tmproject/build/TMProject748/Release/WydCrashReporter.dll",
+        "size": 564224,
+        "sha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6"
+      }
+    ],
+    "publicDownloadHashVerified": true,
+    "fullClientBaseline": "7.48.100",
+    "fullClientDrive": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link"
+  },
+  "website": {
+    "receiptUrl": "https://wyd.forjago.com/client-manifest.json",
+    "advertisedVersion": "7.48.101",
+    "publicFeed": [
+      "[WYD]",
+      "48100 notice.txt",
+      "48101 patch-48101.zip"
+    ],
+    "archive": {
+      "path": "website.tar.gz",
+      "size": 875459,
+      "sha256": "7dcf0da8806f37d00ec262c2f7fbf36a1910e06acd36deea7c23e4ac8b2ff389"
+    },
+    "payloadFiles": 6661,
+    "payloadHashesVerified": 6661,
+    "preservedExternalFullClient": true,
+    "newsPublished": false,
+    "newsDraft": "build/release-748101-20261107/news-draft.md"
+  },
+  "backupState": {
+    "privateAndPreservedFileHashes": "unchanged",
+    "playerApiPidPreserved": true,
+    "logReaderPidPreserved": true,
+    "otherServicesRestarted": false
+  },
+  "services": {
+    "wyd-game@1": {
+      "MainPID": "552464",
+      "NRestarts": "0",
+      "Id": "wyd-game@1.service",
+      "ActiveState": "active"
+    },
+    "wyd-game@2": {
+      "MainPID": "552465",
+      "NRestarts": "0",
+      "Id": "wyd-game@2.service",
+      "ActiveState": "active"
+    },
+    "wyd-player": {
+      "MainPID": "3492238",
+      "NRestarts": "0",
+      "Id": "wyd-player.service",
+      "ActiveState": "active"
+    },
+    "wyd-log-reader": {
+      "MainPID": "3492336",
+      "NRestarts": "0",
+      "Id": "wyd-log-reader.service",
+      "ActiveState": "active"
+    }
+  },
+  "readiness": {
+    "game": "200",
+    "player": "200",
+    "listeners": [
+      "8281",
+      "8282"
+    ],
+    "nRestarts": 0
+  },
+  "admission": {
+    "results": [
+      {
+        "port": 8281,
+        "revision": 100,
+        "opcode": "0x101",
+        "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 101,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 100,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 101,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "verification": {
+    "goTests": "passed",
+    "goVet": "passed",
+    "focusedRace": "passed",
+    "clientReleaseBuild": "passed",
+    "portalCheck": "0 errors, 0 warnings, 0 hints",
+    "portalBuild": "passed",
+    "portalTests": "116 passed",
+    "documentationLayout": "passed: 222 documents indexed, links and layout valid"
+  },
+  "source": "Authorized working-tree release; no commit or push. Existing dirty files retained."
+}

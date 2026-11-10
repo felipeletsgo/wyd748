@@ -1265,6 +1265,7 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 				})
 			}
 			m.HP -= damage
+			w.recordCrystalAttack(m, playerOwner, damage)
 			if m.HP == 0 {
 				if isCombatSummon(m) {
 					w.destroyPlayerSummon(m, playerOwner.ID)
@@ -1448,6 +1449,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 			damage = w.lightningStormTickDamage(p, m, now)
 		}
 		appliedByMob[m] = minU32(damage, m.HP)
+		w.recordCrystalAttack(m, p, appliedByMob[m])
 		if damage >= m.HP {
 			m.HP = 0
 		} else {

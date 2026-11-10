@@ -1,0 +1,174 @@
+{
+  "release": "/srv/wyd-go/releases/20261109T004923Z",
+  "previousRelease": "/srv/wyd-go/releases/20261108T172846Z",
+  "mode": "working-tree, game-only plus patch and website",
+  "sourceHead": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "restartAuthorized": true,
+  "activeMinimumRevision": 104,
+  "preactivation": {
+    "gameUnits": "both active",
+    "gameOnlyLayout": "passed",
+    "portal": "check and build passed, 116 tests passed",
+    "wire": "passed",
+    "staging": {
+      "release-manifest.json": {
+        "sha256": "8719d2e81f1c6757270b3a409b7fd2815dfdf21487e0d4a8c419d5f94648ddcd",
+        "payloadFiles": 1077
+      },
+      "changedGamePaths": [
+        "game/data/content/corrupted_crystal.json",
+        "game/data/content/language/en.txt",
+        "game/data/content/language/pt.txt",
+        "game/wyd-server"
+      ],
+      "website-manifest.json": {
+        "sha256": "3d337fe8209e8cfd4aaeef254478cfcce6b7f13d47537315f2c2c7461bbfce8a",
+        "payloadFiles": 6661
+      },
+      "clientPatch": {
+        "version": 48104,
+        "sha256": "48d11fb492df9f542ad0ebd36197347c8ea0c81bb465e249abd9dbdb82b27ba0",
+        "entries": 21
+      },
+      "crystal": {
+        "x": 1104,
+        "y": 1711,
+        "hp": 10000000
+      },
+      "liveRevision": 103
+    }
+  },
+  "patch": {
+    "feed": [
+      "[WYD]",
+      "48100 notice.txt",
+      "48101 patch-48101.zip",
+      "48102 patch-48102.zip",
+      "48103 patch-48103.zip",
+      "48104 patch-48104.zip"
+    ],
+    "archiveSha256": "48d11fb492df9f542ad0ebd36197347c8ea0c81bb465e249abd9dbdb82b27ba0",
+    "archiveSize": 1486833,
+    "verifiedEntries": 21
+  },
+  "publicManifest": {
+    "version": 2,
+    "clientVersion": "7.48.104",
+    "feedVersion": 48104,
+    "publishedAt": "2026-11-08",
+    "launcherVersion": null,
+    "minimumLauncherVersion": null,
+    "fullClient": {
+      "clientVersion": "7.48.100",
+      "url": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+      "sizeBytes": 260877805,
+      "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66"
+    },
+    "patch": {
+      "url": "/patch/patch-48104.zip",
+      "sizeBytes": 1486833,
+      "sha256": "48d11fb492df9f542ad0ebd36197347c8ea0c81bb465e249abd9dbdb82b27ba0",
+      "executableSha256": "7E0DDDCD3400BC772E7ADA64F87D530C6754D2BF097BF4D8E9DD988B0BEECF2E"
+    },
+    "updateFeed": "/patch/update.htm"
+  },
+  "publicPagesVerified": [
+    "/download",
+    "/changelog"
+  ],
+  "active": {
+    "activeRelease": "/srv/wyd-go/releases/20261109T004923Z",
+    "serverPayloadFiles": 1077,
+    "websitePayloadFiles": 6661,
+    "privateAndPreservedFileHashes": "unchanged",
+    "schema": "20",
+    "backup": {
+      "at": "2026-11-09T00:49:23Z",
+      "archive": "wydgo-20261109T004922Z.dump",
+      "bytes": 554644,
+      "sha256": "3fa304783cf7f72430485af0155e4454c611b19f4cf4ba131cbfd50beac09370"
+    },
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "682865",
+        "NRestarts": "0",
+        "Id": "wyd-game@1.service",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261109T004923Z/game/wyd-server",
+        "sha256": "facb2edaed65f14069643b8009cfe216eba84b58190e1c97aec2f7e9a0ce0fc0"
+      },
+      "wyd-game@2": {
+        "MainPID": "682866",
+        "NRestarts": "0",
+        "Id": "wyd-game@2.service",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261109T004923Z/game/wyd-server",
+        "sha256": "facb2edaed65f14069643b8009cfe216eba84b58190e1c97aec2f7e9a0ce0fc0"
+      },
+      "wyd-player": {
+        "MainPID": "3492238",
+        "NRestarts": "0",
+        "Id": "wyd-player.service",
+        "ActiveState": "active"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "Id": "wyd-log-reader.service",
+        "ActiveState": "active"
+      }
+    },
+    "readyz": "200",
+    "gameListeners": [
+      "8281",
+      "8282"
+    ],
+    "establishedGameConnections": 0
+  },
+  "portalActivation": {
+    "release": "/srv/wyd-go/releases/20261109T004923Z",
+    "websiteFilesVerified": 6661,
+    "previousDirectories": [
+      "web.before-748104",
+      "game/web.before-748104"
+    ]
+  },
+  "readiness": {
+    "8082": 200,
+    "8083": 200
+  },
+  "channelWarningsAndErrors": 0,
+  "admission": {
+    "at": "2026-11-09T00:49:59.632424+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 103,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 104,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 103,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 104,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "clientTested": false,
+  "publishedExecutableInstalledLocally": false,
+  "pending": "Real-client verification of the crystal cycle, Help and camera."
+}

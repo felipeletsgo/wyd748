@@ -1,13 +1,16 @@
 # Gameplay bug register
 
-Updated: 2026-11-03. This is the report status queue. Use [current state](current-state.md) for the latest recorded release.
+Updated: 2026-11-09. This is the report status queue. Use [current state](current-state.md) for the latest recorded release.
 
 ## Queue
 
 BUG-012–BUG-015 have source corrections and passing automated checks.
-Patch 48018 and server release `20261102T233404Z` are published and active.
+Their corrections were published in patch 48018 and consolidated into baseline 7.48.100.
+See current state for the last recorded active release.
 New owner gameplay acceptance remains pending. See the [release receipt](../.agents/research/release-748018.json).
-BUG-016–BUG-024 remain open owner reports. BUG-018/019 have a likely source-level cause in party-state reconstruction on view entry; runtime packet order and native behavior remain unverified. BUG-021 needs a precise symptom; BUG-022 needs its entry request and item confirmed; BUG-023 needs affected item IDs and grouping conditions; BUG-024 needs its conversion trigger and value confirmed.
+BUG-016–BUG-024 corrections were published in mandatory patch 48101 and activated in release 7.48.101. Build and server regression checks passed; owner gameplay acceptance remains pending. See the [November 8 release receipt](../.agents/research/release-748101-20261108.json) and November 7 correction evidence below.
+BUG-025 and BUG-027–BUG-028 were introduced in mandatory patch 48102. The owner's screenshots rejected its label occlusion and layout. Patch 48103 and release 7.48.103 now include the follow-up corrections for BUG-025 and BUG-029–BUG-030. Automated, publication and admission checks passed. The owner approved the installed local candidate; detailed scenario coverage and post-activation gameplay remain unrecorded. See the [current activation receipt](../.agents/research/release-748103-20261108.json) and [dated 102 evidence](../.agents/research/release-748102-20261108.json).
+Published revision 104 corrects BUG-026 with the Quest centering calculation. Build and automated checks passed. Actual client acceptance remains pending; see the [Help update](client/ui-windows.md#help-commands-and-centering--2026-11-08).
 The original eleven reports remain closed. On 2026-11-01 the owner confirmed BUG-001 to
 BUG-011 fixed in the client (`CLIENT-TESTED` by the owner's report; no session
 log or capture is attached). Reopen an ID only for a new concrete reproduction.
@@ -19,19 +22,27 @@ in progress. No publication or restart is authorized by this register.
 
 | ID | Priority | Issue | Current status |
 | --- | --- | --- | --- |
-| BUG-012 | P1 | FelipeTr Unicorn injury while the HUD shows high HP and C.C. is set to 50% | Active in 7.48.018: publish intermediate mount HP to its owner; update C.C., bars and tooltip without rebuilding appearance. Client acceptance pending. Exact death sequence remains unlogged. |
+| BUG-012 | P1 | FelipeTr Unicorn injury while the HUD shows high HP and C.C. is set to 50% | Published in 7.48.018; included in baseline 7.48.100: publish intermediate mount HP to its owner; update C.C., bars and tooltip without rebuilding appearance. Client acceptance pending. Exact death sequence remains unlogged. |
 | BUG-013 | P1 | Crash returning from field to server selection | Published in 7.48.018: detach retired-scene geometry, discard terminal lists without traversal and avoid dereferencing borrowed focus during destruction. Local client installed; repeated-transition acceptance pending. |
 | BUG-014 | P1 | October 30 client stack overflow | Published in 7.48.018: exact patch-48016 image, RTTI and saved stack prove recursive TMScene destruction. No-reentry and bounded collector corrections pass regression checks. Client acceptance pending. |
-| BUG-015 | P2 | Mount food appears to decrease before one equipped hour | Active in 7.48.018: an accepted slot-14 move clears the previous mount's deadline, including moves between ticks. Same-slot and rejected requests preserve the clock. One-hour interval was already correct; timed client acceptance pending. |
-| BUG-016 | P2 | Character creation label overlaps the nickname field | Reported by owner on 2026-11-02: the screenshot shows `Nome do Personagem` drawn over the nickname input. Cause and layout behavior are unverified; reproduce before correction. |
-| BUG-017 | P2 | Party invite gives no feedback when the target already has a party | Reported by owner on 2026-11-03: inviting a player who already belongs to a party should show the native client's “player already has a group” message. Reproduce the current response and verify the exact native message before correction. |
-| BUG-018 | P2 | Same-party health bar uses dark green like the local player's | Owner observed asymmetric results after leaving and re-entering view: one client shows the party bar correctly, while the reciprocal view remains light green. Static lead below; native color and runtime packet order remain unverified. |
-| BUG-019 | P2 | Same-party characters are not visible on the minimap | Owner reports native WYD shows party members on the minimap. The static lead below may explain the missing marker; verify native range and update rules before correction. |
-| BUG-020 | P2 | Buying a skill also triggers world movement | Owner reported on 2026-11-03: a click that buys or confirms a skill also reaches world movement as if the skill store did not consume it. Reproduce and verify that the click is consumed once before correction. |
-| BUG-021 | P2 | Slot machine malfunction | Owner reported on 2026-11-03; the screenshot shows the slot machine UI but does not identify the incorrect outcome. Exact symptom, expected behavior and reproduction steps are pending. |
-| BUG-022 | P2 | Quest Gardener does not request the quest-entry item | Owner clarified on 2026-11-03 that the NPC does not request entry, so no item is consumed. Identify the intended request condition and item before correction. |
-| BUG-023 | P2 | Stackable fairy items do not group | Owner reported on 2026-11-03: fairies that should support stacking and splitting are not grouping. Verify affected item IDs, quantity limits and whether the failure occurs on pickup, inventory movement or trade before correction. |
-| BUG-024 | P2 | Gold coin drops do not auto-convert to currency | Owner reported on 2026-11-03: a gold coin should convert to character gold automatically; the screenshot shows `Moeda de Ouro 1` in inventory. Confirm whether conversion occurs at drop creation or pickup and the item value before correction. |
+| BUG-015 | P2 | Mount food appears to decrease before one equipped hour | Published in 7.48.018; included in baseline 7.48.100: an accepted slot-14 move clears the previous mount's deadline, including moves between ticks. Same-slot and rejected requests preserve the clock. One-hour interval was already correct; timed client acceptance pending. |
+| BUG-016 | P2 | Character creation label overlaps the nickname field | Source corrected: place the localized name caption above the nickname input, within the creation panel. EN/PT visual acceptance pending. |
+| BUG-017 | P2 | Party invite gives no feedback when the target already has a party | Source corrected: remove the silent client party-flag rejection and let the server return its existing localized already-in-party message. Gameplay acceptance pending. |
+| BUG-018 | P2 | Same-party health bar uses dark green like the local player's | Source corrected: restore the confirmed roster flag after observer creation and InitObject. Existing frame rendering resolves the dark green party color. Reciprocal view acceptance pending. |
+| BUG-019 | P2 | Same-party characters are not visible on the minimap | Source corrected: restore the yellow party minimap marker when the visible actor is recreated. No new tracking outside visibility was added. Gameplay acceptance pending. |
+| BUG-020 | P2 | Buying a skill also triggers world movement | Source corrected: capture skill and confirmation hit bounds before dispatch; consume the event even if confirmation hides the panel. Gameplay acceptance pending. |
+| BUG-021 | P2 | Slot machine malfunction | Source corrected: clip reel symbols to the three-row viewport and separate the localized bet label and amount. Existing authoritative five-line payout and failure tests pass. Visual acceptance pending. |
+| BUG-022 | P2 | Level quests do not charge their entry tickets | Owner clarified on 2026-11-07: charge all five level-quest entrances. Require and consume one respective ticket, IDs 4038–4042, using supplied native 7.59 quest scripts. Save failures restore payment and position. Gameplay acceptance pending. |
+| BUG-023 | P2 | Gold Angel does not group collected stackable items | Owner clarified: only the equipped Gold Angel (3915) groups collected stackable items. Source corrected for ordinary, boss and global drops, plus ground pickup. Preserve quantities, effects and residual stacks; inactive fairies do not group. Gameplay acceptance pending. |
+| BUG-024 | P2 | Gold coin drops do not auto-convert to currency | Published in patch 48101 and active in server release 7.48.101: direct monster coin drops use the same catalog and instance coin effects as ground pickup. Credit gold inside the kill transaction; preserve the coin on the ground at the gold cap. Gameplay acceptance pending. |
+| BUG-025 | P2 | NPC, player and ground-item labels overlap the drop-list window | Reopened after owner screenshots of 7.48.102. Revision 103 now gates both actor render paths and hides existing labels on first open. Published and active; build and automated checks passed. Owner approved the installed local candidate; post-activation gameplay is unrecorded. |
+| BUG-026 | P2 | H (Help) table opens off-center | Revision 104 centers the complete resource root like Quest. Build and automated checks passed. Revision 104 is published. Gameplay acceptance remains pending. See the [Help update](client/ui-windows.md#help-commands-and-centering--2026-11-08). |
+| BUG-027 | P2 | Drop-list bonus and search mode are unclear | Published in 7.48.102: label base chance, chance with bonus, and the live personal bonus. Mode-specific prompts, no-result guidance, and disabled page controls clarify search state. Build and EN/PT locale checks passed; visual acceptance pending. |
+| BUG-028 | P2 | Drop list includes NPC files with no active spawn source | Introduced in 7.48.102 and retained in active 7.48.103: index enabled generators, encounter, instance, and boss-summon sources. Exclude orphan templates from normal and global-event rows. Go tests and vet passed; gameplay acceptance pending. |
+| BUG-029 | P2 | Drop-list frame overlaps HUD; footer text and Close leave the artwork | Owner screenshots confirmed the defect in 102. Published and active revision 103 uses a 620x360 frame, actual HUD bounds, measured text limits and the existing artwork's Close position. Build and automated checks passed. Owner approved the installed local candidate; detailed EN/PT and resolution coverage is unrecorded. |
+| BUG-030 | P2 | Drop-list close/reopen can retain hidden focus or accept an old reply | Published and active revision 103 releases focus in both keyboard modes and uses request IDs that survive resets. Whitespace normalization agrees between localized item matching and the server. Focused automated checks passed. Owner approved the local candidate; specific lifecycle coverage is unrecorded. |
+| BUG-031 | P2 | Fire Tiger mount lacks its native flames | Source restores seven animated billboards on the mount bones for riders and observers. Gameplay acceptance remains pending. See the [Fire Tiger trace](../.agents/research/client748/flows/ui/mount-species-effects.md). |
+| BUG-032 | P2 | An incoming monster hit can display stale player MP | Confirmed in client source. The hit can briefly display maximum MP before the authoritative snapshot arrives. Timing in the real client is pending. |
 | BUG-001 | P2 | HIT/MISS feedback missing for the attacker | Closed: owner confirmed fixed in the client, 2026-11-01 |
 | BUG-002 | P1 | Noatun gate closes unexpectedly and blocks return | Closed: owner confirmed fixed in the client, 2026-11-01 |
 | BUG-003 | P1 | Hell Gate has no visible monsters after entry | Closed: owner confirmed fixed in the client, 2026-11-01 |
@@ -44,7 +55,7 @@ in progress. No publication or restart is authorized by this register.
 | BUG-010 | P2 | Magic Chamber entrance floor runes are missing | Closed: owner confirmed fixed in the client, 2026-11-01 |
 | BUG-011 | P1 | Compounder and city guards attack players | Closed: owner confirmed fixed in the client, 2026-11-01 |
 
-Static lead — BUG-018/019 (2026-11-03): `TMHuman` initializes `m_bParty` to zero
+Historical static lead — BUG-018/019 (2026-11-03; superseded by the November 7 source correction below): `TMHuman` initializes `m_bParty` to zero
 (`tmproject/TMProject748/internal/game/entities/TMHuman.cpp:2576`). The observer
 CreateMob path materializes a new human without resolving the party roster
 (`tmproject/TMProject748/internal/app/scenes/TMFieldSceneWorld.cpp:457-536`).
@@ -58,6 +69,38 @@ If the roster arrives before the actor exists, its party flag and marker are
 not reapplied when CreateMob later creates the actor. This can explain the
 asymmetric view reported by the owner; the exact runtime sequence and native
 7.48 behavior remain unverified.
+
+## November 7 correction evidence
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Existing wire formats and resource IDs remain intact.
+Admission advances both source contracts from published revision 100 to candidate 101.
+The candidate is not installed, published or active. No game was launched.
+
+- BUG-016: indexed `SelCharScene2.bin` controls 5665/4626 share y=330. Separate their rows in the source initializer.
+- BUG-017: `OnPgtPartyButton` silently discarded known party targets. The authoritative server already validates membership and supplies EN/PT text.
+- BUG-018/019: retain the roster across actor removal. Reapply its confirmed membership and existing minimap color after `InitObject`.
+- BUG-020: preserve the pre-dispatch hit, because confirmation can hide itself during the callback.
+- BUG-021: `SReelPanel` exposed symbols at negative y and below row three. Clip texture and destination bounds together. Preserve the existing server payout system.
+- BUG-022: owner-selected entry payments use native server scripts `13_350Quest__Gravekeeper.c` through `17_350Quest_Guard__.c` under `references/decompilacao server/dlls/TMSRV OFICIAL WYD BR ORIGINAL/DestinyServer-main/TMSRV2/run/Quest/`. Require and consume 4038/4039/4040/4041/4042 for Gravedigger/Gardener/Scout/Guard__/Envoy respectively. Other configured quest payments remain in force; do not invent tickets for free services.
+- BUG-023: owner-selected Gold Angel rule extends the existing quantity contract. Server 7.59 `sub_507C60` confirms singleton powder handling, but its 120-unit cap and fairy eligibility differ. Keep this project's 255-unit stack contract and the owner's gold-only requirement; do not claim native 7.48 parity.
+- BUG-024: use the existing `ground_gold` rule and `volatileGoldValue`; no coin denomination is inferred from its name.
+
+Validation: client build with `-NoDeploy` and its test gates passed. Focused tests cover
+paid-entry commit/rejection, gold-cap fallback, singleton powder grouping, stack residuals,
+full inventories, detached ground-pickup commit/repetition, party, boss, global-drop and gamble flows.
+The first full-suite run rejected missing MercZakum/MercCabuncle placements.
+The owner confirmed these NPC removals were intentional. Update the population
+check to validate retained positions and duplicate limits, without requiring removed services.
+The final `go test ./...`, focused race checks, `go vet ./...`, and the server build passed.
+The full-suite run used the configured isolated `WYD_TEST_POSTGRES_URL`.
+Correction-only build SHA-256: `78E96DAADE29A8497FA51695BE7F476F6D5F79D1215901B6B23E01D130550C48`.
+This dated build is superseded by the [drop-search candidate](protocol/drop-list.md#implementation-and-check-results), which includes these corrections.
+Task logs are in ignored `build/bugs-016-024-*.log` and `tmproject/build/bugs-016-024-build.log`.
+
+Owner acceptance: check EN/PT creation and bet labels, reciprocal party view reentry,
+join/leave and relogin, minimap marker removal, skill confirmation without movement,
+slot outcomes against credited gold, all five paid entries, Gold Angel collection,
+and direct coin drops with an empty or full inventory.
 
 ## Disconnect and performance audit — 2026-10-31
 
@@ -1117,6 +1160,24 @@ run, from the bots; the server logged no timeout or overflow close.
   affects and before/after HP/MP values.
 - Acceptance: casting costs and incoming-damage absorption each follow their
   own validated contract without duplicate resource deductions.
+
+### BUG-032 — Stale player MP on incoming monster hits
+
+- Report (2026-11-09). A level-400 Foema with Mana Control regained MP rapidly
+  during Tauron combat with zero potions in the HUD.
+- `AUTOMATED TESTED`. The saved equipment and the active release's item catalog
+  reproduced 10,107 maximum MP. Mithril Robe Gloves +9 contributed 54 MP
+  regeneration points. The [server pulse](../wydgo748/internal/game/regen.go)
+  restores up to 4,558 MP every three seconds with those gloves, or 10 without them.
+- Controlled hits of 461 and 500 after other mitigation consumed 414 and 450 MP.
+  The server sent both deductions in its HP/MP snapshots. The next regeneration
+  pulse restored the missing 864 MP. Keep BUG-004 and BUG-005 closed.
+- `STATICALLY VERIFIED`. The [client snapshot handler](../tmproject/TMProject748/internal/game/entities/TMHumanPackets.cpp)
+  stores maximum MP in `m_nReqMP`. The [incoming hit handler](../tmproject/TMProject748/internal/app/scenes/TMFieldSceneCombatPackets.cpp)
+  can copy that value over current MP and refresh the HUD before the next snapshot.
+  This also applies without Mana Control.
+- Acceptance. Display each confirmed MP deduction until a later authoritative
+  update changes it. Verify successive hits between pulses in the real client.
 
 ### BUG-006 — Divine Judgment visual effect
 

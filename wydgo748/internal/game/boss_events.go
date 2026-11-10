@@ -47,6 +47,9 @@ func mobHPPercent(m *Mob) int {
 // atravessados. A ordem importa -- uma regra de fase precisa ver o combate ja
 // iniciado.
 func (w *World) notifyMobDamaged(m *Mob, oldHP uint32, sourceID uint16, damage uint32) {
+	if m.crystalRole == crystalLarge {
+		w.recordCrystalAttack(m, w.playerByID(sourceID), damage)
+	}
 	boss := w.bossFor(m.ID)
 	if boss == nil {
 		return

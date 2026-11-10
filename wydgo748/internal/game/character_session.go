@@ -135,6 +135,7 @@ func resetCharacterRuntime(p *Player) {
 	p.LastPotion = time.Time{}
 	p.LastPremiumFirework = time.Time{}
 	p.LastCraft = time.Time{}
+	p.LastDropList = time.Time{}
 	p.NextRegen = time.Time{}
 	p.NextCPRecovery = time.Time{}
 	p.NextMountTick = time.Time{}

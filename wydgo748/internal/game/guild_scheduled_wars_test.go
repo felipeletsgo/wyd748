@@ -148,7 +148,7 @@ func scheduledWarWorld(t *testing.T, date string) (*World, *guildFlowStore, *Pla
 }
 
 func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
-	w, st, a, b, clock := scheduledWarWorld(t, "2026-09-14 20:55")
+	w, st, a, b, clock := scheduledWarWorld(t, "2026-09-14 20:59")
 	w.guilds.Wars.Castle.Owner = 1
 	prepareWarMedalPlayer(w, a)
 	prepareWarMedalPlayer(w, b)
@@ -158,7 +158,13 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 		}
 	}
 	w.tickGuildWars(clock.Now())
-	if s := w.guilds.Wars.Tower; s.Notices != 1 || w.warTower() != nil || s.Owner != 0 || s.Kingdom != 7 || s.InitialKingdom != 7 || s.DefenderCaptures != 1 {
+	if w.guilds.Wars.Tower.Day != "" || w.warTower() != nil {
+		t.Fatal("tower round opened before 21:00")
+	}
+	clock.Advance(time.Minute)
+	w.tickGuildWars(clock.Now())
+	if s := w.guilds.Wars.Tower; s.Notices != 1 || w.warTower() != nil || s.Owner != 0 || s.Kingdom != 7 || s.InitialKingdom != 7 || s.DefenderCaptures != 1 ||
+		s.StartsAt.Format("15:04") != "21:05" || s.EndsAt.Format("15:04") != "21:35" {
 		t.Fatal("missing prewarning or early tower")
 	}
 	queued := a.Session.QueuedPacketsForTest()
@@ -173,7 +179,12 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 	if w.guilds.Wars.Tower.Notices&2 == 0 {
 		t.Fatal("missing one-minute warning")
 	}
-	clock.Advance(time.Minute)
+	clock.Advance(time.Minute - time.Second)
+	w.tickGuildWars(clock.Now())
+	if w.towerBattleActive(clock.Now()) || w.warTower() != nil {
+		t.Fatal("battle opened before 21:05")
+	}
+	clock.Advance(time.Second)
 	w.tickGuildWars(clock.Now())
 	m := w.warTower()
 	if m == nil || !w.guilds.Wars.Tower.Started {
@@ -217,16 +228,21 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 	if s := w.guilds.Wars.Tower; s.Owner != 2 || s.Kingdom != 8 || s.DefenderCaptures != 2 || s.Captures != 3 || len(w.guilds.Wars.Medals) != 3 {
 		t.Fatal("final opposing capture did not preserve the divisor")
 	}
-	clock.Advance(55 * time.Minute)
+	clock.Advance(25 * time.Minute)
 	w.tickGuildWars(clock.Now())
 	if w.guilds.Wars.Tower.Notices&4 == 0 {
 		t.Fatal("missing end warning")
 	}
-	clock.Advance(5 * time.Minute)
+	clock.Advance(4 * time.Minute)
+	w.tickGuildWars(clock.Now())
+	if w.guilds.Wars.Tower.Notices != 15 || !w.towerBattleActive(clock.Now()) {
+		t.Fatal("missing 21:34 warning or early finish")
+	}
+	clock.Advance(time.Minute)
 	st.err = errors.New("disk unavailable")
 	w.tickGuildWars(clock.Now())
-	if w.guilds.FindByID(1).Fame != 0 || w.guilds.FindByID(2).Fame != 0 || w.guilds.Wars.Tower.Finished || w.guilds.Wars.Tower.DefenderCaptures != 2 || len(w.guilds.Wars.Medals) != 3 {
-		t.Fatal("failed reward published")
+	if w.towerBattleActive(clock.Now()) || w.guilds.FindByID(1).Fame != 0 || w.guilds.FindByID(2).Fame != 0 || w.guilds.Wars.Tower.Finished || w.guilds.Wars.Tower.DefenderCaptures != 2 || len(w.guilds.Wars.Medals) != 3 {
+		t.Fatal("combat continued after 21:35 or failed reward published")
 	}
 	st.err = nil
 	clock.Advance(time.Second)
@@ -241,7 +257,7 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 		t.Fatal("restart doubled fame")
 	}
 	w.guilds.Wars.Castle.Owner = 2
-	nextStart := time.Date(clock.Now().Year(), clock.Now().Month(), clock.Now().Day()+1, 20, 55, 0, 0, clock.Now().Location())
+	nextStart := time.Date(clock.Now().Year(), clock.Now().Month(), clock.Now().Day()+1, 21, 0, 0, 0, clock.Now().Location())
 	clock.current = nextStart
 	w.warInitialized = false
 	w.tickGuildWars(clock.Now())
@@ -251,7 +267,7 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 }
 
 func TestScheduledTowerSameRealmRoundPreservesDefenderCaptures(t *testing.T) {
-	w, _, _, _, clock := scheduledWarWorld(t, "2026-09-14 20:55")
+	w, _, _, _, clock := scheduledWarWorld(t, "2026-09-14 21:00")
 	w.guilds.Wars.Castle.Owner = 1
 	w.guilds.Wars.Tower = model.TowerWarState{
 		Day: "2026-09-13", Finished: true, Owner: 1, Kingdom: 7, InitialKingdom: 7,
@@ -260,6 +276,21 @@ func TestScheduledTowerSameRealmRoundPreservesDefenderCaptures(t *testing.T) {
 	w.tickGuildWars(clock.Now())
 	if s := w.guilds.Wars.Tower; s.Owner != 0 || s.Kingdom != 7 || s.InitialKingdom != 7 || s.DefenderCaptures != 2 || s.Captures != 0 || s.Notices != 1 || w.warTower() != nil {
 		t.Fatal("same-realm round did not preserve the native defender divisor")
+	}
+}
+
+func TestScheduledTowerKeepsLegacySavedWindow(t *testing.T) {
+	w, _, _, _, clock := scheduledWarWorld(t, "2026-09-14 21:05")
+	end := clock.Now().Add(55 * time.Minute)
+	w.guilds.Wars.Tower = model.TowerWarState{Day: "2026-09-14", Started: true, EndsAt: end}
+	w.tickGuildWars(clock.Now())
+	if w.warTower() == nil || !w.towerBattleActive(clock.Now()) {
+		t.Fatal("legacy round did not resume before 21:30")
+	}
+	clock.current = end
+	w.tickGuildWars(clock.Now())
+	if !w.guilds.Wars.Tower.Finished || w.warTower() != nil {
+		t.Fatal("legacy round did not finish at its saved deadline")
 	}
 }
 
@@ -559,7 +590,7 @@ func TestScheduledWarPrivateSpaceIsolation(t *testing.T) {
 				w.cityWarRunning = true
 				w.cityFighters = map[*Player]cityFighter{a: {city: 0, guild: 1}, b: {city: 0, guild: 2}}
 			} else {
-				w.guilds.Wars.Tower = model.TowerWarState{Day: "2026-09-14", Started: true, EndsAt: clock.Now().Add(55 * time.Minute), Kingdom: 7, InitialKingdom: 7, DefenderCaptures: 1}
+				w.guilds.Wars.Tower = model.TowerWarState{Day: "2026-09-14", Started: true, StartsAt: clock.Now(), EndsAt: clock.Now().Add(30 * time.Minute), Kingdom: 7, InitialKingdom: 7, DefenderCaptures: 1}
 			}
 			a.X, a.Y, b.X, b.Y = x, y, x+1, y
 			w.itemInstances = map[string]*ItemInstance{"private-war-coordinates": {RuntimeID: "private-war-coordinates", MemberIDs: []uint16{a.ID, b.ID}}}

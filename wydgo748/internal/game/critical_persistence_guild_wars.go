@@ -176,34 +176,14 @@ func (w *World) tickCriticalTowerWar(now time.Time) error {
 		return w.queueTowerWarFinish(s.Owner)
 	}
 	day := now.Format("2006-01-02")
-	start := time.Date(now.Year(), now.Month(), now.Day(), int(w.warConfig.TowerHour), 0, 0, 0, now.Location())
-	if now.Weekday() >= time.Monday && now.Weekday() <= time.Friday &&
-		!now.Before(start.Add(-5*time.Minute)) && now.Before(start.Add(time.Hour)) && s.Day != day {
+	if start, open := w.towerRoundWindow(now); open && s.Day != day {
 		return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
 			startTowerRound(guilds, day, start)
 			return nil
 		}, nil)
 	}
-	if s.Day == day && !s.Finished {
-		battle := s.EndsAt.Add(-time.Hour)
-		for _, warning := range []struct {
-			end     time.Time
-			bit     uint16
-			minutes int
-			text    string
-		}{
-			{battle, 1, 5, "Tower war starts within 5 minutes! Enter with /tower in Erion."},
-			{battle, 2, 1, "Tower war starts in 1 minute!"},
-			{s.EndsAt, 4, 5, "Tower war ends in 5 minutes! Guild fame is awarded only on a kingdom change."},
-			{s.EndsAt, 8, 1, "Tower war ends in 1 minute!"},
-		} {
-			if err := w.warCountdown(now, warning.end, &s.Notices, warning.bit, warning.minutes, warning.text); err != nil {
-				return err
-			}
-			if w.criticalGuildReserved() {
-				return nil
-			}
-		}
+	if err := w.towerCountdowns(now); err != nil || w.criticalGuildReserved() {
+		return err
 	}
 	if w.towerBattleActive(now) && !s.Started {
 		return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
@@ -217,8 +197,7 @@ func (w *World) tickCriticalTowerWar(now time.Time) error {
 					panic(fmt.Sprintf("committed tower start cannot spawn: %v", err))
 				}
 			}
-			w.ejectTowerOpponents(w.guilds.TowerKingdom())
-			w.warNotice("Tower war started! Use /tower in Erion. Duration: 60 minutes.")
+			w.publishTowerStart()
 		})
 	}
 	if w.towerBattleActive(now) && w.warTower() == nil {

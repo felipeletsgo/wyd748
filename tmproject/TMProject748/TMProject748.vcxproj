@@ -174,6 +174,9 @@
     <ClInclude Include="internal\wire\QuizEventPacket.h" />
     <ClInclude Include="internal\wire\PremiumShopPacket.h" />
     <ClInclude Include="internal\wire\KefraPortalPacket.h" />
+    <ClInclude Include="internal\wire\DropListPacket.h" />
+    <ClInclude Include="internal\application\DropSearchText.h" />
+    <ClInclude Include="internal\application\DropSearchLayout.h" />
     <ClInclude Include="internal\render\world\objects\KefraPortalVisual.h" />
     <ClInclude Include="internal\wire\ServerWarLetterContract.h" />
     <ClInclude Include="internal\wire\CombineCompleteContract.h" />
@@ -243,6 +246,7 @@
     <ClInclude Include="internal\core\BasedefGlobals.h" />
     <ClInclude Include="internal\core\UiLayout.h" />
     <ClInclude Include="internal\core\CameraInput.h" />
+    <ClInclude Include="internal\core\CameraZoom.h" />
     <ClInclude Include="internal\platform\diagnostics\ClientDiagnostics.h" />
     <ClInclude Include="internal\platform\diagnostics\CrashCapture.h" />
     <ClInclude Include="internal\platform\diagnostics\PerfTrace.h" />
@@ -525,6 +529,7 @@
     <ClCompile Include="internal\app\scenes\TMFieldSceneSessionPackets.cpp" />
     <ClCompile Include="internal\app\scenes\TMFieldSceneAutomation.cpp" />
     <ClCompile Include="internal\app\scenes\TMFieldSceneEvents.cpp" />
+    <ClCompile Include="internal\app\scenes\TMFieldSceneDropList.cpp" />
     <ClCompile Include="internal\app\scenes\TMFieldSceneSocial.cpp" />
     <ClCompile Include="internal\app\scenes\TMFieldSceneWorld.cpp" />
     <ClCompile Include="internal\app\scenes\TMFieldSceneMovement.cpp" />

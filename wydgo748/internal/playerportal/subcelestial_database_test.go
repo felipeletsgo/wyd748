@@ -51,7 +51,7 @@ func testSavedSubCelestialDatabase(t *testing.T, ctx context.Context, writer *st
 	if detail.Fame != 100 || detail.CP == int16(detail.Fame) {
 		t.Fatal("character Fame was omitted or confused with CP")
 	}
-	if r := detail.SubCelestialAscension; !r.RequirementsMet || r.RequiredLevel != 121 || r.RequiredFame != 100 || len(r.Checks) != 8 {
+	if r := detail.SubCelestialAscension; !r.RequirementsMet || r.RequiredLevel != 120 || r.RequiredFame != 100 || len(r.Checks) != 8 {
 		t.Fatalf("valid saved SubCelestial gates: %+v", r)
 	}
 	var stateTime time.Time

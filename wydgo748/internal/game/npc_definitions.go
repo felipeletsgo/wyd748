@@ -38,6 +38,7 @@ func (w *World) handleNPCDefinitionEvent(event *npcDefinitionEvent) {
 type npcDefinitionRuntime struct {
 	source     map[string]json.RawMessage
 	active     map[string]bool
+	spawned    map[string]bool
 	versions   map[string]uint32
 	lastChange int64
 	nextPoll   time.Time
@@ -67,6 +68,14 @@ func (w *World) loadNPCDefinitionsAtBoot(generators []model.NPCGener) error {
 	if err != nil {
 		return err
 	}
+	spawnSources := sources
+	if w.colosseum == nil || !w.colosseum.config.Enabled {
+		spawnSources.Colosseum = model.ColosseumGenerators{}
+	}
+	spawned, err := npccontent.SpawnNames(w.npcs, spawnSources)
+	if err != nil {
+		return err
+	}
 	seeds := make([]store.NPCDefinitionSeed, 0, len(used))
 	for i := range w.npcs {
 		def := &w.npcs[i]
@@ -80,6 +89,7 @@ func (w *World) loadNPCDefinitionsAtBoot(generators []model.NPCGener) error {
 			seeds = append(seeds, store.NPCDefinitionSeed{Definition: *def, Active: true})
 		}
 	}
+	state.spawned = spawned
 	w.npcDefinitionState = state
 	backend, ok := w.store.(store.NPCDefinitionStore)
 	if !ok {
@@ -198,6 +208,7 @@ func (w *World) installNPCDefinitionChanges(entries []store.NPCDefinitionRecord)
 			w.invalidateNPCShopWindows(entry.Name)
 		}
 		*target = def // Preserve the address used by every live Mob.Def pointer.
+		w.dropListIndex = nil
 		state.versions[entry.Name] = entry.Version
 		w.refreshNPCDefinitionInstances(target)
 		observeNPCDefinitionApply(w.channel, entry.UpdatedAt, time.Now())

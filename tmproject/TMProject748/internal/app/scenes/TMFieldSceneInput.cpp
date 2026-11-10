@@ -34,11 +34,17 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 		item_shortcuts::VisibleHit<SControl>(m_pCargoPanel, nX, nY);
 	const bool bOpenPGT = dwFlags == WM_RBUTTONUP && (wParam & MK_CONTROL) && !bItemPanelHit;
 	const bool bPGTAlreadyVisible = m_pPGTPanel && m_pPGTPanel->IsVisible();
+	// Capture before dispatch: a confirmation can hide itself during this event.
+	const bool skillUIHit = item_shortcuts::VisibleHit<SControl>(m_pSkillMPanel, nX, nY) ||
+		item_shortcuts::VisibleHit<SControl>(m_pSkillPanel, nX, nY) ||
+		item_shortcuts::VisibleHit<SControl>(m_pMessageBox, nX, nY);
 	if (!bOpenPGT || bPGTAlreadyVisible)
 	{
 		if (TMScene::OnMouseEvent(dwFlags, wParam, nX, nY) == 1)
 			return 1;
 	}
+	if (skillUIHit || (m_pDropListPanel && m_pDropListPanel->IsVisible()))
+		return 1;
 	if (!m_pMyHuman || !m_pGround)
 		return 0;
 	if (dwFlags == WM_RBUTTONDOWN && OfferResurrectionPrompt(wParam))
@@ -90,8 +96,23 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 
 		return 1;
 	}
-	if (dwFlags == 516)
-		return SkillUse(nX, nY, pick, serverTime, (wParam & 4) ? 0 : 1, 0);
+	if (dwFlags == WM_RBUTTONDOWN)
+	{
+		if (wParam & MK_CONTROL)
+			return 1;
+		// Item and actor hover are independent. Let a plain right click reach
+		// the item even if an actor would take the same click as a skill target.
+		if (!(wParam & MK_SHIFT) && !g_pEventTranslator->m_bAlt &&
+			(!m_pPotalPanel || !m_pPotalPanel->IsVisible()) &&
+			GetItemFromGround(serverTime, true))
+		{
+			m_pTargetHuman = nullptr;
+			m_pMyHuman->m_pMoveTargetHuman = nullptr;
+			m_pMyHuman->m_pMoveSkillTargetHuman = nullptr;
+			return 1;
+		}
+		return SkillUse(nX, nY, pick, serverTime, (wParam & MK_SHIFT) ? 0 : 1, nullptr);
+	}
 	if (dwFlags == 514)
 	{
 		m_bMoveing = 0;
@@ -650,6 +671,11 @@ void TMFieldScene::MouseMove(int nX, int nY)
 
 void TMFieldScene::OnESC()
 {
+    if (m_pDropListPanel && m_pDropListPanel->IsVisible())
+    {
+        CloseDropSearch();
+        return;
+    }
 	if (m_pccmode && m_pccmode->IsVisible())
 	{
 		m_pccmode->SetVisible(0);
@@ -1020,6 +1046,7 @@ int TMFieldScene::OnKeyHelp(char iCharCode, int lParam)
 	if (m_pHelpPanel)
 	{
 		int bVisible = m_pHelpPanel->IsVisible();
+		PositionCompatHelpPanel();
 		if (bVisible == 0)
 			SelectHelpTab(0);
 		m_pHelpPanel->SetVisible(bVisible == 0);

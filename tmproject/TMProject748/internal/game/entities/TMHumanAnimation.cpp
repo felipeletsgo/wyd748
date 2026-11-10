@@ -19,6 +19,7 @@
 #include "ItemEffect.h"
 #include "../../application/AttackVisualTiming.h"
 #include "EntitySafetyPolicy.h"
+#include "../../wire/CorruptedCrystalAppearance.h"
 
 static_assert(human_animation::kSkinTypes == MAX_ANI_TYPE &&
     human_animation::kTableColumns == MAX_ANI_MOTION &&
@@ -38,6 +39,23 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
 
     if (!m_dwDelayDel && eMotion != ECHAR_MOTION::ECMOTION_NONE && m_pSkinMesh)
     {
+        if (m_nSkinMeshType == corrupted_crystal::SkinType)
+        {
+            const bool shatter = eMotion == ECHAR_MOTION::ECMOTION_DIE;
+            const bool spent = eMotion == ECHAR_MOTION::ECMOTION_DEAD;
+            if (m_cDie && !shatter && !spent)
+                return;
+            if (shatter || spent)
+                m_nCrystalCrackStage = corrupted_crystal::CriticalCracks;
+            const int cut = shatter ? 1 : spent ? 2 : 0;
+            m_pSkinMesh->SetAnimation(cut);
+            m_pSkinMesh->m_dwFPS = corrupted_crystal::AnimationQuarterMs;
+            m_eMotion = shatter || spent ? eMotion : ECHAR_MOTION::ECMOTION_STAND01;
+            m_nLoop = shatter ? 0 : 1;
+            m_dwStartAnimationTime = g_pTimerManager->GetServerTime();
+            return;
+        }
+
         if (eMotion == ECHAR_MOTION::ECMOTION_LEVELUP && (m_nClass == 34 || m_nClass == 38))
             eMotion = ECHAR_MOTION::ECMOTION_STAND02;
 

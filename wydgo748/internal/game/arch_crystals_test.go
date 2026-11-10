@@ -153,9 +153,16 @@ func TestCristalNaoCobraSeOSaveFalhar(t *testing.T) {
 	const exp = uint32(2_600_000_000)
 	w, p, s := archComExp(exp, 0)
 	nivelAntes := p.Char.Score.Level
+	syncStatusPoints(p.Char)
+	p.Char.Score.Str += p.Char.Score.StatusPts
+	syncStatusPoints(p.Char)
+	before := *p.Char.Score
 	w.store = &craftStore{err: errors.New("disco cheio")}
 
 	usarCristal(w, p, s, firstArchCrystal)
+	if *p.Char.Score != before {
+		t.Fatalf("rejected oath changed the saved score: got %+v, want %+v", p.Char.Score, before)
+	}
 
 	if p.Char.Exp != exp {
 		t.Errorf("cobrou %d de EXP apesar da falha de disco", exp-p.Char.Exp)

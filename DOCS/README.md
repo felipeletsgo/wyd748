@@ -25,6 +25,7 @@ The current summaries, contracts and dated evidence have different owners. Start
 | Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
 | Review Rune Track rooms +0 through +6 and their independent event monsters | [Rune Track](server/rune-track.md) |
 | Check Kibita's Mortal Soul exchanges and official server evidence | [Kibita Mortal Soul](server/kibita-soul.md) |
+| Search monster and item drops inside the client | [In-game drop search](protocol/drop-list.md) |
 | Check how monster drops roll refinement and additional options | [Monster drop item options](server/drop-item-bonus.md) |
 | Understand native server functions or logic | [REA server research index](<../references/decompilacao server/dlls/rea-analysis/README.md>) |
 | Compare the supplied server 7.59 decompilation with current Go systems | [Server 7.59 map and gap analysis](<../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md>) |

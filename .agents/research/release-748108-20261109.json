@@ -1,0 +1,252 @@
+{
+  "release": "/srv/wyd-go/releases/20261109T231129Z",
+  "previousRelease": "/srv/wyd-go/releases/20261109T160924Z",
+  "restartAuthorized": true,
+  "mode": "working-tree, game data and binary, player API, client patch, and portal",
+  "sourceHead": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "activeMinimumRevision": 108,
+  "provenance": {
+    "localDirectory": "build/release-748108",
+    "clientPatchManifestSha256": "177503a6dc801ec3c231b1ce5ee40d569234cbbe867ac1df798a61e781d23676",
+    "gameReleaseManifestSha256": "5ae0c6184aa6b71ffa77ec30d019f1581082e997742d1de3498f34458851e82f",
+    "websiteManifestSha256": "280db16499de1098dbce1da541aeeb19bce401252380d8d5288aab3f751f94ee"
+  },
+  "validation": [
+    "Full Go test suite and go vet passed.",
+    "Linux amd64 game server and player API builds passed.",
+    "Release client build and architecture, socket, and crash capture tests passed.",
+    "26 client locale tests and 116 portal tests passed."
+  ],
+  "preactivation": {
+    "release-manifest.json": {
+      "sha256": "9f6f27f4c8ec1ee8b2ddbe38ddcd034dc32aaf2886b5ed956d5e8d964df708e5",
+      "payloadFiles": 1077
+    },
+    "changedGamePaths": [
+      "game/wyd-server",
+      "game/data/content/mounts.json",
+      "game/data/content/volatiles.json",
+      "game/data/content/language/en.txt",
+      "game/data/content/language/pt.txt",
+      "game/data/catalog/ItemEffect.h",
+      "game/data/catalog/itemlist.csv"
+    ],
+    "website-manifest.json": {
+      "sha256": "19545b96bd3843d46473b31e93a6035f98a1c23c1c03e757886ac3c59c195836",
+      "payloadFiles": 6663
+    },
+    "clientPatch": {
+      "version": 48108,
+      "sha256": "eca7114a11bdc57371652829f94f51737c106a255abe5c238e4abc0b6aea8431",
+      "entries": 10
+    },
+    "crystal": {
+      "x": 1104,
+      "y": 1711,
+      "hp": 100000000,
+      "mediumHP": 10000000,
+      "smallHP": 1000000
+    },
+    "liveRevision": 107,
+    "playerAPI": "ca5bf4a60e5777612aff5145a1028fa4bc21efa7fb78bb2d881b10da602c2565"
+  },
+  "patch": {
+    "feed": [
+      "[WYD]",
+      "48100 notice.txt",
+      "48101 patch-48101.zip",
+      "48102 patch-48102.zip",
+      "48103 patch-48103.zip",
+      "48104 patch-48104.zip",
+      "48105 patch-48105.zip",
+      "48106 patch-48106.zip",
+      "48107 patch-48107.zip",
+      "48108 patch-48108.zip"
+    ],
+    "archiveSha256": "eca7114a11bdc57371652829f94f51737c106a255abe5c238e4abc0b6aea8431",
+    "archiveSize": 1127703,
+    "verifiedEntries": 10
+  },
+  "patchEntries": [
+    {
+      "path": "WYD.exe",
+      "size": 2093056,
+      "sha256": "43141e0b164ec100ab178362d50f9ef063794be0b9afd2c4dd393a43f300fc0d"
+    },
+    {
+      "path": "ItemList.bin",
+      "size": 910004,
+      "sha256": "91aed5b24cb3e595f70e68e54214b3ff61ebb317c5560004df1be446f0335c39"
+    },
+    {
+      "path": "UI/strdef.bin",
+      "size": 63492,
+      "sha256": "c832b2997fa227e945895dfb636daa51d3cce3ab1ea9aed5a5e01594d048255f"
+    },
+    {
+      "path": "itemhelp.dat",
+      "size": 81963,
+      "sha256": "eb3077998d2258fb1759de86f147490e38862984e3d2dccbd764b2571c9468f6"
+    },
+    {
+      "path": "EN/ItemList.bin",
+      "size": 910004,
+      "sha256": "a5de399a9ca577717deb0abe48efccd0301f13baa9622ae1da4af459688d9e16"
+    },
+    {
+      "path": "EN/UI/strdef.bin",
+      "size": 63492,
+      "sha256": "c832b2997fa227e945895dfb636daa51d3cce3ab1ea9aed5a5e01594d048255f"
+    },
+    {
+      "path": "EN/itemhelp.dat",
+      "size": 71382,
+      "sha256": "8fb9afdfc724cc808860330a8e2b4f88f58b2919827c76fb9341c3c7adf46b28"
+    },
+    {
+      "path": "PT/ItemList.bin",
+      "size": 910004,
+      "sha256": "cdff2f234dce8b1adf2c736e8a8197261a4d52d18d605ef03a2821476b634d95"
+    },
+    {
+      "path": "PT/UI/strdef.bin",
+      "size": 63492,
+      "sha256": "ec479e6899b3838514a0f58ed220f97436a9232021074d5d35231f52c3118238"
+    },
+    {
+      "path": "PT/itemhelp.dat",
+      "size": 78243,
+      "sha256": "36916e0825f1019d3b73cf58c2f6f06ae3ba7192957b60878bfa086f3d20b6ce"
+    }
+  ],
+  "publicManifest": {
+    "version": 2,
+    "clientVersion": "7.48.108",
+    "feedVersion": 48108,
+    "publishedAt": "2026-11-09",
+    "launcherVersion": null,
+    "minimumLauncherVersion": null,
+    "fullClient": {
+      "clientVersion": "7.48.100",
+      "url": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+      "sizeBytes": 260877805,
+      "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66"
+    },
+    "patch": {
+      "url": "/patch/patch-48108.zip",
+      "sizeBytes": 1127703,
+      "sha256": "eca7114a11bdc57371652829f94f51737c106a255abe5c238e4abc0b6aea8431",
+      "executableSha256": "43141E0B164EC100AB178362D50F9EF063794BE0B9AFD2C4DD393A43F300FC0D"
+    },
+    "updateFeed": "/patch/update.htm"
+  },
+  "publicPagesVerified": [
+    "/download",
+    "/changelog",
+    "/news/client-7-48-108"
+  ],
+  "active": {
+    "activeRelease": "/srv/wyd-go/releases/20261109T231129Z",
+    "serverPayloadFiles": 1077,
+    "websitePayloadFiles": 6663,
+    "privateAndPreservedFileHashes": "unchanged",
+    "schema": "20",
+    "backup": {
+      "at": "2026-11-09T23:11:29Z",
+      "archive": "wydgo-20261109T231129Z.dump",
+      "bytes": 550094,
+      "sha256": "97e972929065d9bc45522249c827a08627396bdf9cc0e0c1629da14e2ce905e7"
+    },
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "896522",
+        "NRestarts": "0",
+        "Id": "wyd-game@1.service",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261109T231129Z/game/wyd-server",
+        "sha256": "9068cf9836a1fd6830eeecb3157acbe8e2565fd72eabc363d1da514e9a9b04a6"
+      },
+      "wyd-game@2": {
+        "MainPID": "896524",
+        "NRestarts": "0",
+        "Id": "wyd-game@2.service",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261109T231129Z/game/wyd-server",
+        "sha256": "9068cf9836a1fd6830eeecb3157acbe8e2565fd72eabc363d1da514e9a9b04a6"
+      },
+      "wyd-player": {
+        "MainPID": "896681",
+        "NRestarts": "0",
+        "Id": "wyd-player.service",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261109T231129Z/game/wyd-player-api",
+        "sha256": "ca5bf4a60e5777612aff5145a1028fa4bc21efa7fb78bb2d881b10da602c2565"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "Id": "wyd-log-reader.service",
+        "ActiveState": "active"
+      }
+    },
+    "readyz": "200",
+    "gameListeners": [
+      "8281",
+      "8282"
+    ],
+    "establishedGameConnections": 0
+  },
+  "portalActivation": {
+    "release": "/srv/wyd-go/releases/20261109T231129Z",
+    "websiteFilesVerified": 6663,
+    "previousDirectories": [
+      "web.before-748108",
+      "game/web.before-748108"
+    ]
+  },
+  "readiness": {
+    "8082": 200,
+    "8083": 200
+  },
+  "channelWarningsAndErrors": [],
+  "admission": {
+    "at": "2026-11-09T23:12:35.087799+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 107,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 108,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 107,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 108,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "scope": [
+    "Native progression, mastery, and Celestial unlock corrections",
+    "WYD KR equipment, mount, and Angel bonuses",
+    "Ancient and PvP combat and tooltips",
+    "Rain and snow audio attenuation",
+    "SubCelestial eligibility in the player portal"
+  ],
+  "clientTested": false,
+  "publishedExecutableInstalledLocally": false,
+  "pending": "Post-activation gameplay and native launcher extraction in a real client."
+}

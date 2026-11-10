@@ -7,6 +7,7 @@
 class TMSkillThunderBolt : public TMEffect
 {
 public:
+    static constexpr int CorruptedCrystal = 3;
     TMSkillThunderBolt(TMVector3 vecPosition, int nType);
     ~TMSkillThunderBolt();
 

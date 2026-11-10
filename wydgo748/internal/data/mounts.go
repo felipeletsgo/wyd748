@@ -10,7 +10,7 @@ import (
 )
 
 // LoadMounts reads data/content/mounts.json: base attributes per mount TYPE (0..29),
-// ported from the TMProject g_pMountBonus[30][6] table, and the timed premium
+// mirrored in the TMProject g_pMountBonus[30][6] table, and the timed premium
 // horses keyed by item index. A missing file is not an error: it yields an
 // empty catalog and mounts simply add no bonus.
 func LoadMounts(path string) (model.MountCatalog, error) {

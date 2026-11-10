@@ -20,7 +20,7 @@ func startTowerRound(registry *model.GuildRegistry, day string, start time.Time)
 	// The reference spawns each daily tower for the castle's defending realm,
 	// with no capturing guild yet. Its divisor survives unchanged-realm rounds.
 	divisor := max(registry.Wars.Tower.DefenderCaptures, 1)
-	registry.Wars.Tower = model.TowerWarState{Day: day, EndsAt: start.Add(time.Hour), Kingdom: kingdom, InitialKingdom: kingdom, DefenderCaptures: divisor}
+	registry.Wars.Tower = model.TowerWarState{Day: day, StartsAt: start, EndsAt: start.Add(towerWarDuration), Kingdom: kingdom, InitialKingdom: kingdom, DefenderCaptures: divisor}
 }
 
 func (w *World) publishTowerFinish() {

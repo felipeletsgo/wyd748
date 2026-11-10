@@ -247,10 +247,15 @@ func TestPremiumMountCatalogBonusIsExactAndExpires(t *testing.T) {
 	}
 }
 
-func TestPremiumMountRecalcAppliesExactAttackMagicAndSpeed(t *testing.T) {
+func TestPremiumMountRecalcAppliesCatalogBonuses(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0).UTC()
+	def := premiumTestDef(4200, mountSlot)
+	def.StaticEffects = append(def.StaticEffects,
+		model.StaticEffect{Name: "EF_PARRY", Value: 5},
+		model.StaticEffect{Name: "EF_RESISTALL", Value: 25},
+	)
 	w := &World{
-		items: map[uint16]model.ItemDef{4200: premiumTestDef(4200, mountSlot)},
+		items: map[uint16]model.ItemDef{4200: def},
 		clock: newFakeClock(now),
 	}
 	newChar := func() *model.Char {
@@ -276,5 +281,19 @@ func TestPremiumMountRecalcAppliesExactAttackMagicAndSpeed(t *testing.T) {
 	}
 	if got, want := int(playerAttackRun(premium)&0x0f), 6; got != want {
 		t.Fatalf("run speed=%d want=%d", got, want)
+	}
+	base, mounted := effectiveScore(plain), effectiveScore(premium)
+	if mounted.Evasion != base.Evasion+5 ||
+		mounted.ResistFire != base.ResistFire+25 ||
+		mounted.ResistIce != base.ResistIce+25 ||
+		mounted.ResistHoly != base.ResistHoly+25 ||
+		mounted.ResistThunder != base.ResistThunder+25 {
+		t.Fatalf("evasion and resistance differ from the catalog: base=%+v mounted=%+v", base, mounted)
+	}
+	w.clock = newFakeClock(now.Add(30 * 24 * time.Hour))
+	w.recalcPlayer(premium)
+	expired := effectiveScore(premium)
+	if *expired != *base {
+		t.Fatalf("expired mount changed score: base=%+v expired=%+v", base, expired)
 	}
 }

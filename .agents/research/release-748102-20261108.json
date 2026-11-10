@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "dateLocal": "2026-11-08",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "authorization": "Owner authorized deploying the improvements and restarting the game channels.",
+  "mode": "working-tree",
+  "head": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "clientVersion": "7.48.102",
+  "minimumRevision": 102,
+  "feedVersion": 48102,
+  "priorRelease": "/srv/wyd-go/releases/20261108T112940Z",
+  "activeRelease": "/srv/wyd-go/releases/20261108T123541Z",
+  "rollback": "/srv/wyd-go/releases/20261108T112940Z",
+  "published": true,
+  "activated": true,
+  "gameplayAccepted": false,
+  "databaseBackup": {
+    "at": "2026-11-08T12:35:41Z",
+    "archive": "wydgo-20261108T123540Z.dump",
+    "bytes": 553652,
+    "sha256": "0ac56f1ffa26536d90f9a36628a4f059cf6af1bb9085830c7acbf1bc4c62a42f"
+  },
+  "schema": "20",
+  "server": {
+    "sha256": "eff7a4c9f4ef1589a57a4ba9c5cf9b58a7767d72c89110ed714d4509dcc08ae3",
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 14394212,
+      "sha256": "248532f8e6932fc74b80200deebca8c0a48a2ce93b0f227a25e861d77b29e357"
+    },
+    "payloadFiles": 1076,
+    "payloadHashesVerified": 1076,
+    "sourceRecordsVerified": 2332,
+    "changedPaths": [
+      "game/wyd-server"
+    ]
+  },
+  "clientPatch": {
+    "version": 48102,
+    "url": "https://wyd.forjago.com/patch/patch-48102.zip",
+    "sizeBytes": 931032,
+    "sha256": "81aec6a09b26287dcca7fca832bf2961b01b962d4506858952a1ba6bd4db12eb",
+    "files": [
+      {
+        "path": "EN/UI/UIString.txt",
+        "source": "tmproject/client748/EN/UI/UIString.txt",
+        "size": 4702,
+        "sha256": "4643af5c3efd28be956d0a10c9e812782596823fe47e9d845840989d45b20ca4"
+      },
+      {
+        "path": "PT/UI/UIString.txt",
+        "source": "tmproject/client748/PT/UI/UIString.txt",
+        "size": 5075,
+        "sha256": "f82ba0ffd48564928de7e24c5cbbb1813ce8e821baa5aaed89e1e928df698361"
+      },
+      {
+        "path": "UI/UIString.txt",
+        "source": "tmproject/client748/UI/UIString.txt",
+        "size": 4702,
+        "sha256": "4643af5c3efd28be956d0a10c9e812782596823fe47e9d845840989d45b20ca4"
+      },
+      {
+        "path": "WYD.exe",
+        "source": "tmproject/build/TMProject748/Release/WYD.exe",
+        "size": 2083840,
+        "sha256": "187598eea5c6fce89efc8cbd45237601574ffc6c19bb7f68660a1e21c4329630"
+      }
+    ],
+    "unchangedDependencies": [
+      {
+        "path": "EN/UI/interface.txt",
+        "source": "tmproject/client748/EN/UI/interface.txt",
+        "size": 2368,
+        "sha256": "0ef7b3b4d84d34d3dd316b4582c365082025c964d449f2ad07bad34788ff91c8"
+      },
+      {
+        "path": "ItemListWide.csv",
+        "source": "tmproject/client748/ItemListWide.csv",
+        "size": 225,
+        "sha256": "4e777cf0c799525527226b0d8e39446ad70927c52fd044f2cb81c4e880e6837b"
+      },
+      {
+        "path": "PT/UI/interface.txt",
+        "source": "tmproject/client748/PT/UI/interface.txt",
+        "size": 2700,
+        "sha256": "895fbe9e2868f9e8c2ec28d54b9cadf77a4648822e497eee9c3eae0e4bad92fc"
+      },
+      {
+        "path": "UI/interface.txt",
+        "source": "tmproject/client748/UI/interface.txt",
+        "size": 2368,
+        "sha256": "0ef7b3b4d84d34d3dd316b4582c365082025c964d449f2ad07bad34788ff91c8"
+      },
+      {
+        "path": "WydCrashReporter.dll",
+        "source": "tmproject/build/TMProject748/Release/WydCrashReporter.dll",
+        "size": 564224,
+        "sha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6"
+      }
+    ],
+    "publicDownloadHashVerified": true,
+    "localExecutableInstalled": false
+  },
+  "website": {
+    "archive": {
+      "path": "website.tar.gz",
+      "size": 876071,
+      "sha256": "fc160554d0708c2520256a5a1323dea38bd6d985353e6e9fe93af13fea5d06cd"
+    },
+    "payloadFiles": 6661,
+    "payloadHashesVerified": 6661,
+    "advertisedVersion": "7.48.102",
+    "preservedExternalFullClient": true,
+    "newsPublished": false
+  },
+  "services": {
+    "wyd-game@1": {
+      "MainPID": "564096",
+      "NRestarts": "0",
+      "Id": "wyd-game@1.service",
+      "ActiveState": "active",
+      "executablePath": "/srv/wyd-go/releases/20261108T123541Z/game/wyd-server",
+      "sha256": "eff7a4c9f4ef1589a57a4ba9c5cf9b58a7767d72c89110ed714d4509dcc08ae3"
+    },
+    "wyd-game@2": {
+      "MainPID": "564097",
+      "NRestarts": "0",
+      "Id": "wyd-game@2.service",
+      "ActiveState": "active",
+      "executablePath": "/srv/wyd-go/releases/20261108T123541Z/game/wyd-server",
+      "sha256": "eff7a4c9f4ef1589a57a4ba9c5cf9b58a7767d72c89110ed714d4509dcc08ae3"
+    },
+    "wyd-player": {
+      "MainPID": "3492238",
+      "NRestarts": "0",
+      "Id": "wyd-player.service",
+      "ActiveState": "active"
+    },
+    "wyd-log-reader": {
+      "MainPID": "3492336",
+      "NRestarts": "0",
+      "Id": "wyd-log-reader.service",
+      "ActiveState": "active"
+    }
+  },
+  "readiness": {
+    "player": "200",
+    "listeners": [
+      "8281",
+      "8282"
+    ]
+  },
+  "backupState": {
+    "privateAndPreservedFileHashes": "unchanged",
+    "playerApiPidPreserved": true,
+    "logReaderPidPreserved": true
+  },
+  "admission": {
+    "at": "2026-11-08T12:36:32.707667+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 101,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 102,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 101,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 102,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "verification": {
+    "goTests": "passed, reused unchanged candidate evidence",
+    "goVet": "passed, reused unchanged candidate evidence",
+    "wireTests": "passed",
+    "clientBuild": "passed, reused exact candidate hash",
+    "localeTests": "22 passed",
+    "portalTests": "116 passed",
+    "portalCheck": "0 errors, 0 warnings, 0 hints"
+  },
+  "ownerReportedClientResult": {
+    "date": "2026-11-08",
+    "status": "FAILED",
+    "issues": [
+      "World names and health bars still overlap the drop search window.",
+      "Window overlaps the HUD.",
+      "Close caption is detached from the frame button; footer text exceeds the frame."
+    ],
+    "evidence": "Owner supplied screenshots after launcher update. Clarified bonus and mode captions confirm the updated UI resources."
+  },
+  "notes": "Publication and activation passed. BUG-025 remains open after owner feedback. Follow-up correction is in progress. No commit or push."
+}

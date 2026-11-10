@@ -35,6 +35,8 @@ var towerWarArena = warRect{2476, 1852, 2545, 1918}
 // DestinyServer NPCGener.txt: EndlessTower and Torre_de_Thor share this
 // arena anchor. W2PP uses a generator, not the arena midpoint.
 const towerWarSpawnX, towerWarSpawnY uint16 = 2507, 1873
+const towerWarWarningMinutes = 5
+const towerWarDuration = 30 * time.Minute
 
 type cityFighter struct {
 	city  int
@@ -207,6 +209,56 @@ func (w *World) tickGuildWars(now time.Time) {
 	}
 }
 
+func (w *World) towerRoundWindow(now time.Time) (start time.Time, open bool) {
+	warning := time.Date(now.Year(), now.Month(), now.Day(), int(w.warConfig.TowerHour), 0, 0, 0, now.Location())
+	start = warning.Add(towerWarWarningMinutes * time.Minute)
+	open = now.Weekday() >= time.Monday && now.Weekday() <= time.Friday &&
+		!now.Before(warning) && now.Before(start.Add(towerWarDuration))
+	return start, open
+}
+
+func towerBattleStart(s *model.TowerWarState) time.Time {
+	if s.StartsAt.IsZero() {
+		// Rounds saved before StartsAt used a one-hour battle.
+		return s.EndsAt.Add(-time.Hour)
+	}
+	return s.StartsAt
+}
+
+func (w *World) towerCountdowns(now time.Time) error {
+	s := &w.guilds.Wars.Tower
+	if s.Day != now.Format("2006-01-02") || s.Finished {
+		return nil
+	}
+	battle := towerBattleStart(s)
+	for _, warning := range []struct {
+		end     time.Time
+		bit     uint16
+		minutes int
+		text    string
+	}{
+		{battle, 1, towerWarWarningMinutes, "Tower war starts within 5 minutes. Enter with /tower in Erion once it starts."},
+		{battle, 2, 1, "Tower war starts in 1 minute!"},
+		{s.EndsAt, 4, 5, "Tower war ends in 5 minutes! Guild fame is awarded only on a kingdom change."},
+		{s.EndsAt, 8, 1, "Tower war ends in 1 minute!"},
+	} {
+		if err := w.warCountdown(now, warning.end, &s.Notices, warning.bit, warning.minutes, warning.text); err != nil {
+			return err
+		}
+		if w.criticalGuildReserved() {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (w *World) publishTowerStart() {
+	s := &w.guilds.Wars.Tower
+	w.ejectTowerOpponents(w.guilds.TowerKingdom())
+	minutes := s.EndsAt.Sub(towerBattleStart(s)) / time.Minute
+	w.warNotice(fmt.Sprintf("Tower war started! Use /tower in Erion. It lasts %d minutes.", minutes))
+}
+
 func (w *World) tickTowerWar(now time.Time) error {
 	if w.criticalWrites != nil {
 		return w.tickCriticalTowerWar(now)
@@ -225,9 +277,7 @@ func (w *World) tickTowerWar(now time.Time) error {
 		w.publishTowerFinish()
 	}
 	day := now.Format("2006-01-02")
-	start := time.Date(now.Year(), now.Month(), now.Day(), int(w.warConfig.TowerHour), 0, 0, 0, now.Location())
-	if now.Weekday() >= time.Monday && now.Weekday() <= time.Friday &&
-		!now.Before(start.Add(-5*time.Minute)) && now.Before(start.Add(time.Hour)) && s.Day != day {
+	if start, open := w.towerRoundWindow(now); open && s.Day != day {
 		if err := w.warCommit(func() error {
 			w.startTowerRound(day, start)
 			return nil
@@ -235,23 +285,8 @@ func (w *World) tickTowerWar(now time.Time) error {
 			return err
 		}
 	}
-	if s.Day == day && !s.Finished {
-		battle := s.EndsAt.Add(-time.Hour)
-		for _, warning := range []struct {
-			end     time.Time
-			bit     uint16
-			minutes int
-			text    string
-		}{
-			{battle, 1, 5, "Tower war starts within 5 minutes! Enter with /tower in Erion."},
-			{battle, 2, 1, "Tower war starts in 1 minute!"},
-			{s.EndsAt, 4, 5, "Tower war ends in 5 minutes! Guild fame is awarded only on a kingdom change."},
-			{s.EndsAt, 8, 1, "Tower war ends in 1 minute!"},
-		} {
-			if err := w.warCountdown(now, warning.end, &s.Notices, warning.bit, warning.minutes, warning.text); err != nil {
-				return err
-			}
-		}
+	if err := w.towerCountdowns(now); err != nil {
+		return err
 	}
 	if w.towerBattleActive(now) && w.warTower() == nil {
 		if err := w.spawnWarTower(); err != nil {
@@ -263,8 +298,7 @@ func (w *World) tickTowerWar(now time.Time) error {
 			w.removeWarTower()
 			return err
 		}
-		w.ejectTowerOpponents(w.guilds.TowerKingdom())
-		w.warNotice("Tower war started! Use /tower in Erion. Duration: 60 minutes.")
+		w.publishTowerStart()
 	}
 	return nil
 }
@@ -273,8 +307,8 @@ func (w *World) towerBattleActive(now time.Time) bool {
 	if !w.warConfig.Enabled || w.guilds == nil {
 		return false
 	}
-	s := w.guilds.Wars.Tower
-	return s.Day != "" && !s.Finished && !now.Before(s.EndsAt.Add(-time.Hour)) && now.Before(s.EndsAt)
+	s := &w.guilds.Wars.Tower
+	return s.Day != "" && !s.Finished && !now.Before(towerBattleStart(s)) && now.Before(s.EndsAt)
 }
 
 func (w *World) warTower() *Mob {

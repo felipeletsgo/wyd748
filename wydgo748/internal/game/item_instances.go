@@ -2881,7 +2881,7 @@ func (w *World) closeItemInstance(id string) {
 			continue
 		}
 		ground.InstanceID = ""
-		w.publishItemSpawn(ground)
+		w.publishItemAppearance(ground, false)
 	}
 	delete(w.itemInstances, id)
 	delete(w.pendingInstanceMembers, id)

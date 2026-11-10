@@ -156,7 +156,7 @@ private:
 	void DescribeItemName(SGridControlItem*& pItem, SText*& pDescNameText, int& nSanc);
 	void DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, unsigned int& dwColor, int& nLineId, char (&szDesc)[128]);
 	void DescribeTimedItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, int& nLineId, char (&szDesc)[128]);
-	void DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, unsigned int& dwColor, unsigned int& dwServerTime, unsigned int& nItemPos, int& nLineId, int& nWeaponType, STRUCT_MOB*& pMobData, char (&szDesc)[128]);
+	void DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, unsigned int& dwColor, unsigned int& dwServerTime, unsigned int& nItemPos, int& nLineId, int& nWeaponType, STRUCT_MOB*& pMobData, char (&szDesc)[128], int lineLimit);
 };
 
 class SGridControlItem : public S3DObj

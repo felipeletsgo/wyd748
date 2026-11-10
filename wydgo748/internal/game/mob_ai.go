@@ -27,7 +27,12 @@ func mobMoveDelay(attackRun byte) time.Duration {
 // The maximum distance is 2*Speed. One Action keeps the client walking through
 // the segment instead of restarting its animation at every coordinate.
 func (w *World) moveMobToward(m *Mob, targetX, targetY uint16, stopDistance int, now time.Time) int {
-	if m == nil || m.Def == nil || m.Def.Score == nil || w.criticalGuildMobReserved(m) {
+	return w.moveMobTowardWithin(m, targetX, targetY, stopDistance, chebyshev, now)
+}
+
+func (w *World) moveMobTowardWithin(m *Mob, targetX, targetY uint16, stopDistance int,
+	distance func(uint16, uint16, uint16, uint16) int, now time.Time) int {
+	if m == nil || m.Def == nil || m.Def.Score == nil || m.crystalRole != crystalNone || w.criticalGuildMobReserved(m) {
 		return 0
 	}
 	attackRun := effectiveMobAttackRunAt(m, now)
@@ -36,7 +41,7 @@ func (w *World) moveMobToward(m *Mob, targetX, targetY uint16, stopDistance int,
 	x, y := m.X, m.Y
 	visited := map[uint32]struct{}{uint32(x)<<16 | uint32(y): {}}
 	steps := 0
-	for steps < maxSteps && chebyshev(x, y, targetX, targetY) > stopDistance {
+	for steps < maxSteps && distance(x, y, targetX, targetY) > stopDistance {
 		nextX, nextY := stepToward(x, y, targetX, targetY)
 		if w.mobStepBlockedFrom(m, x, y, nextX, nextY) {
 			nextX, nextY = w.freeStepAroundFrom(m, x, y, targetX, targetY, visited)

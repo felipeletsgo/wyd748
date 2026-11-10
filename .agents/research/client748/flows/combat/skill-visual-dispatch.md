@@ -4,7 +4,7 @@ title: Sequencia de animacao e despacho visual das skills
 subsystem: combat
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-30
+updated: 2026-11-09
 ---
 
 # Sequência de animação e despacho visual das skills
@@ -142,3 +142,27 @@ assets ou executável instalado. Build candidato com `-NoDeploy`.
 - Client real: não executado. O executável instalado não foi substituído.
 - Próximo gate: comparar/renderizar as lacunas acima, começando por HOLY montado
   do humano 1 e depois os efeitos persistentes fora do dispatcher diferido.
+
+## Growth and Cancellation cast effects (2026-11-09)
+
+The native dispatcher `FUN_00492e7d` routes the attack frame to
+`FUN_00489a3e`. The signed skill index is at offset 24. At
+`0x0048a7e5`–`0x0048a881`, Growth (13) anchors the effect at the caster's
+position plus 0.5 on Y and calls `FUN_004e5650` with variant 1. This variant
+uses billboard texture 2 tinted `0xffaa77ff`, a ground shade tinted
+`0x55553388`, and sound 158. At `0x0048d3b3`–`0x0048d3dd`, Cancellation
+(100) looks up and plays sound 156. Both paths run during attack dispatch.
+
+The local attack preview and remote attack packets use the existing
+`ShouldDispatchVisuals` guard. The adapted handler uses
+`TMSkillHolyTouch(position, 1)` for Growth and removes the deferred mesh for
+that skill. Scene teardown removes its finite effects. Cancellation uses the
+existing sound helper, which skips playback when sound data is unavailable.
+The server keeps authority for buff application and removal. No wire or
+resource mapping changes. Sound IDs 156 and 158 use the existing
+`effect06.wav` and `effect08.wav` in both asset sets.
+
+Decision: `PARIDADE_NATIVA`. Restore the two verified cast effects using the
+existing implementations. The Ghidra exports and matching PE instructions
+verify the skill selectors, constructor variant, and sound slot.
+Actual playback for the caster and an observer remains pending.

@@ -43,7 +43,7 @@ func (w *World) showMob(p *Player, m *Mob) {
 		return
 	}
 	anct := m.Def.Equip.AncientCodes()
-	p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.VisibleName(), m.X, m.Y,
+	p.Session.Send(wire.CreateMobVisual(m.ID, w.crystalMobName(m), m.X, m.Y,
 		m.Def.Mesh(), anct[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 	p.show(m.ID)
 }
@@ -790,12 +790,20 @@ func (w *World) syncPlayerChaos(subject *Player) {
 }
 
 func (w *World) publishItemSpawn(g *GroundItem) {
+	w.publishItemAppearance(g, true)
+}
+
+func (w *World) publishItemAppearance(g *GroundItem, playDropSound bool) {
 	if g == nil || g.criticalDrop != 0 {
 		return
 	}
 	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
 		if w.groundItemVisibleToPlayer(p, g) && !p.hasVisible(g.ID) {
-			p.Session.Send(w.groundItemCreatePacketFor(p, g))
+			packet := w.groundItemCreatePacketFor(p, g)
+			if playDropSound && !g.Permanent {
+				packet[wire.GroundItemCreateFlagOffset] = 1
+			}
+			p.Session.Send(packet)
 			p.show(g.ID)
 		}
 	}

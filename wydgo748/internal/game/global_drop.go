@@ -219,9 +219,19 @@ func (w *World) planGlobalDrop(p *Player, m *Mob) []plannedDrop {
 	if err != nil {
 		return nil
 	}
-	pos := addToInv(p.Char, item)
+	slots, received := w.receiveLoot(p.Char, item, -1)
 	e.reserved++
-	return []plannedDrop{{player: p, inventoryPos: pos, item: item, x: m.X, y: m.Y,
+	reservation := &globalDropReservation{event: e}
+	if received && len(slots) > 0 {
+		planned := make([]plannedDrop, 0, len(slots))
+		for _, pos := range slots {
+			planned = append(planned, plannedDrop{player: p, inventoryPos: pos, item: p.Char.Inv[pos],
+				source: "global-drop", sourceSlot: -1})
+		}
+		planned[0].globalDrop = reservation
+		return planned
+	}
+	return []plannedDrop{{player: p, inventoryPos: -1, item: item, x: m.X, y: m.Y,
 		instanceID: strings.TrimSpace(m.InstanceID), source: "global-drop", sourceSlot: -1,
-		globalDrop: &globalDropReservation{event: e}}}
+		globalDrop: reservation}}
 }

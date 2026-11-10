@@ -388,9 +388,11 @@ func (w *World) planBossDrops(p *Player, mob *Mob, state *bossSpawnState) []plan
 		if drop.Amount > 1 {
 			setItemAmount(&item, drop.Amount)
 		}
-		if slot := addToInv(p.Char, item); slot >= 0 {
-			planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
-				item: p.Char.Inv[slot], source: "BOSS " + state.config.ID, sourceSlot: -1})
+		if slots, ok := w.receiveLoot(p.Char, item, -1); ok {
+			for _, slot := range slots {
+				planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
+					item: p.Char.Inv[slot], source: "BOSS " + state.config.ID, sourceSlot: -1})
+			}
 			continue
 		}
 		planned = append(planned, plannedDrop{player: p, inventoryPos: -1,

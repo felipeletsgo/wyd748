@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "EventTranslator.h"
 #include "CameraInput.h"
+#include "CameraZoom.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include "TMFieldScene.h"
@@ -413,7 +414,7 @@ int EventTranslator::CameraEventData()
                 // With [CAMERAROTATE] 1 and [CAMERAVIEW] 0 the two signs differ:
                 // zooming in moved the camera out, it was clamped at the maximum
                 // distance and the wheel never zoomed again. The distance now
-                // follows the selected direction (same steps, same limits).
+                // follows the selected direction and configured zoom limits.
                 const float zoomDistance = CameraZoomDistance(pCamera->m_fSightLength,
                     fClose, pCamera->m_fMaxCamLen, g_pApp->m_nCameraView, wheel, viewchange);
                 if (zoomDistance != pCamera->m_fSightLength)
@@ -437,8 +438,10 @@ int EventTranslator::CameraEventData()
             pCamera->m_fBackVerticalAngle = (float)((float)(1.0f - fProgress) * 0.1f) - (float)(D3DXToRadian(45) * fProgress);
             pCamera->m_fHorizonAngle = (float)((float)(1.0f - fProgress) * D3DXToRadian(180)) + (float)(D3DXToRadian(45) * fProgress);
             pCamera->m_fBackHorizonAngle = (float)((float)(1.0f - fProgress) * D3DXToRadian(180)) + (float)(D3DXToRadian(45) * fProgress);
-            pCamera->m_fSightLength = (float)((float)(1.0f - fProgress) * 3.5f) + (float)(pCamera->m_fMaxCamLen * fProgress);
-            pCamera->m_fWantLength = (float)((float)(1.0f - fProgress) * 3.5f) + (float)(pCamera->m_fMaxCamLen * fProgress);
+            const float targetDistance = dwSceneType == ESCENE_TYPE::ESCENE_FIELD
+                ? camera_zoom::FieldDefaultDistance : pCamera->m_fMaxCamLen;
+            pCamera->m_fSightLength = (1.0f - fProgress) * 3.5f + targetDistance * fProgress;
+            pCamera->m_fWantLength = pCamera->m_fSightLength;
         }
         else
         {

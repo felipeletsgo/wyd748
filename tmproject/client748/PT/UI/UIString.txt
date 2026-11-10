@@ -120,7 +120,7 @@
 120	Loja_Automática
 121	Ajuda(H)
 122	Sistema(ESC)
-123	Grupo(P,D)
+123	Grupo(P)
 124	Normal
 125	Grupo
 126	Sussurro
@@ -263,3 +263,27 @@
 264	Nell: compra não realizada. Abra a loja novamente.
 265	Nell: aguardando a confirmação da compra pelo servidor.
 266	Nell: interface web indisponível. A loja padrão será utilizada.
+267	Lista de drops (D)
+268	Monstros
+269	Itens
+270	Pesquisar
+271	Item
+272	Monstro
+273	Chance base
+274	Com bônus
+275	Anterior
+276	Próxima
+277	Fechar
+278	Carregando...
+279	Sem resultados. Tente outro nome ou aba.
+280	Pesquise novamente em instantes.
+281	Servidor não respondeu. Pesquise novamente.
+282	Chance por abate elegível; combina rolagens independentes.
+283	Seu bônus altera taxas normais; recompensas fixas não mudam.
+284	* Eventos/bosses têm regras; áreas só de EXP não têm drops.
+285	Busque monstros pelo nome.
+286	Busque itens pelo nome ou ID.
+287	Bônus de drop:
+288	Bônus de drop: carregando
+289	Bônus de drop indisponível.
+290	Reduza a escala da interface para abrir a lista de drops.

@@ -380,8 +380,9 @@ func TestDismissSummonsPreservesOtherOwnersAndKinds(t *testing.T) {
 			t.Fatal("dismissal removed another owner or summon kind")
 		}
 	}
+	p.Char.Class, p.Char.LearnedSkill = 2, 1<<12
 	if !w.castSummon(p, model.SkillDef{Index: 60, InstanceValue: 5}, 100) {
-		t.Fatal("dismissal did not permit another BM family")
+		t.Fatal("dismissal did not permit a learned BM summon")
 	}
 }
 

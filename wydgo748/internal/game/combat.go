@@ -156,6 +156,21 @@ type physicalHitResult struct {
 	Critical bool
 }
 
+// resolvePlayerPvPDamage follows the item modifier order in TMSRVIN 0x519CA0.
+func (w *World) resolvePlayerPvPDamage(attacker, target *Player, damage uint32, now time.Time) uint32 {
+	damage = uint32(w.absorbMountDamage(target, int(damage)))
+	if damage == 0 {
+		return 0
+	}
+	damage = addFlatDamage(damage, w.equipmentGemBonuses(attacker.Char).forceDamage)
+	damage = absorbFlatDamage(damage, w.playerFlatDamageAbsorb(target.Char))
+	attack := w.equipmentPvPAbility(attacker.Char, "EF_HWORDGUILD")
+	defense := w.equipmentPvPAbility(target.Char, "EF_LWORDGUILD")
+	result := int64(damage) * int64(1000+attack) / 1000
+	result = result * int64(1000-min(defense, 1000)) / 1000
+	return absorbManaControlDamageAt(target.Char, extendedValue(result), now)
+}
+
 func (r physicalHitResult) visualFlags() byte {
 	var flags byte
 	if r.Double {
@@ -236,10 +251,10 @@ func playerHitsMobWithRNG(atk *Player, m *Mob, intn func(int) int) uint32 {
 }
 
 func playerHitsMobAt(atk *Player, m *Mob, intn func(int) int, now time.Time) uint32 {
-	return playerPhysicalHitMobAt(atk, m, intn, now).Damage
+	return playerPhysicalHitMobAt(atk, m, 0, intn, now).Damage
 }
 
-func playerPhysicalHitMobAt(atk *Player, m *Mob, intn func(int) int, now time.Time) physicalHitResult {
+func playerPhysicalHitMobAt(atk *Player, m *Mob, criticalDamage int, intn func(int) int, now time.Time) physicalHitResult {
 	if atk == nil || atk.Char == nil {
 		return physicalHitResult{}
 	}
@@ -250,7 +265,7 @@ func playerPhysicalHitMobAt(atk *Player, m *Mob, intn func(int) int, now time.Ti
 	}
 	attack := playerAttack(ch)
 	if critical {
-		attack = (intn(2) + 15) * attack / 10
+		attack = (150 + intn(2)*10 + criticalDamage) * attack / 100
 	}
 	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), skillDamageMastery(ch), intn)
 	if double {
@@ -264,7 +279,7 @@ func playerPhysicalHitMobAt(atk *Player, m *Mob, intn func(int) int, now time.Ti
 // the same native attack action. MSG_AttackTwo rolls Double/Critical only for
 // Dam[0]; later Dam slots reuse those flags but still run their own miss/parry
 // check and defense calculation.
-func playerPhysicalFollowupHitMobAt(atk *Player, m *Mob, double, critical bool,
+func playerPhysicalFollowupHitMobAt(atk *Player, m *Mob, double, critical bool, criticalDamage int,
 	intn func(int) int, now time.Time) physicalHitResult {
 	if atk == nil || atk.Char == nil || m == nil || m.Def == nil ||
 		!combatRollHits(playerVersusMobAccuracy(atk.Char, m.Def), intn) {
@@ -272,7 +287,7 @@ func playerPhysicalFollowupHitMobAt(atk *Player, m *Mob, double, critical bool,
 	}
 	attack := playerAttack(atk.Char)
 	if critical {
-		attack = (intn(2) + 15) * attack / 10
+		attack = (150 + intn(2)*10 + criticalDamage) * attack / 100
 	}
 	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), skillDamageMastery(atk.Char), intn)
 	if double {
@@ -287,16 +302,16 @@ func playerHitsMob(atk *Player, m *Mob) uint32 {
 }
 
 func (w *World) playerHitsMob(atk *Player, m *Mob) uint32 {
-	return playerHitsMobAt(atk, m, w.intn, w.now())
+	return playerPhysicalHitMobAt(atk, m, w.weaponCriticalDamage(atk), w.intn, w.now()).Damage
 }
 
 // playerHitsPlayer uses PvE's server-owned hit/critical progression with the
 // target character's authoritative defense and evasion.
 func playerHitsPlayerWithRNG(atk, target *Player, intn func(int) int) uint32 {
-	return playerPhysicalHitPlayerWithRNG(atk, target, intn).Damage
+	return playerPhysicalHitPlayerWithRNG(atk, target, 0, intn).Damage
 }
 
-func playerPhysicalHitPlayerWithRNG(atk, target *Player, intn func(int) int) physicalHitResult {
+func playerPhysicalHitPlayerWithRNG(atk, target *Player, criticalDamage int, intn func(int) int) physicalHitResult {
 	if atk == nil || atk.Char == nil || target == nil || target.Char == nil {
 		return physicalHitResult{}
 	}
@@ -306,7 +321,7 @@ func playerPhysicalHitPlayerWithRNG(atk, target *Player, intn func(int) int) phy
 	}
 	attack := playerAttack(atk.Char)
 	if critical {
-		attack = (intn(2) + 13) * attack / 10
+		attack = (130 + intn(2)*10 + criticalDamage) * attack / 100
 	}
 	dam := hitDamageWithRNG(attack, playerDefense(target.Char), skillDamageMastery(atk.Char), intn)
 	if double {
@@ -316,7 +331,7 @@ func playerPhysicalHitPlayerWithRNG(atk, target *Player, intn func(int) int) phy
 		Hit: true, Double: double, Critical: critical}
 }
 
-func playerPhysicalFollowupHitPlayerWithRNG(atk, target *Player, double, critical bool,
+func playerPhysicalFollowupHitPlayerWithRNG(atk, target *Player, double, critical bool, criticalDamage int,
 	intn func(int) int) physicalHitResult {
 	if atk == nil || atk.Char == nil || target == nil || target.Char == nil ||
 		!combatRollHits(playerVersusPlayerAccuracy(atk.Char, target.Char), intn) {
@@ -324,7 +339,7 @@ func playerPhysicalFollowupHitPlayerWithRNG(atk, target *Player, double, critica
 	}
 	attack := playerAttack(atk.Char)
 	if critical {
-		attack = (intn(2) + 13) * attack / 10
+		attack = (130 + intn(2)*10 + criticalDamage) * attack / 100
 	}
 	dam := hitDamageWithRNG(attack, playerDefense(target.Char), skillDamageMastery(atk.Char), intn)
 	if double {
@@ -339,7 +354,7 @@ func playerHitsPlayer(atk, target *Player) uint32 {
 }
 
 func (w *World) playerHitsPlayer(atk, target *Player) uint32 {
-	return playerHitsPlayerWithRNG(atk, target, w.intn)
+	return playerPhysicalHitPlayerWithRNG(atk, target, w.weaponCriticalDamage(atk), w.intn).Damage
 }
 
 // mobHitsPlayer resolves physical mob-to-player damage.

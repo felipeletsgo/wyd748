@@ -49,12 +49,17 @@ func (m TerrainMap) NewbieZone(x, y uint16) bool {
 	return m.Attribute[(int(y)/4)*AttributeWidth+int(x)/4]&0x80 != 0
 }
 
+// AttributeAt returns the native flags for the 4x4 cell at a world position.
+func (m TerrainMap) AttributeAt(x, y uint16) byte {
+	if !m.Loaded() || int(x) >= TerrainWidth || int(y) >= TerrainHeight {
+		return 0
+	}
+	return m.Attribute[(int(y)/4)*AttributeWidth+int(x)/4]
+}
+
 // GuildArea reports the native private-city attribute. Ownership belongs to World.
 func (m TerrainMap) GuildArea(x, y uint16) bool {
-	if !m.Loaded() || int(x) >= TerrainWidth || int(y) >= TerrainHeight {
-		return false
-	}
-	return m.Attribute[(int(y)/4)*AttributeWidth+int(x)/4]&0x20 != 0
+	return m.AttributeAt(x, y)&0x20 != 0
 }
 
 // PvPZone mirrors W2PP GetFunc player/summon damage: PvP needs attribute 0x40

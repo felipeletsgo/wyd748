@@ -290,12 +290,18 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 				if (count) MultiByteToWideChar(1252, 0, help, bytes, text.data(), count);
 				entry.Details.push_back(text);
 			}
-			item_bonus_text::ForEach(&displayedItem, [&](unsigned int, int, int, const char* text) {
+			const auto addDetail = [&](const char* text) {
 				const int bytes = static_cast<int>(strlen(text));
 				const int characters = MultiByteToWideChar(1252, 0, text, bytes, nullptr, 0);
 				std::wstring detail(characters, L'\0');
 				if (characters) MultiByteToWideChar(1252, 0, text, bytes, detail.data(), characters);
 				entry.Details.push_back(detail);
+			};
+			item_bonus_text::ForEach(&displayedItem, [&](unsigned int, int, int, const char* text) {
+				addDetail(text);
+			});
+			item_bonus_text::ForEachCombat(&displayedItem, [&](const char* text, unsigned int) {
+				addDetail(text);
 			});
 			for (int effect = 0; effect < 3; ++effect)
 				entry.Effects[effect] = {item.stEffect[effect].cEffect, item.stEffect[effect].cValue};

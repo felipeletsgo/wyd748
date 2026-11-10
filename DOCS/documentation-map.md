@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 221.
+Markdown documents: 225.
 
 | Document | Type |
 | --- | --- |
@@ -17,6 +17,7 @@ Markdown documents: 221.
 | [.agents/handoffs/skills-buffs-passives.md](<../.agents/handoffs/skills-buffs-passives.md>) | Historical continuity |
 | [.agents/handoffs/TEMPLATE.md](<../.agents/handoffs/TEMPLATE.md>) | Historical continuity |
 | [.agents/handoffs/tmproject-architecture.md](<../.agents/handoffs/tmproject-architecture.md>) | Historical continuity |
+| [.agents/research/client748/flows/combat/bm-summon-attacks.md](<../.agents/research/client748/flows/combat/bm-summon-attacks.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/persistent-buff-visuals.md](<../.agents/research/client748/flows/combat/persistent-buff-visuals.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/player-reported-skill-effects.md](<../.agents/research/client748/flows/combat/player-reported-skill-effects.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Research evidence |
@@ -93,6 +94,7 @@ Markdown documents: 221.
 | [.agents/research/client748/flows/ui/grid-item-quantity-and-cp-names.md](<../.agents/research/client748/flows/ui/grid-item-quantity-and-cp-names.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/ground-item-create-contract.md](<../.agents/research/client748/flows/ui/ground-item-create-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/ground-item-state-contract.md](<../.agents/research/client748/flows/ui/ground-item-state-contract.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/ground-pickup-mouse.md](<../.agents/research/client748/flows/ui/ground-pickup-mouse.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/indexed-parameterized-message-extension.md](<../.agents/research/client748/flows/ui/indexed-parameterized-message-extension.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/instance-runtime-counter-controls.md](<../.agents/research/client748/flows/ui/instance-runtime-counter-controls.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/item-sold-contract.md](<../.agents/research/client748/flows/ui/item-sold-contract.md>) | Research evidence |
@@ -102,6 +104,7 @@ Markdown documents: 221.
 | [.agents/research/client748/flows/ui/message-panel-text.md](<../.agents/research/client748/flows/ui/message-panel-text.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/mission-panel-dormant.md](<../.agents/research/client748/flows/ui/mission-panel-dormant.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/mount-level-glow.md](<../.agents/research/client748/flows/ui/mount-level-glow.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/mount-species-effects.md](<../.agents/research/client748/flows/ui/mount-species-effects.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/native-mix-inventory-layout.md](<../.agents/research/client748/flows/ui/native-mix-inventory-layout.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/party-panel-layout-lifecycle.md](<../.agents/research/client748/flows/ui/party-panel-layout-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/pickup-confirmation-contract.md](<../.agents/research/client748/flows/ui/pickup-confirmation-contract.md>) | Research evidence |
@@ -203,6 +206,7 @@ Markdown documents: 221.
 | [DOCS/language-migration.md](<language-migration.md>) | Product documentation |
 | [DOCS/login-dispatch.md](<login-dispatch.md>) | Product documentation |
 | [DOCS/protocol/data-consistency.md](<protocol/data-consistency.md>) | Product documentation |
+| [DOCS/protocol/drop-list.md](<protocol/drop-list.md>) | Product documentation |
 | [DOCS/protocol/hell-gate-store.md](<protocol/hell-gate-store.md>) | Product documentation |
 | [DOCS/protocol/instance-question.md](<protocol/instance-question.md>) | Product documentation |
 | [DOCS/protocol/kefra-portal.md](<protocol/kefra-portal.md>) | Product documentation |

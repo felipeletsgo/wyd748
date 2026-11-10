@@ -1,49 +1,115 @@
 FFFFFF
-FFFFFF [Guild Commands]
-33FFFF guild
-AAFFAA Check The patron and enemies of other guild members that is currently online
-33FFFF guildtax [tax rate]
-AAFFAA Command use to adjust guild's taxes (Taxes range 0% ~ 20%)
-AAFFAA Use by guild's association president, to set the taxes on the town they conquer
-33FFFF /summonguildmembers
-AAFFAA Gather all guild's members that is currently online
-AAFFAA * Guild master can gather every members in guild, including vice guild leader
-AAFFAA * Vice guild leader can summon, members that belongs to his sub guild
-33FFFF /expel [guild member's name]
-AAFFAA Expel certain guild member from the guild
-33FFFF /tele [guild member's name]
-AAFFAA Move to the location of the specific guild member
-AAFFAA * Only applied to guild master and peoples that is wearing the kingdom's medal
-33FFFF /Endwar
-AAFFAA End the enemies status with other guild
-AAFFAA * Only applied to guild master
-33FFFF /Endallies
-AAFFAA End all the allies with other guild
-AAFFAA * Only applied to Guild master
-FFFFFF 
-FFFFFF [Chatting Commands]
-33FFFF /Players' name [Content of Chat]
-AAFFAA Whisper others
-33FFFF /r [Content of Chat]
-AAFFAA Reply others' whisper
-33FFFF = [Content of Chat]
-AAFFAA Party chat, only party members can see it
-33FFFF - [Content of Chat]
-AAFFAA Guild chat, only guild members can see it
-33FFFF -- [Content of Chat]
-AAFFAA Global chat, visible to every online player on this server
-33FFFF * [Content of Chat]
-AAFFAA Display chat content above player's head for 10 second
-33FFFF /Players' name ! [Content of Chat]
-AAFFAA Send a sort massage to a certain player, after receiving, it will dissapear
-FFFFFF 
-FFFFFF [Kingdom Commands]
-33FFFF /Town or /Kingdom
-AAFFAA Send players to their respective kingdom 
-AAFFAA * Only applies to players that joined the kingdom
-33FFFF /king
-AAFFAA Teleport players to the side of the king
-AAFFAA * Only Applies to Whoever wants to join a kingdom
-FFFFFF [BeastMaster Summons]
-33FFFF /unsummon or /dispensar
-AAFFAA Dismiss your BeastMaster summons to summon another family.
+FFFFFF Player commands
+AAFFAA Type commands in chat. <...> means a required value.
+AAFFAA Aliases separated by | have the same function.
+FFFFFF
+FFFFFF Balances and character
+33FFFF /balance | /saldo
+AAFFAA Show your Donate, Fame, Honor, Pass and Kefra balances.
+33FFFF /medals | /medalhas
+AAFFAA Show your gold, red and blue medal balances.
+33FFFF /cp | /chaos
+AAFFAA Show your Chaos/PK Points (-75 to +75).
+33FFFF /fame
+AAFFAA Show your character Fame, separate from guild Fame.
+33FFFF /time
+AAFFAA Show the server date and time.
+33FFFF /parry <name>
+AAFFAA Show your accuracy and evasion against an online player.
+33FFFF /srv <channel>
+AAFFAA Transfer to an available channel when your state permits.
+FFFFFF
+FFFFFF BeastMaster summons and inventory
+33FFFF /unsummon | /dispensar
+AAFFAA Dismiss all your BeastMaster summons.
+AAFFAA Cast any learned summon to call one of each learned type.
+33FFFF /clearinv | /limparinv
+AAFFAA WARNING: permanently delete all items in your inventory!
+FFFFFF
+FFFFFF Guild management
+33FFFF /create <guild> | /criar <guild>
+AAFFAA Create a guild with the specified name.
+33FFFF /invite <name> | /convidar <name>
+AAFFAA Guild leader: invite an online player.
+33FFFF /accept | /aceitar
+AAFFAA Accept your pending guild invitation.
+33FFFF /leave | /sair
+AAFFAA Leave your guild; leader departure follows succession rules.
+33FFFF /expel <name> | /expulsar <name>
+AAFFAA Guild leader: expel a guild member.
+33FFFF /createsub <name> | /subcreate <name> | /criarsub <name>
+AAFFAA Guild leader: promote a member to a free subleader slot.
+33FFFF guildoff | guildon
+AAFFAA Hide or show your public guild affiliation (no slash).
+FFFFFF
+FFFFFF Guild wars
+33FFFF /guildfame | /famaguild
+AAFFAA Show your guild Fame.
+33FFFF /citywar
+AAFFAA Show city owners, challengers, bids and victories.
+33FFFF /citywar <1..4> <total bid>
+AAFFAA Guild leader: register a city bid using guild Fame.
+AAFFAA Only bid increases are charged; server entry rules apply.
+33FFFF /tower
+AAFFAA Enter the active tower war from Erion with a kingdom guild.
+FFFFFF
+FFFFFF Kingdom travel
+33FFFF /kingdom | /reino
+AAFFAA Travel to your kingdom area, or the neutral area.
+33FFFF /king | /rei
+AAFFAA Visit the king of your chosen kingdom.
+FFFFFF
+FFFFFF Labels and announcements
+33FFFF /tab <text>
+AAFFAA Set a label above your name; use /tab alone to clear it.
+AAFFAA Colors: /tab2, /tab3, /tab4, /tab5, /tab6, /tab7, /tab8, /tab9.
+AAFFAA Limit: 25 characters. Mortal characters need level 70 to set it.
+33FFFF /snd <text>
+AAFFAA Set the status shown by /name. Use /snd alone to clear it.
+33FFFF /spk <message>
+AAFFAA Announce a message; consumes one Magic Trumpet (Shout).
+FFFFFF
+FFFFFF Chat
+33FFFF /name <message>
+AAFFAA Send a private message to an online player.
+33FFFF /name
+AAFFAA Show information and status for an online player.
+33FFFF /name ! <message>
+AAFFAA Send a letter to the player's Help > Message tab.
+33FFFF = <message>
+AAFFAA Party chat.
+33FFFF - <message>
+AAFFAA Guild chat.
+33FFFF -- <message>
+AAFFAA Global chat across channels.
+33FFFF @ <message>
+AAFFAA Chat for your current channel.
+33FFFF @@ <message>
+AAFFAA Citizenship chat across channels.
+33FFFF * <message>
+AAFFAA Show a local overhead message for ten seconds.
+FFFFFF
+FFFFFF Local client commands
+AAFFAA Commands below without / must be typed without a slash.
+33FFFF /help
+AAFFAA Open or close Help (same as H).
+33FFFF /fps
+AAFFAA Show or hide FPS and ping under the minimap.
+33FFFF fps
+AAFFAA Toggle the original FPS display.
+33FFFF effects
+AAFFAA Show or hide skill and buff visual effects.
+33FFFF effects2
+AAFFAA Toggle the additional visual effects setting.
+33FFFF effectold
+AAFFAA Show or hide buff visual effects.
+33FFFF exp
+AAFFAA Show or hide EXP gain messages.
+33FFFF /Guild Board
+AAFFAA Cancel the current chat entry.
+FFFFFF
+FFFFFF Automatic synchronization
+33FFFF /day
+AAFFAA Refresh the client calendar; normally sent automatically.
+33FFFF /nig
+AAFFAA Refresh the Nightmare clock; normally sent automatically.

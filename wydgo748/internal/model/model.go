@@ -207,6 +207,9 @@ type Score struct {
 	Mastery       [4]uint32 `json:"mastery,omitempty"`
 	AttackRun     uint32    `json:"attackRun,omitempty"`
 	Merchant      uint32    `json:"merchant,omitempty"`
+
+	// NativeBaseStats marks the one-time conversion of saved class baselines.
+	NativeBaseStats bool `json:"nativeBaseStats,omitempty"`
 }
 
 // Validate ensures persisted state uses exactly the current contract and that

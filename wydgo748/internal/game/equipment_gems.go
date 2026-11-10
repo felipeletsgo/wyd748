@@ -32,15 +32,18 @@ func (w *World) equipmentGemBonuses(ch *model.Char) equipmentGemBonus {
 		if item.Index == 0 || !ok {
 			continue
 		}
+		if (slot == 6 || slot == 7) && def.Pos&64 != 0 {
+			bonus.forceDamage += itemAbility(item, def, "EF_PIERCINGDAMAGE")
+		}
 		switch def.Grade {
 		case 5: // Diamond Ancient
 			bonus.dropPercent += 8
 		case 6: // Emerald Ancient
-			bonus.forceDamage += 20
+			bonus.forceDamage += 40
 		case 7: // Coral Ancient
 			bonus.expPercent += 2
 		case 8: // Garnet Ancient
-			bonus.absorbDamage += 20
+			bonus.absorbDamage += 40
 		}
 
 		raw, exists := sancRaw(item)
@@ -53,19 +56,11 @@ func (w *World) equipmentGemBonuses(ch *model.Char) equipmentGemBonus {
 		case 0: // Diamond
 			bonus.dropPercent += 8
 		case 1: // Emerald
-			perLevel := 40
-			if def.Grade == 6 {
-				perLevel = 80
-			}
-			bonus.forceDamage += perLevel * scale
+			bonus.forceDamage += 40 * scale
 		case 2: // Coral
 			bonus.expPercent += 2
 		case 3: // Garnet
-			perLevel := 40
-			if def.Grade == 8 {
-				perLevel = 80
-			}
-			bonus.absorbDamage += perLevel * scale
+			bonus.absorbDamage += 40 * scale
 		}
 	}
 	fairy := w.activeFairyBonus(ch)

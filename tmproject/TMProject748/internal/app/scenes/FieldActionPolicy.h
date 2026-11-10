@@ -55,6 +55,12 @@ constexpr bool ValidShortSkillSlot(int slot)
     return slot >= 0 && slot < kShortSkillSlots;
 }
 
+constexpr bool CanPrioritizeGroundPickup(int itemIndex, int groundCells)
+{
+    // Ground fixtures have their own interaction. The cannon uses skill 97.
+    return itemIndex > 0 && groundCells <= 0 && itemIndex != 746;
+}
+
 // A03-06: the punch-reaction delay table holds six motions (4..9) per class.
 // The server relays the client's Motion byte, so clamp both ends.
 constexpr int kPunchMotionsPerClass = 6;

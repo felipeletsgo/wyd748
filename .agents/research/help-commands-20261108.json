@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-08",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "scope": "Complete player Help commands, centered Help window, and /srv transport",
+  "sourceHead": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "workingTree": "Existing unrelated changes were preserved; this is an uncommitted local candidate.",
+  "candidateRevision": 104,
+  "publishedClientRevision": 103,
+  "installedClientReplaced": false,
+  "installationStatus": "Historical Help-only build was not installed. The combined Help and camera candidate 104 is now installed; see zoom-camera-20261108.json.",
+  "published": false,
+  "serverActivated": false,
+  "clientTested": false,
+  "artifact": {
+    "status": "Historical Help-only build; the combined revision 104 build is recorded in zoom-camera-20261108.json.",
+    "path": "tmproject/build/TMProject748/Release/WYD.exe",
+    "sha256": "fe21172ae6a1a34451e64189dedbcd92d31f109c7d30bba91737c8102370dbfc",
+    "canonicalHelpSha256": "bdfb1c3deff6b76e18eda3a3b03903669f9a3c6b6f2a88cf397abbb3af7fdaa9"
+  },
+  "checks": {
+    "static": "Root 864 owns the frame, title, tabs, pages, close button and scroll lists. Help and Quest share CenteredPanelOrigin.",
+    "clientBuild": "Release -NoDeploy PASS",
+    "architecture": "3202768 checks and static assertions PASS",
+    "socketReceive": "295 checks PASS",
+    "crashCapture": "148 checks PASS",
+    "locales": "24 tests PASS; all chatCommandAliases, tab variants, local commands and staff exclusions checked",
+    "textMeasurement": "Tahoma 12, weight 500: EN maximum 280px; PT maximum 326px; available width 448px",
+    "go": "go test ./... and go vet ./... PASS",
+    "layoutAndLinks": "PASS; 222 documents indexed",
+    "diffWhitespace": "PASS"
+  },
+  "logs": [
+    "tmproject/build/help-104-build.log",
+    "build/help-commands-20261108/locales.log",
+    "build/help-commands-20261108/help-text-widths.json",
+    "build/help-commands-20261108/go-test.log",
+    "build/help-commands-20261108/go-vet.log",
+    "build/help-commands-20261108/layout.log"
+  ],
+  "changedFiles": [
+    "DOCS/bug-register.md",
+    "DOCS/client/ui-windows.md",
+    "DOCS/current-state.md",
+    "tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp",
+    "tmproject/TMProject748/internal/app/scenes/TMFieldScene.h",
+    "tmproject/TMProject748/internal/app/scenes/TMFieldSceneInput.cpp",
+    "tmproject/TMProject748/internal/app/scenes/TMFieldSceneUI.cpp",
+    "tmproject/TMProject748/internal/core/UiLayout.h",
+    "tmproject/TMProject748/internal/wire/ClientBuildContract.h",
+    "tmproject/TMProject748/tests/UiModeContractTests.cpp",
+    "tmproject/client748/UI/command.txt",
+    "tmproject/client748/EN/UI/command.txt",
+    "tmproject/client748/PT/UI/command.txt",
+    "tools/client-assets/client_locale_overrides.json",
+    "tools/client-assets/test_client_locales.py",
+    "wydgo748/internal/wire/client_build.go",
+    "wydgo748/internal/wire/client_build_test.go"
+  ],
+  "addedFiles": [".agents/research/help-commands-20261108.json"],
+  "removedFiles": [],
+  "pending": [
+    "Real-client H/menu/letter opening, tabs, scrolling, close/reopen, EN/PT and resolution checks",
+    "Real-client /srv channel-transfer acceptance",
+    "Mandatory patch publication before any server revision 104 activation"
+  ]
+}

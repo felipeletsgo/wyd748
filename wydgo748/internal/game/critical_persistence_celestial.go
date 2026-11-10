@@ -47,6 +47,9 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			if ch.ArchMortalLevel < model.CelestialMinimumMortalLevel {
 				return reject("The respective Mortal must be level 400.")
 			}
+			if ch.Equip[cytheraEquipSlot].Index != 0 {
+				return reject("Remove your helmet before becoming Celestial.")
+			}
 			tier := celestialArchTier(ch.Score.Level)
 			cytheraIndex := celestialCytheraForTier(tier)
 			if tier == 0 || cytheraIndex == 0 {
@@ -66,7 +69,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			ch.RuntimeScore = nil
 			ch.LearnedSkill, ch.SecondaryLearnedSkill = celestialSoulBit, 0
 			ch.ShortSkill, ch.Affects = emptyShortSkills(), itemBuffsOnly(ch.Affects) // potion buffs survive
-			ch.Equip[1] = cythera
+			ch.Equip[cytheraEquipSlot] = cythera
 			kingdom := model.KingdomFromCape(ch.Equip[model.CapeSlot].Index)
 			cape, _ := model.KingdomCapeAtTier(model.CapeTierMaster, kingdom)
 			uid := ch.Equip[model.CapeSlot].UID
@@ -89,7 +92,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 				return reject("The SubCelestial has already been created.")
 			}
 			if ch.Score.Level < model.SubCelestialMinimumLevel {
-				return reject("The Celestial must be level 121 or higher.")
+				return reject("The Celestial must be level 120 or higher.")
 			}
 			if counterBalance(detached, fameCounter) < subCelestialFameCost {
 				return reject("100 Fame is required to create a SubCelestial.")
@@ -113,7 +116,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			markCelestialFace(&subFace, "subcelestial")
 			ch.AlternateCelestial = &model.CelestialForm{
 				Evolution: "subcelestial", Class: byte(subClass), Face: subFace,
-				Score: newCelestialScore(byte(subClass), ch.Score), LearnedSkill: celestialSoulBit,
+				Score: newCelestialScore(byte(subClass), ch.Score), LearnedSkill: ch.LearnedSkill & celestialSpecialMask,
 				ShortSkill: emptyShortSkills(),
 			}
 			ch.AlternateCelestial.Score.Defense = celestialBaseDefense(ch.ArchCrystals)
@@ -157,22 +160,26 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			return reject("500 Fame is required.")
 		}
 		if ch.Score.Level < maxCelestialLevel {
-			if ch.Score.Level != 89 || ch.CelestialLevel90Unlocked || !advancedEvolution(ch, "celestial") {
+			if ch.Score.Level < 89 || ch.CelestialLevel90Unlocked {
 				return reject("This unlock is only available at Celestial level 90.")
 			}
-			ch.CelestialLevel90Unlocked = true
-			grantCythera = true
-			message = "Celestial level 90 has been unlocked."
+			grantCythera = w.intn(100) < celestialFuryUnlockChance
+			ch.CelestialLevel90Unlocked = grantCythera
+			if grantCythera {
+				message = "Celestial level 90 has been unlocked."
+			} else {
+				message = "The Fury Stone failed to unlock level 90."
+			}
 		} else {
-			if ch.CelestialArcana || ch.Equip[1].Index != 3502 || itemSanc(ch.Equip[1]) < 11 {
-				return reject("Equip a Mystic Cythera +11 or higher.")
+			if ch.CelestialArcana || !arcanaBaseCythera(ch.Equip[cytheraEquipSlot].Index) {
+				return reject("Equip a Cythera eligible for Arcana.")
 			}
 			for stone := uint16(5334); stone <= 5337; stone++ {
 				if !consumeInventoryItem(ch, stone, 1) {
 					return reject("The four Secret Stones are required.")
 				}
 			}
-			if w.intn(2) != 0 {
+			if w.intn(100) < celestialArcanaChance {
 				ch.Equip[1].Index, ch.CelestialArcana = arcanaCytheraItem, true
 				message = "The Arcana Cythera was created."
 			} else {

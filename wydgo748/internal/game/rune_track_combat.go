@@ -25,7 +25,7 @@ func (w *World) runeTrackCombatSkill(m *Mob, now time.Time) (model.SkillDef, boo
 	if !w.runeTrackCombatActor(m, now) || m.Def.SkillBar == [4]byte{255, 255, 255, 255} {
 		return model.SkillDef{}, false
 	}
-	index := hellGateAttackSkill(m.Def.SkillBar, w.intn(100))
+	index := historicalMonsterAttackSkill(m.Def.SkillBar, w.intn(100))
 	skill, exists := w.skills[index]
 	return skill, exists
 }

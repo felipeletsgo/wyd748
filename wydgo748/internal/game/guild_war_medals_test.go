@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"wydgo/internal/lang"
 	"wydgo/internal/model"
 )
 
@@ -162,18 +163,22 @@ func TestFameWarGoldEconomyDisabledBeforeFirstTick(t *testing.T) {
 func TestCriticalTowerRoundUsesCastleRealmAfterAcknowledgement(t *testing.T) {
 	w, _, _, fallback, backend, queue, release := criticalTreasuryFixture(t, 0)
 	w.warConfig = model.DefaultGuildWarConfig()
+	w.language = lang.Portuguese
+	w.terrain = loadedFlatTerrain()
+	w.npcs = []model.NPCDef{{Name: "Torre", Score: &model.Score{MaxHP: 9000}}}
 	w.guilds.Guilds[0].Kingdom = 7
 	w.guilds.Guilds = append(w.guilds.Guilds, model.Guild{ID: 2, Kingdom: 8})
 	w.guilds.Wars.Castle.Owner = 1
 	w.guilds.Wars.Tower = model.TowerWarState{Day: "2026-10-18", Owner: 2, Kingdom: 8, Finished: true, DefenderCaptures: 3}
 	before := w.guilds.Wars.Clone()
-	start := time.Date(2026, 10, 19, 20, 55, 0, 0, time.UTC)
-	if err := w.tickCriticalTowerWar(start); err != nil {
+	warning := time.Date(2026, 10, 19, 21, 0, 0, 0, time.UTC)
+	if err := w.tickCriticalTowerWar(warning); err != nil {
 		t.Fatal(err)
 	}
 	proposal := awaitCriticalWrite(t, backend.entered)
 	s := proposal.guilds.Wars.Tower
-	if s.Owner != 0 || s.Kingdom != 7 || s.InitialKingdom != 7 || s.DefenderCaptures != 3 || !s.EndsAt.Equal(start.Add(65*time.Minute)) {
+	if s.Owner != 0 || s.Kingdom != 7 || s.InitialKingdom != 7 || s.DefenderCaptures != 3 ||
+		!s.StartsAt.Equal(warning.Add(5*time.Minute)) || !s.EndsAt.Equal(warning.Add(35*time.Minute)) {
 		t.Fatal("critical start used previous tower winner or lost native divisor", s)
 	}
 	if !reflect.DeepEqual(before, w.guilds.Wars) {
@@ -184,6 +189,35 @@ func TestCriticalTowerRoundUsesCastleRealmAfterAcknowledgement(t *testing.T) {
 	w.processCriticalCompletions(1)
 	if !reflect.DeepEqual(s, w.guilds.Wars.Tower) || fallback.gameSaves != 0 {
 		t.Fatal("critical calendar did not publish committed proposal")
+	}
+	for _, step := range []struct {
+		at      time.Time
+		notice  string
+		active  bool
+		started bool
+		done    bool
+	}{
+		{at: warning, notice: w.msg("_WG_Tower_War_Starts_Within_Minutes_Enter")},
+		{at: s.StartsAt, notice: w.msg("_WG_Tower_War_Started_Use_Tower_Erion", 30), active: true, started: true},
+		{at: s.EndsAt, notice: w.msg("_WG_Tower_War_Over_Kingdom_Defended_No", 7), started: true, done: true},
+	} {
+		priorNotices := len(w.warNotices)
+		if err := w.tickCriticalTowerWar(step.at); err != nil {
+			t.Fatal(err)
+		}
+		awaitCriticalWrite(t, backend.entered)
+		if len(w.warNotices) != priorNotices {
+			t.Fatal("notice published before acknowledgement")
+		}
+		awaitReadyCriticalResults(t, queue, 1)
+		w.processCriticalCompletions(1)
+		state := w.guilds.Wars.Tower
+		if (w.warTower() != nil) != step.active || state.Started != step.started || state.Finished != step.done {
+			t.Fatalf("%s: wrong tower lifecycle state: %+v", step.at.Format("15:04"), state)
+		}
+		if len(w.warNotices) != priorNotices+1 || w.warNotices[priorNotices] != step.notice {
+			t.Fatalf("%s: missing localized notice %q, got %q", step.at.Format("15:04"), step.notice, w.warNotices[priorNotices:])
+		}
 	}
 }
 

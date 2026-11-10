@@ -368,6 +368,16 @@ int RunDeviceResourceSafetyTests(int& checks)
         check(!sound_playback::AnyPlaying(lost, 2), "lost buffer or failed query is not playback");
     }
 
+    check(sound_playback::VolumeForSound(101, DSBVOLUME_MAX) == -1800,
+        "rain is quieter at maximum effects volume");
+    check(sound_playback::VolumeForSound(113, -600) == -2400,
+        "snow remains quieter after an effects volume change");
+    check(sound_playback::VolumeForSound(101, -9000) == DSBVOLUME_MIN &&
+        sound_playback::VolumeForSound(113, DSBVOLUME_MIN) == DSBVOLUME_MIN,
+        "weather volume respects the DirectSound minimum and mute");
+    check(sound_playback::VolumeForSound(102, -600) == -600,
+        "other effects retain the configured volume");
+
     // A19-02: non-PCM extra bytes are allocated with the structure and must fit the chunk.
     {
         check(wave_format::AllocationBytes(1, 16, 0) == sizeof(WAVEFORMATEX), "PCM keeps the 18-byte format");

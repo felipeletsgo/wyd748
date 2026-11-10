@@ -56,6 +56,7 @@
 #include "GuildChallengePromptPacket.h"
 #include "WeatherPacket.h"
 #include "KefraPortalPacket.h"
+#include "DropListPacket.h"
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
@@ -78,6 +79,7 @@ namespace received_packet
         case instance_question::Opcode: return sizeof(instance_question::Packet);
         case premium_shop::ResultOpcode: return sizeof(premium_shop::Result);
         case kefra_portal::StateOpcode: return sizeof(kefra_portal::State);
+        case drop_list::ResultOpcode: return sizeof(drop_list::Result);
         case MSG_ReqTransper_Opcode: return sizeof(MSG_ReqTransper);
         case MSG_SendItem_Opcode: return kSendItemPacketSize;
         case MSG_CNFGetItem_Opcode: return kPickupConfirmationPacketSize;
@@ -203,6 +205,12 @@ namespace received_packet
             kefra_portal::State state{};
             return packet.opcode == header.Type &&
                 kefra_portal::Parse(packet.data, packet.size, state);
+        }
+
+        if (header.Type == drop_list::ResultOpcode || packet.opcode == drop_list::ResultOpcode)
+        {
+            drop_list::Result result{};
+            return packet.opcode == header.Type && drop_list::Parse(packet.data, packet.size, result);
         }
 
         // Attacks have native prefixes and variable-size coordinated extensions.

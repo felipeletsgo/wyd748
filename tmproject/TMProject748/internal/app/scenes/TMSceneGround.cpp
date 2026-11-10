@@ -6,6 +6,7 @@
 #include "SGrid.h"
 #include "UIBinary.h"
 #include "TMGround.h"
+#include "TMHouse.h"
 #include "TMSky.h"
 #include "TMSun.h"
 #include "TMLight.h"
@@ -845,15 +846,8 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 	if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 	{
 		auto pFieldScene = static_cast<TMFieldScene*>(this);
-		auto pSoundManager = g_pSoundManager;
-		if (pSoundManager)
-		{
-			auto pSoundData = pSoundManager->GetSoundData(6);
-			if (pSoundData && pSoundData->IsSoundPlaying())
-			{
-				pSoundData->Stop();
-			}
-		}
+		if (g_pSoundManager)
+			g_pSoundManager->StopSound(TMHouse::WaterfallSound);
 		if (RenderDevice::m_bDungeon && RenderDevice::m_bDungeon != 3 && RenderDevice::m_bDungeon != 4)
 		{
 			pFieldScene->m_bQuater = 1;

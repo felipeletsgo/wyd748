@@ -14,16 +14,20 @@ avoid replacing an older `WYD.exe`; earlier records use that name. With
 updated; the installed executable remains unchanged. Historical executables
 and patchers are not fallbacks, products, or validation gates.
 
-The source no longer exposes the later repurchase, numeric AccountLock, or
-drop-list packet paths. This is not evidence that an already installed
-`WYD.exe` contains those source changes. The [opcode catalog](../wire-opcode-catalog.md#retired-and-incomplete-legacy-paths)
-separates retired paths from incomplete server integrations; in particular,
-war letters, alternate mix, and account transfer are not supported end to end.
+Client revision 103 is installed locally, published as patch 48103, and active
+with server minimum revision 103. The adapted source includes the drop-list
+query/result path and the versioned sale quote. Earlier statements in this
+document about an unpublished candidate or absent drop-list packets are superseded.
+Repurchase and numeric AccountLock remain unsupported; war letters, alternate
+mix, and account transfer are not implemented end to end. See the
+[opcode catalog](../wire-opcode-catalog.md#retired-and-incomplete-legacy-paths)
+and the [current release record](../client/launcher.md#active-release-748103-2026-11-08).
 
 ### Eight native-source corrections (2026-11-02)
 
 Classification: `MODERNIZACAO_COMPATIVEL`. Packet layouts remain unchanged.
-These corrections shipped in revision 18 and are retained in the prepared baseline 100. Existing coordinated skill-book and MagicAttack policies remain.
+These corrections shipped in revision 18, were retained in baseline 7.48.100,
+and remain in the current revision 103. Existing coordinated skill-book and MagicAttack policies remain.
 Native 7.59 TMSRVIN supplies server arithmetic; it does not establish 7.48 parity.
 Core.dll evidence was consulted without resolving an independent gameplay root.
 Native receipts remain under `references/decompilacao server/dlls/rea-analysis/results/audit-eight-corrections-20261102/`.
@@ -56,9 +60,9 @@ now have tested source corrections. See BUG-012–BUG-015 in the
 [bug register](../bug-register.md#queue). New gameplay acceptance remains pending.
 Evidence: `tmproject/build/mount-crash-20261102/REPORT.md`.
 The owner authorized local installation on November 2; the installed hash matches the validated build.
-Patch 48018 and server release `20261102T233404Z` are published and active.
+Patch 48018 and server release `20261102T233404Z` were published and active at that time. Release 7.48.103 is now active.
 The prepared native-launcher baseline 7.48.100 includes these corrections.
-Its local installation is updated; external upload and baseline activation remain pending.
+The baseline was later published and activated; the current client and server minimum are revision 103.
 The alternative source launcher was removed at the owner's request; see
 the [retirement receipt](../../.agents/research/native-launcher-retirement-20261102.json).
 See the [release receipt](../../.agents/research/release-748018.json).
@@ -692,6 +696,41 @@ before accepting these newer source batches in the user's runtime.
   minimap reload, device recovery, actor removal, relogin and orderly exit.
   A clean session is not proof that every historical crash is fixed. Close
   each incident only with evidence specific to its original reproduction.
+
+## Field camera distance, 2026-11-08
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Published revision 104 includes
+the Help update and this camera adjustment. Client acceptance remains pending.
+
+Field entry and the normal camera preset now use distance 22, previously 20.
+The mouse wheel permits distance 24, previously 20. These values increase the
+default distance by 10% and the maximum by 20%. The entry animation ends at 22.
+Dungeon transitions retain the new maximum and synchronize the target distance.
+The alternate presets, camera angles, wheel direction and near limits retain
+their existing values.
+
+Fixed terrain bounds and both ground cursor queries add one tile ring at
+distance 22 and two at 24. Each tile spans two world units. Existing terrain
+clamps remain in use. Terrain paths that already follow camera distance and
+the existing zoom-dependent fog adjustment also follow the new distance.
+The server still publishes entities within 32 cells on each axis; packet,
+combat and interaction rules have no changes.
+
+`STATICALLY VERIFIED`: field initialization, preset selection, entry animation,
+dungeon transitions, terrain bounds and ground cursor query consumers.
+The existing native wheel mapping remains the input contract described below;
+the new distances are a compatible tuning choice, without a native parity claim.
+
+`AUTOMATED TESTED`: zoom progression past 20, maximum clamping, zoom return,
+both camera settings, both rotation settings, mounted and unmounted near limits,
+and bounded terrain padding. See the
+[camera validation receipt](../../.agents/research/zoom-camera-20261108.json)
+for build results and artifact identity.
+
+`CLIENT-TESTED`: pending. Check field entry, wheel zoom, camera preset cycling,
+mounted movement, map and dungeon transitions, ground clicks near screen edges,
+terrain seams and fog at supported aspect ratios. Measure frame time with the
+larger view before publication.
 
 ## Input and layout review, 2026-10-10
 
@@ -2840,6 +2879,15 @@ available, for 99 KR mounts in total. Remaining known gaps: 4220 (Carnival
 Mount) points to `hs010120.msh`, absent from both the client and the KR
 reference, so it renders without a body; 4225 keeps the KR executable's 0.9
 scale against the data's 1.0. Bone lists for every mount type match KR.
+
+### Equipped mount effects (2026-11-09)
+
+The adapted client restores the 7.48 Fire Tiger flames for items 2379 and
+3990. It also uses the KR skin render dispatch for the Iceland Wolf (6011),
+Dragon Lich (6012), and both Death Shadow variants (4191 and 4192). The wolf
+emits pale mist, the dragon emits green particles, and both horses emit hoof
+flames. The effects use the equipped mesh's bones and existing textures.
+[Static evidence and validation](../../.agents/research/client748/flows/ui/mount-species-effects.md).
 
 ## Costume audit and refinement lock (2026-10-14)
 

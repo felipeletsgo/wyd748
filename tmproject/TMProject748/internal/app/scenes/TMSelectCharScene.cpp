@@ -88,6 +88,14 @@ int TMSelectCharScene::InitializeScene()
 		return 0;
 	}
 	static_cast<SEditableText*>(m_pControlContainer->FindControl(4626u))->m_nMaxStringLen = 13;
+	// Give localized captions a full row above the nickname input.
+	if (auto caption = m_pControlContainer->FindControl(5665u))
+	{
+		caption->SetPos(RenderDevice::UiPx(21.0f), RenderDevice::UiPx(310.0f));
+		caption->SetSize(RenderDevice::UiPx(210.0f), RenderDevice::UiPx(16.0f));
+	}
+	if (auto edit = m_pControlContainer->FindControl(4626u))
+		edit->SetPos(RenderDevice::UiPx(21.0f), RenderDevice::UiPx(330.0f));
 
 	g_pDevice->m_dwClearColor = 0x444433;
 	g_pDevice->m_nHeightShift = 0;

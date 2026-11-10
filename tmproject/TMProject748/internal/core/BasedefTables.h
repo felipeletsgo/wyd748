@@ -20,9 +20,9 @@ const static int g_pMountBonus[30][6] =
 {
   { 10, 1, 0, 0, 4, 75 }, // Pig
   { 10, 1, 0, 0, 4, 75 }, // Boar
-  { 50, 1, 0, 0, 5, 75 }, // Wolf
+  { 50, 10, 0, 0, 5, 75 }, // Wolf
   { 80, 15, 0, 0, 5, 75 }, // Lesser Dragon
-  { 100, 20, 0, 0, 5, 75 }, // Bear
+  { 100, 20, 0, 0, 4, 75 }, // Bear
   { 150, 25, 0, 0, 5, 75 }, // Sabertooth
   { 250, 50, 40, 0, 6, 75 }, // Unsaddled Horse N
   { 300, 60, 50, 0, 6, 75 }, // Ghost Horse N
@@ -33,21 +33,21 @@ const static int g_pMountBonus[30][6] =
   { 300, 60, 0, 20, 6, 75 }, // Ghost Horse B
   { 350, 65, 0, 24, 6, 75 }, // Light Horse B
   { 400, 70, 0, 28, 6, 73 }, // Armored Horse B
-  { 500, 80, 0, 32, 6, 73 }, // Andalusian B
-  { 550, 85, 0, 0, 6, 66 }, // Fenrir
-  { 600, 90, 0, 0, 6, 73 }, // Dragon
+  { 500, 85, 0, 32, 6, 73 }, // Andalusian B
+  { 550, 90, 0, 0, 6, 66 }, // Fenrir
+  { 680, 130, 70, 30, 6, 73 }, // Dragon
   { 550, 90, 0, 20, 6, 65 }, // Shadow Fenrir
   { 650, 100, 60, 28, 6, 65 }, // Fire Tiger
-  { 750, 110, 80, 32, 6, 71 }, // Red Dragon
+  { 730, 150, 80, 32, 6, 71 }, // Red Dragon
   { 570, 90, 20, 16, 6, 71 }, // Unicorn
   { 570, 90, 30, 8, 6, 69 }, // Pegasus
   { 570, 90, 40, 12, 6, 65 }, // Unisus
-  { 590, 90, 30, 20, 6, 65 }, // Griffin
-  { 615, 90, 40, 16, 6, 65 }, // Hippogriff
-  { 615, 90, 50, 16, 6, 65 }, // Blood Griffin
-  { 620, 35, 60, 28, 6, 65 }, // Svadilfari
-  { 250, 95, 60, 28, 6, 65 }, // Sleipnir
-  { 150, 10, 0, 20, 6, 75 }, // Black Panther
+  { 590, 95, 30, 20, 6, 65 }, // Griffin
+  { 660, 110, 40, 16, 6, 65 }, // Hippogriff
+  { 670, 120, 50, 20, 6, 65 }, // Blood Griffin
+  { 600, 40, 60, 28, 6, 65 }, // Svadilfari
+  { 300, 95, 60, 28, 6, 65 }, // Sleipnir
+  { 150, 25, 0, 20, 5, 75 }, // Black Panther
 };
 
 const static int g_pMountBonus2[20][6] =

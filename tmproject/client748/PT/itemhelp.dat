@@ -1779,93 +1779,93 @@ FFFF0000 - O custo para reviver a montaria é o mesmo
 FFFF0000 cobrado pelo M. de Montaria e tem os mesmos efeitos
 FFFFFFFF
 3900
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem_de_ganho_da
-FFFFFFFF exp_em_até_16%.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +16%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 3901
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem_de_drop_em
-FFFFFFFF até_32%.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Taxa de drop de itens: +32%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 3902
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem_em:
-FFFFFFFF Drop_de_16%_até_32%_na_Exp.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +16%.
+FFFFFFFF Taxa de drop de itens: +32%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFF0000 O tempo pausa ao desequipar.
 FFFFFFFF
 FFFFFFFF
 3903
-FFFFFFFF Item especial
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe no espaço de equipamento
-FFFFFFFF para aumentar a experiência
-FFFFFFFF obtida em 32%.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +16%.
 FFFFFFFF
-FFFFFFFF O tempo não diminui enquanto
-FFFFFFFF o item estiver desequipado.
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 3904
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem_de_drop_em
-FFFFFFFF até_32%.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Taxa de drop de itens: +32%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 3905
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem:
-FFFFFFFF 32%_no Drop_e_16%_na Exp.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +16%.
+FFFFFFFF Taxa de drop de itens: +32%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFF0000 O tempo pausa ao desequipar.
 FFFFFFFF
 FFFFFFFF
 3906
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem_de_ganho_na
-FFFFFFFF exp_em_até_16%.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +16%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_este_equipado.
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 3907
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem_de_drop_em
-FFFFFFFF até_32%.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Taxa de drop de itens: +32%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 3908
-FFFF00FF [Item_Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_em_slot_familiar_para_obter
-FFFFFFFF um_aumento_na_porcentagem:
-FFFFFFFF 32%_no Drop_e_16%_na Exp.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +16%.
+FFFFFFFF Taxa de drop de itens: +32%.
 FFFFFFFF
-FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFF0000 O tempo pausa ao desequipar.
 FFFFFFFF
 FFFFFFFF
 3909
@@ -1888,26 +1888,56 @@ FFFFFFFF Clique com o botão direito.
 FFFFFFFF Permite usar a Joia da Memória.
 FFFFFFFF Tempo restante: /kt.
 FFFFFFFF
+3911
+FFFF00FF Familiar premium
+FFFFFFFF
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +32%.
+FFFFFFFF
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+3912
+FFFF00FF Familiar premium
+FFFFFFFF
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +32%.
+FFFFFFFF
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+3913
+FFFF00FF Familiar premium
+FFFFFFFF
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +32%.
+FFFFFFFF
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 3914
-FFFF00FF [Item Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_o_item_no_slot_correspondente.
-FFFFFFFF Ao_equipar_esse_item_você_receberá_um_aumento
-FFFFFFFF de_16%_na_taxa_de_experiência_e_32%_no_drop.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +16%.
+FFFFFFFF Taxa de drop de itens: +32%.
+FFFFFFFF Shift + clique direito para vender.
 FFFFFFFF
-FFFF0000 A_duração_do_item_apenas_contará_caso_esteja_esquipado
-ffff0000 Quando_equipado,_é_possível_vender_o_item
-ffff0000 utilizando_Shift_+_botão_direito_do_mouse.
+FFFF0000 O tempo pausa ao desequipar.
+FFFFFFFF
 3915
-FFFF00FF [Item Premium]
+FFFF00FF Familiar premium
 FFFFFFFF
-FFFFFFFF Equipe_o_item_no_slot_correspondente.
-FFFFFFFF Ao_equipar_esse_item_você_receberá_um_aumento
-FFFFFFFF de_18%_na_taxa_de_experiência_e_50%_no_drop.
+FFFFFFFF Bônus enquanto equipado.
+FFFFFFFF Experiência obtida: +18%.
+FFFFFFFF Taxa de drop de itens: +50%.
+FFFFFFFF Shift + clique direito para vender.
+FFFFFFFF Agrupa itens empilháveis ao coletar.
 FFFFFFFF
-FFFF0000 A_duração_do_item_apenas_contará_caso_esteja_esquipado
-ffff0000 Quando_equipado,_é_possível_vender_o_item
-ffff0000 utilizando_Shift_+_botão_direito_do_mouse.
+FFFF0000 O tempo pausa ao desequipar.
 3980
 FFFFFFFF Item especial
 FFFFFFFF

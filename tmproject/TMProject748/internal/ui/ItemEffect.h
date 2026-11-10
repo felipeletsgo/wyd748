@@ -118,8 +118,8 @@
 #define EF_DAMAGE2               73  //
 #define EF_SPECIALALL            74  // Raises every mastery except weapon mastery
 
-#define	EF_CURKILL				 75  // not used
-#define EF_LTOTKILL				 76  // not used
+#define EF_PIERCINGDAMAGE         75
+#define EF_CRITICALDAMAGE         76
 #define EF_HTOTKILL				 77  // not used
 #define EF_INCUBATE				 78  // Hatching threshold
 

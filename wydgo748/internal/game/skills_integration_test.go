@@ -36,9 +36,9 @@ func TestUltimateSkillCostByEvolution(t *testing.T) {
 		cost            uint32
 	}{
 		{"mortal", "", 5_000_000},
-		{"arch", archEvolution, 50_000_000},
-		{"celestial", "celestial", 100_000_000},
-		{"subcelestial", "subcelestial", 100_000_000},
+		{"arch", archEvolution, 10_000_000},
+		{"celestial", "celestial", 50_000_000},
+		{"subcelestial", "subcelestial", 50_000_000},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := ultimateSkillGold(&model.Char{Evolution: tc.evolution}); got != tc.cost {
@@ -288,14 +288,14 @@ func TestLearnSkillAtMasterPersistsAndRollsBack(t *testing.T) {
 	}
 }
 
-func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
+func TestOnlyCelestialFormsIgnoreSkillLevelAndMasteryRequirements(t *testing.T) {
 	tests := []struct {
 		name      string
 		evolution string
 		learned   bool
 	}{
 		{name: "mortal", learned: false},
-		{name: "arch", evolution: archEvolution, learned: true},
+		{name: "arch", evolution: archEvolution, learned: false},
 		{name: "celestial", evolution: "celestial", learned: true},
 		{name: "subcelestial", evolution: "subcelestial", learned: true},
 	}
@@ -312,7 +312,7 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 			w.skills = map[int]model.SkillDef{0: {
 				Index: 0, Name: "LevelRestricted", SkillPoint: 1,
 			}}
-			w.items[5000] = model.ItemDef{Index: 5000, ReqLevel: 399}
+			w.items[5000] = model.ItemDef{Index: 5000, ReqLevel: 399, ReqInt: 1}
 			master := &Mob{
 				ID: 1200, X: p.X + 1, Y: p.Y,
 				Def: &model.NPCDef{
@@ -350,7 +350,7 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 		w.skills = map[int]model.SkillDef{0: {
 			Index: 0, Name: "MasteryRestricted", SkillPoint: 1,
 		}}
-		w.items[5000] = model.ItemDef{Index: 5000, ReqLevel: 399, ReqInt: 1}
+		w.items[5000] = model.ItemDef{Index: 5000, ReqInt: 1}
 		master := &Mob{
 			ID: 1200, X: p.X + 1, Y: p.Y,
 			Def: &model.NPCDef{
@@ -367,7 +367,7 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 
 		w.onLearnSkillAtMaster(p.Session, p, 5000, master.ID)
 		if p.Char.LearnedSkill&1 != 0 || st.saves != 0 {
-			t.Fatal("level bypass incorrectly ignored the mastery requirement")
+			t.Fatal("Arch ignored the mastery requirement")
 		}
 	})
 }
@@ -678,9 +678,10 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 	}
 }
 
-func TestBMSummonCastUsesW2PPFamilyAndLimitRules(t *testing.T) {
+func TestBMSummonCastCreatesAllLearnedTypesOnce(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 2
+	p.Char.LearnedSkill = 0xff << 8
 	p.Char.Score.Int = 1000
 	p.Char.Score.Con = 500
 	p.Char.Score.Mastery[2] = 255
@@ -689,33 +690,27 @@ func TestBMSummonCastUsesW2PPFamilyAndLimitRules(t *testing.T) {
 	if !w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
 		t.Fatal("Condor was not summoned")
 	}
-	if want := summonCount(1, 255); len(w.summons) != want {
-		t.Fatalf("Condor count=%d, want %d", len(w.summons), want)
+	if len(w.summons) != 8 {
+		t.Fatalf("summon count=%d, want 8", len(w.summons))
 	}
+	faces := make(map[uint16]bool)
 	for _, summon := range w.summons {
 		if summon.SummonerID != p.ID || summon.SummonKind != summonKindBM ||
-			summon.Def.Equip.Rosto.Index != summonTemplates[0].face {
-			t.Fatalf("invalid Condor: %+v", summon)
+			faces[summon.Def.Equip.Rosto.Index] {
+			t.Fatalf("invalid or duplicate summon: %+v", summon)
+		}
+		faces[summon.Def.Equip.Rosto.Index] = true
+	}
+	for _, template := range summonTemplates {
+		if !faces[template.face] {
+			t.Fatalf("missing summon type %q", template.name)
 		}
 	}
-
-	if w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
-		t.Fatal("recast at the Condor limit should fail")
+	if w.castSummon(p, model.SkillDef{Index: 57, InstanceValue: 2}, 255) {
+		t.Fatal("recast with all learned types alive should add no creatures")
 	}
-	if w.castSummon(p, model.SkillDef{Index: 57, InstanceValue: 2}, 30) {
-		t.Fatal("Boar should be rejected while a Condor remains in the group")
-	}
-	liveCondor := 0
-	for _, summon := range w.summons {
-		if !summon.Dead {
-			if summon.Def.Equip.Rosto.Index != summonTemplates[0].face {
-				t.Fatalf("familia de Condor foi substituida: face=%d", summon.Def.Equip.Rosto.Index)
-			}
-			liveCondor++
-		}
-	}
-	if want := summonCount(1, 255); liveCondor != want {
-		t.Fatalf("live Condors=%d, want %d", liveCondor, want)
+	if len(w.summons) != 8 {
+		t.Fatalf("recast changed the summon count: %d", len(w.summons))
 	}
 }
 
@@ -750,9 +745,9 @@ func TestBMSummonFailedRecastRestoresMana(t *testing.T) {
 func TestBMSummonPartialAllocationStillConsumesMana(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 2
-	p.Char.LearnedSkill = 1 << 8
+	p.Char.LearnedSkill = 1<<8 | 1<<9
 	p.Char.Score.MaxMP, p.Char.Score.CurMP = 2_000, 2_000
-	p.Char.Score.Mastery[2] = 60 // two Condors, but only one free ID
+	p.Char.Score.Mastery[2] = 60 // Two learned types, but only one free ID.
 	applyScore(p.Char)
 	w.skills = map[int]model.SkillDef{56: {Index: 56, InstanceType: 11,
 		InstanceValue: 1, ManaSpent: 100, MaxTarget: 1, Delay: 1}}
@@ -762,6 +757,22 @@ func TestBMSummonPartialAllocationStillConsumesMana(t *testing.T) {
 	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
 	if len(w.summons) != 1 || playerCurMP(p.Char) >= 2_000 {
 		t.Fatalf("partial summon was free: summons=%d mp=%d", len(w.summons), playerCurMP(p.Char))
+	}
+}
+
+func TestBMSummonExhaustedIDsRestoresMana(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	p.Char.Class, p.Char.LearnedSkill = 2, 0xff<<8
+	p.Char.Score.MaxMP, p.Char.Score.CurMP = 2_000, 2_000
+	applyScore(p.Char)
+	w.skills = map[int]model.SkillDef{56: {Index: 56, InstanceType: 11,
+		InstanceValue: 1, ManaSpent: 100, MaxTarget: 1, Delay: 1}}
+	for id := int(firstMobID); id <= int(^uint16(0)); id++ {
+		w.mobsByID[uint16(id)] = &Mob{ID: uint16(id)}
+	}
+	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
+	if len(w.summons) != 0 || playerCurMP(p.Char) != 2_000 || p.SkillReady[56].IsZero() {
+		t.Fatal("allocation failure created a creature or failed to restore MP and retain cooldown")
 	}
 }
 

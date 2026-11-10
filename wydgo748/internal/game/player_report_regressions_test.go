@@ -209,9 +209,9 @@ func TestHuntressSurvivalSpectralAndRegeneration(t *testing.T) {
 	ch.RuntimeScore = testScore(model.Score{MaxHP: 1000, CurHP: 100, MaxMP: 100, CurMP: 100,
 		Mastery: [4]uint32{0, 100, 200, 250}})
 	ch.Affects[0] = model.Affect{Type: 28, ExpiresAt: time.Now().Add(time.Minute)}
-	applyPlayerRegen(ch)
-	if playerCurHP(ch) != 112 {
-		t.Fatalf("invisible HP=%d want=112", playerCurHP(ch))
+	applyPlayerRegen(ch, 200)
+	if playerCurHP(ch) != 340 {
+		t.Fatalf("invisible HP=%d want=340", playerCurHP(ch))
 	}
 }
 

@@ -112,6 +112,7 @@ public:
     void AnimationFrame(int nWalkSndIndex);
     void LabelPosition();
     void LabelPosition2();
+    void UpdateLabelPosition(bool commonMesh);
     void HideLabel();
     void RenderEffect();
     void FrameMoveEffect(unsigned int dwServerTime);
@@ -171,6 +172,12 @@ public:
     bool SetImportedMountCostume(unsigned int itemIndex);
 
 private:
+	friend class CFrame;
+	friend class TMSkinMesh;
+	void ClearMountFlames();
+	void UpdateMountFlame(int index, const TMVector3& position);
+	TMEffectBillBoard* m_mountFlames[7]{};
+
 	// Helpers extracted from TMHuman::FrameMoveEffect.
 	ExtractedFlow UpdateHiddenEffects();
 	void PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene);
@@ -195,14 +202,14 @@ private:
     void RenderEffect_Khepra(unsigned int dwServerTime);
     void RenderEffect_LegendBerielKeeper(unsigned int dwServerTime);
     void RenderEffect_LegendBeriel(unsigned int dwServerTime);
-    void RenderEffect_Pig_Wolf(unsigned int dwServerTime);
+    void RenderEffect_Pig_Wolf(unsigned int dwServerTime, effect_emission::Clock& emissionClock);
     void RenderEffect_DungeonBear(unsigned int dwServerTime);
     void RenderEffect_Hydra(unsigned int dwServerTime);
     void RenderEffect_DarkNightZombieTroll(unsigned int dwServerTime);
     void RenderEffect_DarkElf(unsigned int dwServerTime);
     void RenderEffect_Minotauros(unsigned int dwServerTime);
     void RenderEffect_EmeraldDragon(unsigned int dwServerTime);
-    void RenderEffect_BoneDragon(unsigned int dwServerTime);
+    void RenderEffect_BoneDragon(unsigned int dwServerTime, unsigned int& lastEffectTime);
     void RenderEffect_Golem(unsigned int dwServerTime);
     void RenderEffect_Skull();
 
@@ -253,6 +260,7 @@ public:
     int m_bMoveing;
     char m_cClone;
     char m_cDie;
+    int m_nCrystalCrackStage{};
     char m_cOnlyMove;
     char m_cLastMoveStop;
     bool m_bParty;

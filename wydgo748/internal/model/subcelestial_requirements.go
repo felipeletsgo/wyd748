@@ -3,7 +3,7 @@ package model
 import "strings"
 
 const (
-	SubCelestialMinimumLevel = 120
+	SubCelestialMinimumLevel = 119
 	SubCelestialFameCost     = uint32(100)
 )
 

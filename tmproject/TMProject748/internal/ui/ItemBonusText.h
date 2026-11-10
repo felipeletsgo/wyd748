@@ -1,10 +1,38 @@
 #pragma once
 #include "Basedef.h"
 #include "SGrid.h"
+#include "ItemEffect.h"
 #include <cstdio>
 
 namespace item_bonus_text
 {
+    template<class Emit>
+    void ForEachCombat(STRUCT_ITEM* item, Emit emit)
+    {
+        const unsigned int position = BASE_GetItemAbility(item, EF_POS);
+        if (position <= 1 || (position & 0x4000)) return;
+
+        const auto append = [&](char effect, int message, const char* fallback, bool percent, unsigned int color) {
+            const int value = BASE_GetItemAbility(item, effect);
+            if (value <= 0) return;
+            const char* format = g_pMessageStringTable[message];
+            if (!*format) format = fallback;
+            char text[128]{};
+            if (percent) sprintf_s(text, format, value / 10, value % 10);
+            else sprintf_s(text, format, value);
+            emit(text, color);
+        };
+
+        // KR renders the refined, effective PvP rates in separate yellow rows.
+        append(EF_HWORDGUILD, 435, "PvP Attack : %d.%d%%", true, 0xFFFFFF00);
+        append(EF_LWORDGUILD, 436, "PvP Defense : %d.%d%%", true, 0xFFFFFF00);
+        if (position & 64)
+        {
+            append(EF_CRITICALDAMAGE, 438, "Critical Damage : %d%%", false, 0xFFFFFFFF);
+            append(EF_PIERCINGDAMAGE, 439, "Weapon Piercing Damage : %d", false, 0xFFFFFFFF);
+        }
+    }
+
     // Shared with the native tooltip: preserve its units, refinement scaling
     // and resource labels when presenting catalog item additions in the browser.
     template<class Emit>

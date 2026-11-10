@@ -13,16 +13,18 @@ type fairyBonus struct {
 // is owned by the UID-bound timed-item subsystem in timed_items.go.
 func fairyBonusByIndex(index uint16) fairyBonus {
 	switch index {
-	case 3900, 3903, 3906, 3911, 3912, 3913: // Green Angel
+	case 3900, 3903, 3906: // Green Angel
 		return fairyBonus{expPercent: 16}
+	case 3911, 3912, 3913: // Green Angel with increased EXP
+		return fairyBonus{expPercent: 32}
 	case 3901, 3904, 3907: // Blue Angel
 		return fairyBonus{dropPercent: 32}
 	case 3902, 3905, 3908: // Red Angel
-		return fairyBonus{expPercent: 8, dropPercent: 16}
+		return fairyBonus{expPercent: 16, dropPercent: 32}
 	case 3914: // Silver Angel
 		return fairyBonus{expPercent: 16, dropPercent: 32}
 	case 3915: // Gold Angel
-		return fairyBonus{expPercent: 24, dropPercent: 48}
+		return fairyBonus{expPercent: 18, dropPercent: 50}
 	default:
 		return fairyBonus{}
 	}

@@ -36,8 +36,8 @@ FFFFAA C / I ou G / S
 AAFFAA Abra Personagem / Inventário / Skills.
 FFFFAA P / M / X / H
 AAFFAA Abra Grupo / Minimapa / Quests / Ajuda.
-FFFFAA A / D (modo 0)
-AAFFAA Selecione o modo C.C. 1 / modo 2.
+FFFFAA A (modo 0) / D
+AAFFAA Ative o C.C. / Abra a lista de drops.
 FFFFAA N / Tab
 AAFFAA Exiba os nomes dos personagens / mude a câmera.
 FFFFAA Enter / +

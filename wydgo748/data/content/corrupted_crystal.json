@@ -1,0 +1,10 @@
+{
+  "X": 1104,
+  "Y": 1711,
+  "CrystalHP": 100000000,
+  "MediumHP": 10000000,
+  "SmallHP": 1000000,
+  "PulsePower": 510,
+  "RespawnSeconds": 1800,
+  "DeadlineSeconds": 600
+}

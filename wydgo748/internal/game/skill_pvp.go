@@ -228,12 +228,8 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, playerElementalResists(target.Char), false)
 			perHit := uint32(clampInt(damageValue, 1, int(maxScoreValue)))
-			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
-			perHit = absorbFlatDamage(perHit, w.playerFlatDamageAbsorb(target.Char))
 			for hit := 0; hit < hitCount && playerCurHP(target.Char) > 0; hit++ {
-				// A living adult mount absorbs 25% of each hit into its own HP.
-				riderHit := uint32(w.absorbMountDamage(target, int(perHit)))
-				riderHit = absorbManaControlDamageAt(target.Char, riderHit, now)
+				riderHit := w.resolvePlayerPvPDamage(caster, target, perHit, now)
 				applied := riderHit
 				if applied > playerCurHP(target.Char) {
 					applied = playerCurHP(target.Char)

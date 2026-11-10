@@ -40,6 +40,7 @@ func resetDistributedAttributes(ch *model.Char) (uint32, bool) {
 	if !ok || ch == nil || ch.Score == nil {
 		return 0, false
 	}
+	syncStatusPoints(ch)
 	stats := [4]*uint32{
 		&ch.Score.Str, &ch.Score.Int, &ch.Score.Dex, &ch.Score.Con,
 	}

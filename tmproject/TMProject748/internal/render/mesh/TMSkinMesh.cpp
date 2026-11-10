@@ -91,7 +91,6 @@ TMSkinMesh::TMSkinMesh(LOOK_INFO* pLook, SANC_INFO* pSanc, int nBoneAniIndex, in
 
 	D3DXMatrixIdentity(&m_BaseMatrix);
 	m_Cos = 1;
-	m_bRenderEffect = 0;
 }
 
 TMSkinMesh::~TMSkinMesh()
@@ -921,18 +920,27 @@ void TMSkinMesh::SetVecMantua(int nType, int nSkinIndex)
 
 void TMSkinMesh::RenderSkinMeshEffect()
 {
-	if (m_nBoneAniIndex == 31)
-	{
-		if (m_bRenderEffect != 0)
-			RenderEffect_HorseFireLeg();
-	}
+	if (!m_bMount)
+		return;
+
+	auto* owner = HumanOwner();
+	if (!owner || owner->m_pMount != this || !owner->m_cMount ||
+		!g_pCurrentScene || !g_pCurrentScene->m_pEffectContainer)
+		return;
+
+	if (m_nBoneAniIndex == 31 && m_Look.Mesh0 == 8)
+		RenderEffect_HorseFireLeg();
+	else if (m_nBoneAniIndex == 20 && m_Look.Mesh0 == 6 && owner->m_bVisible == 1)
+		owner->RenderEffect_BoneDragon(g_pTimerManager->GetServerTime(), m_lastDragonMountEffectTime);
+	else if (m_nBoneAniIndex == 28 && m_Look.Mesh0 == 3)
+		owner->RenderEffect_Pig_Wolf(g_pTimerManager->GetServerTime(), m_mountEffectEmission);
 }
 
 void TMSkinMesh::RenderEffect_HorseFireLeg()
 {
 	TMEffectBillBoard* mpBill[4];
 
-    for (unsigned int emission = m_fireLegEmission.Steps(g_pTimerManager->GetServerTime(), m_pOwner && m_pOwner->m_bVisible == 1); emission; --emission)
+    for (unsigned int emission = m_mountEffectEmission.Steps(g_pTimerManager->GetServerTime(), m_pOwner && m_pOwner->m_bVisible == 1); emission; --emission)
     for (int i = 0; i < 4; i++){
         int j = rand() % 5;
 

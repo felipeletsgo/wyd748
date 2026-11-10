@@ -1,7 +1,23 @@
 #pragma once
 #include <windows.h>
+#include <dsound.h>
 
 namespace sound_playback {
+constexpr LONG VolumeForSound(int soundIndex, LONG volume)
+{
+    constexpr int RainSoundIndex = 101;
+    constexpr int SnowSoundIndex = 113;
+    constexpr LONG WeatherAttenuation = 1800; // DirectSound uses hundredths of a decibel.
+
+    if (soundIndex != RainSoundIndex && soundIndex != SnowSoundIndex)
+        return volume;
+
+    if (volume <= DSBVOLUME_MIN + WeatherAttenuation)
+        return DSBVOLUME_MIN;
+
+    return volume - WeatherAttenuation;
+}
+
 // DSBSTATUS_PLAYING from dsound.h; looping buffers also report this bit.
 constexpr DWORD PlayingStatus = 0x00000001;
 

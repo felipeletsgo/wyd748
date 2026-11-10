@@ -44,6 +44,8 @@ public:
 	TMVector2 m_vecPos1;            // Deslocamento local da primeira pa/parte.
 	TMVector2 m_vecPos2;            // Deslocamento local da segunda pa/parte.
 
-	// Limita globalmente a atualizacao visivel dos efeitos de cascata.
+	// Most recent frame with a waterfall audible to the focused player.
 	static unsigned int m_dwVisibleWaterFall;
+	static constexpr int WaterfallSound = 6;
+	static constexpr unsigned int WaterfallRefreshMs = 300;
 };

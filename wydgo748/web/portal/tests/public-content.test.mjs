@@ -29,9 +29,9 @@ test('public content ships real static routes with valid internal links and no i
 });
 test('download receipt preserves the native launcher and unpublished news', () => {
   const receipt = JSON.parse(html('client-manifest.json'));
-  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.100');
-  assert.equal(receipt.feedVersion, 48100);
-  assert.equal(receipt.patch.url, null);
+  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.108');
+  assert.equal(receipt.feedVersion, 48108);
+  assert.equal(receipt.patch.url, '/patch/patch-48108.zip');
   assert.equal(receipt.fullClient.clientVersion, '7.48.100');
   assert.equal(receipt.updateFeed, '/patch/update.htm');
   assert.equal(receipt.fullClient.sha256, '7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66');
@@ -43,7 +43,7 @@ test('download receipt preserves the native launcher and unpublished news', () =
   assert.match(html('download/index.html'), /launcher nativo adaptado/);
   assert.equal(html('download/index.html').includes('HTTPS launcher'), false);
   assert.ok(html('download/index.html').includes(receipt.fullClient.url), 'download page does not link the full client');
-  assert.match(html('index.html'), /Client 7\.48\.100/);
+  assert.ok(html('index.html').includes(`Client ${receipt.clientVersion}`));
   assert.match(html('download/index.html'), /Full installation: 7\.48\.100/);
   assert.equal(html('download/index.html').includes('href="/patch/patch-48018.zip"'), false);
   assert.match(html('download/index.html'), /Earlier patches are no longer offered/);
@@ -58,6 +58,7 @@ test('download receipt preserves the native launcher and unpublished news', () =
   assert.match(html('news/server-stability-2026-11-01/index.html'), /database delay.*No client update is needed/s);
   assert.match(html('changelog/index.html'), /Server update — fewer disconnects/);
   assert.ok(html('changelog/index.html').includes(receipt.clientVersion));
+  assert.match(html('news/index.html'), /client-7-48-108/);
   assert.equal(existsSync(resolve(dist, 'news/client-7-48-018/index.html')), false, 'review draft must not be published');
   assert.equal(html('news/index.html').includes('client-7-48-018'), false);
   assert.match(html('roadmap/index.html'), /Planned/);

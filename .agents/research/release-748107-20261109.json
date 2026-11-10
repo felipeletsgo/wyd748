@@ -1,0 +1,184 @@
+{
+  "release": "/srv/wyd-go/releases/20261109T160924Z",
+  "previousRelease": "/srv/wyd-go/releases/20261109T040919Z",
+  "restartAuthorized": true,
+  "mode": "working-tree, game-only plus patch and portal",
+  "sourceHead": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "activeMinimumRevision": 107,
+  "validation": [
+    "Full Go test suite and go vet passed.",
+    "Linux amd64 game server build passed.",
+    "Release client build and architecture, socket, and crash capture tests passed.",
+    "Portal build and 116 tests passed."
+  ],
+  "preactivation": {
+    "release-manifest.json": {
+      "sha256": "9f9c0bc5d91b2518744423b9cb2836d833dd7f81ceebb3b14f5430ab40ef2dbe",
+      "payloadFiles": 1077
+    },
+    "changedGamePaths": [
+      "game/wyd-server"
+    ],
+    "website-manifest.json": {
+      "sha256": "b798a4236e4ea432b0b81d978903196c9ab2615458ff96ad286342822d2bad41",
+      "payloadFiles": 6661
+    },
+    "clientPatch": {
+      "version": 48107,
+      "sha256": "2d744069984a55661d046d1d7e6e15f43ee106eebad7fe273d3278d0ca95ecc1",
+      "entries": 2
+    },
+    "crystal": {
+      "x": 1104,
+      "y": 1711,
+      "hp": 100000000,
+      "mediumHP": 10000000,
+      "smallHP": 1000000
+    },
+    "liveRevision": 106
+  },
+  "patch": {
+    "feed": [
+      "[WYD]",
+      "48100 notice.txt",
+      "48101 patch-48101.zip",
+      "48102 patch-48102.zip",
+      "48103 patch-48103.zip",
+      "48104 patch-48104.zip",
+      "48105 patch-48105.zip",
+      "48106 patch-48106.zip",
+      "48107 patch-48107.zip"
+    ],
+    "archiveSha256": "2d744069984a55661d046d1d7e6e15f43ee106eebad7fe273d3278d0ca95ecc1",
+    "archiveSize": 929089,
+    "verifiedEntries": 2
+  },
+  "publicManifest": {
+    "version": 2,
+    "clientVersion": "7.48.107",
+    "feedVersion": 48107,
+    "publishedAt": "2026-11-09",
+    "launcherVersion": null,
+    "minimumLauncherVersion": null,
+    "fullClient": {
+      "clientVersion": "7.48.100",
+      "url": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+      "sizeBytes": 260877805,
+      "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66"
+    },
+    "patch": {
+      "url": "/patch/patch-48107.zip",
+      "sizeBytes": 929089,
+      "sha256": "2d744069984a55661d046d1d7e6e15f43ee106eebad7fe273d3278d0ca95ecc1",
+      "executableSha256": "8E697F4BEA527E74EF365224FBB739A1762182274D7CEEAE2BAD9FBB59D88FC7"
+    },
+    "updateFeed": "/patch/update.htm"
+  },
+  "publicPagesVerified": [
+    "/download",
+    "/changelog"
+  ],
+  "active": {
+    "activeRelease": "/srv/wyd-go/releases/20261109T160924Z",
+    "serverPayloadFiles": 1077,
+    "websitePayloadFiles": 6661,
+    "privateAndPreservedFileHashes": "unchanged",
+    "schema": "20",
+    "backup": {
+      "at": "2026-11-09T16:09:24Z",
+      "archive": "wydgo-20261109T160924Z.dump",
+      "bytes": 553477,
+      "sha256": "a260c7ded2a6b39f8dfe05ca9d9790ec07010817113dcbf8aafcaed37691d4aa"
+    },
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "829682",
+        "NRestarts": "0",
+        "Id": "wyd-game@1.service",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261109T160924Z/game/wyd-server",
+        "sha256": "6805701bf741bd4280a99419ffdc218f2ce551d4d555be37abe3ef7218ce69b0"
+      },
+      "wyd-game@2": {
+        "MainPID": "829683",
+        "NRestarts": "0",
+        "Id": "wyd-game@2.service",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261109T160924Z/game/wyd-server",
+        "sha256": "6805701bf741bd4280a99419ffdc218f2ce551d4d555be37abe3ef7218ce69b0"
+      },
+      "wyd-player": {
+        "MainPID": "3492238",
+        "NRestarts": "0",
+        "Id": "wyd-player.service",
+        "ActiveState": "active"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "Id": "wyd-log-reader.service",
+        "ActiveState": "active"
+      }
+    },
+    "readyz": "200",
+    "gameListeners": [
+      "8281",
+      "8282"
+    ],
+    "establishedGameConnections": 0
+  },
+  "portalActivation": {
+    "release": "/srv/wyd-go/releases/20261109T160924Z",
+    "websiteFilesVerified": 6661,
+    "previousDirectories": [
+      "web.before-748107",
+      "game/web.before-748107"
+    ]
+  },
+  "readiness": {
+    "8082": 200,
+    "8083": 200
+  },
+  "channelWarningsAndErrors": [],
+  "admission": {
+    "at": "2026-11-09T16:10:52.374644+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 106,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 107,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 106,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 107,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "scope": [
+    "Summon attack effects and ranges",
+    "Mount attack visuals",
+    "Ground-item right-click pickup",
+    "Skill and world visuals",
+    "Ground-drop and ambient audio",
+    "36 cape inventory icons"
+  ],
+  "clientTested": false,
+  "publishedExecutableInstalledLocally": false,
+  "pending": "Post-activation gameplay and visual checks for the 36 cape icons."
+}

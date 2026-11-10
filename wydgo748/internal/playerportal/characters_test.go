@@ -214,13 +214,13 @@ func TestSavedSubCelestialAdviceUsesCharacterFameAndRealSavedGates(t *testing.T)
 		}
 		return body.Character.SubCelestialAscension
 	}
-	if r := read(); !r.RequirementsMet || !r.Applicable || r.RequiredLevel != 121 || r.RequiredFame != 100 || len(r.Checks) != 8 {
+	if r := read(); !r.RequirementsMet || !r.Applicable || r.RequiredLevel != 120 || r.RequiredFame != 100 || len(r.Checks) != 8 {
 		t.Fatalf("valid Celestial: %+v", r)
 	}
 	ch := &b.accounts["player1"].Chars[0]
 	for _, mutation := range []struct{ apply, restore func() }{
 		{func() { b.charStates[c.UID].SpecialCoins["fame"] = 99 }, func() { b.charStates[c.UID].SpecialCoins["fame"] = 100 }},
-		{func() { ch.Score.Level = 119 }, func() { ch.Score.Level = 120 }},
+		{func() { ch.Score.Level = 118 }, func() { ch.Score.Level = 120 }},
 		{func() { ch.Equip[11] = model.Item{}; ch.Inv[0] = model.Item{Index: 1761} }, func() { ch.Equip[11] = model.Item{Index: 1761}; ch.Inv[0] = model.Item{} }},
 		{func() { ch.AlternateCelestial = &model.CelestialForm{} }, func() { ch.AlternateCelestial = nil }},
 		{func() { ch.Equip[0] = model.Item{Index: 2} }, func() { ch.Equip[0] = model.Item{Index: 3} }},

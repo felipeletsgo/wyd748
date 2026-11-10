@@ -6,6 +6,24 @@
 
 namespace
 {
+void PlaceReelSymbol(SPanel* panel, float x, int y, float width, int height, bool visible)
+{
+	const int top = (std::max)(0, y);
+	const int bottom = (std::min)(3 * height, y + height);
+	panel->SetVisible(visible && bottom > top);
+	if (bottom <= top)
+		return;
+	panel->SetPos(x, static_cast<float>(top));
+	panel->SetSize(width, static_cast<float>(bottom - top));
+	// Reel textures are 62x62. Clip the source and destination together.
+	auto& geometry = panel->m_GCPanel;
+	geometry.bClip = 1;
+	geometry.fLeft = 0.0f;
+	geometry.fRight = 62.0f;
+	geometry.fTop = 62.0f * (top - y) / height;
+	geometry.fBottom = 62.0f * (bottom - y) / height;
+}
+
 constexpr int kReelTextureOffset[3][22] = {
 	{1, 6, 2, 3, 1, 4, 1, 8, 2, 5, 1, 9, 1, 6, 1, 4, 3, 0, 2, 5, 1, 7},
 	{0, 1, 3, 5, 0, 3, 2, 4, 0, 1, 3, 6, 0, 3, 9, 2, 0, 3, 7, 3, 0, 8},
@@ -156,8 +174,8 @@ void SReelPanel::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int in
 				if (!panel)
 					continue;
 				const int y = (m_RollPos[reel] + reelHeight * symbol) % totalHeight - reelHeight;
-				panel->SetPos((m_vSize.x + static_cast<float>(m_nPitch)) * reel, static_cast<float>(y));
-				panel->SetVisible(y <= reelHeight * 3);
+				PlaceReelSymbol(panel, (m_vSize.x + static_cast<float>(m_nPitch)) * reel,
+					y, m_vSize.x, reelHeight, true);
 			}
 		}
 
@@ -195,8 +213,8 @@ void SReelPanel::SetVisible(int bVisible)
 			SPanel* panel = m_pGamBleReel[reel][symbol];
 			if (!panel)
 				continue;
-			panel->SetPos((m_vSize.x + static_cast<float>(m_nPitch)) * reel, static_cast<float>((symbol - 1) * reelHeight));
-			panel->SetVisible(bVisible && symbol < 4);
+			PlaceReelSymbol(panel, (m_vSize.x + static_cast<float>(m_nPitch)) * reel,
+				(symbol - 1) * reelHeight, m_vSize.x, reelHeight, bVisible != 0);
 		}
 	}
 	if (!bVisible)

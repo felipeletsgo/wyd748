@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "dateLocal": "2026-11-08",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "authorization": "ok. suba para o vps e reinicie",
+  "scope": "Publish the BM learned summon adjustment and restart game channels 1 and 2.",
+  "mode": "working-tree",
+  "head": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "clientVersion": "7.48.103",
+  "minimumRevision": 103,
+  "clientPatchRequired": false,
+  "feedVersion": 48103,
+  "published": true,
+  "activated": true,
+  "priorRelease": "/srv/wyd-go/releases/20261108T150126Z",
+  "rollback": "/srv/wyd-go/releases/20261108T150126Z",
+  "activeRelease": "/srv/wyd-go/releases/20261108T172846Z",
+  "activationStartedAt": "2026-11-08T17:28:44Z",
+  "databaseBackup": {
+    "at": "2026-11-08T17:28:46Z",
+    "archive": "wydgo-20261108T172846Z.dump",
+    "bytes": 551789,
+    "sha256": "2f2f8b50f054ddbe4e12d09d8879fbf5894150460bc4a4adb7775870214f6e1c"
+  },
+  "schema": "20",
+  "behavior": {
+    "triggerSkills": [
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ],
+    "selection": "Learned BM summon types only.",
+    "limit": "One creature per type and owner, up to eight types.",
+    "recast": "Create missing types; retain living creatures and their HP, affects, and attributes.",
+    "mastery": "Retain attribute scaling; remove quantity scaling.",
+    "resources": "Use the selected skill MP cost and cooldown once. Refund MP only when no creature is created."
+  },
+  "server": {
+    "sha256": "79aa1ec6bf9be30ffa257f894ff8b76815c299031f8d85075c2815370a87b30a",
+    "size": 27868302,
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 14396261,
+      "sha256": "6d2f750cb1bff41181eb77ed87d91d924dc5a4d342f4753295e5bf29a568e5bc"
+    },
+    "payloadFilesVerified": 1076,
+    "installedFilesVerified": 27722,
+    "sourceRecordsVerified": 2332,
+    "changedSourcesSincePriorRelease": [
+      "wydgo748/internal/game/critical_persistence_summons_test.go",
+      "wydgo748/internal/game/player_reports_regression_test.go",
+      "wydgo748/internal/game/skill_summons.go",
+      "wydgo748/internal/game/skill_summons_test.go",
+      "wydgo748/internal/game/skills.go",
+      "wydgo748/internal/game/skills_integration_test.go",
+      "wydgo748/internal/game/skills_test.go",
+      "wydgo748/internal/game/water_isolation_test.go"
+    ],
+    "changedPaths": [
+      "game/wyd-server"
+    ],
+    "manifest": "build/deploy/wyd-deploy-bm-summoner-20261108T172327Z/release-manifest.json",
+    "manifestSha256": "acb8c9fcee2b744e8af39784198ef3461e70bd3a0df64325232dd3666eda9a7a"
+  },
+  "services": {
+    "wyd-game@1": {
+      "MainPID": "612934",
+      "NRestarts": "0",
+      "Id": "wyd-game@1.service",
+      "ActiveState": "active",
+      "executablePath": "/srv/wyd-go/releases/20261108T172846Z/game/wyd-server",
+      "sha256": "79aa1ec6bf9be30ffa257f894ff8b76815c299031f8d85075c2815370a87b30a"
+    },
+    "wyd-game@2": {
+      "MainPID": "612935",
+      "NRestarts": "0",
+      "Id": "wyd-game@2.service",
+      "ActiveState": "active",
+      "executablePath": "/srv/wyd-go/releases/20261108T172846Z/game/wyd-server",
+      "sha256": "79aa1ec6bf9be30ffa257f894ff8b76815c299031f8d85075c2815370a87b30a"
+    },
+    "wyd-player": {
+      "MainPID": "3492238",
+      "NRestarts": "0",
+      "Id": "wyd-player.service",
+      "ActiveState": "active"
+    },
+    "wyd-log-reader": {
+      "MainPID": "3492336",
+      "NRestarts": "0",
+      "Id": "wyd-log-reader.service",
+      "ActiveState": "active"
+    }
+  },
+  "readiness": {
+    "8082": "200",
+    "8083": "200"
+  },
+  "listeners": [
+    8281,
+    8282
+  ],
+  "preservation": {
+    "privateConfigurationHashes": "unchanged",
+    "runtimeData": "unchanged",
+    "websiteAndPreservedReleaseFiles": "unchanged",
+    "playerApiPidPreserved": true,
+    "logReaderPidPreserved": true,
+    "feed": [
+      "[WYD]",
+      "48100 notice.txt",
+      "48101 patch-48101.zip",
+      "48102 patch-48102.zip",
+      "48103 patch-48103.zip"
+    ],
+    "minimumClientRevision": "unchanged"
+  },
+  "admission": {
+    "at": "2026-11-08T17:29:50.929200+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 102,
+        "opcode": "0x101",
+        "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 103,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 102,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 103,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "postflight": {
+    "at": "2026-11-08T17:30:40.358247+00:00",
+    "activeRelease": "/srv/wyd-go/releases/20261108T172846Z",
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "612934",
+        "NRestarts": "0",
+        "Id": "wyd-game@1.service",
+        "ActiveState": "active"
+      },
+      "wyd-game@2": {
+        "MainPID": "612935",
+        "NRestarts": "0",
+        "Id": "wyd-game@2.service",
+        "ActiveState": "active"
+      },
+      "wyd-player": {
+        "MainPID": "3492238",
+        "NRestarts": "0",
+        "Id": "wyd-player.service",
+        "ActiveState": "active"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "Id": "wyd-log-reader.service",
+        "ActiveState": "active"
+      }
+    },
+    "readiness": {
+      "8082": "200",
+      "8083": "200"
+    },
+    "journalLinesReviewed": 1470,
+    "errorCount": 0,
+    "warnings": [],
+    "processIdsStable": true
+  },
+  "shutdownEvidence": [
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 systemd[1]: Stopping wyd-game@1.service - WYD authoritative native game server, channel 1...",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 wyd-server[588567]: 2026/11/08 17:28:44 shutdown: 0 final account write(s) took 0s with 4 worker(s)",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 wyd-server[588567]: 2026/11/08 17:28:44 shutdown: 0 accounts persisted, 0 failures",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 wyd-server[588568]: 2026/11/08 17:28:44 shutdown: 0 final account write(s) took 0s with 4 worker(s)",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 wyd-server[588568]: 2026/11/08 17:28:44 shutdown: 0 accounts persisted, 0 failures",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 systemd[1]: Stopping wyd-game@2.service - WYD authoritative native game server, channel 2...",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 wyd-server[588568]: 2026/11/08 17:28:44 shutdown complete",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 wyd-server[588567]: 2026/11/08 17:28:44 shutdown complete",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 systemd[1]: wyd-game@2.service: Deactivated successfully.",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 systemd[1]: Stopped wyd-game@2.service - WYD authoritative native game server, channel 2.",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 systemd[1]: wyd-game@1.service: Deactivated successfully.",
+    "Nov 08 17:28:44 ubuntu-4gb-nbg1-2 systemd[1]: Stopped wyd-game@1.service - WYD authoritative native game server, channel 1."
+  ],
+  "cleanup": {
+    "removed": [
+      "/tmp/wyd-deploy-bm-summoner-20261108T172327Z",
+      "/tmp/wyd-bm-summoner-20261108T172327Z"
+    ],
+    "officialStagingRemoved": true,
+    "rollbackPreserved": "/srv/wyd-go/releases/20261108T150126Z",
+    "activeRelease": "/srv/wyd-go/releases/20261108T172846Z",
+    "journalSha256": "7c67a7d6d7261b58030b5dd9cb261da954e793f8a803b575ddcaf6db5e9da3a7"
+  },
+  "verification": {
+    "goTests": "Full Go suite passed before the final test-only coverage additions.",
+    "goVet": "Full go vet passed.",
+    "raceTests": "Final focused race batch passed: 57 top-level summon and owner lifecycle tests.",
+    "serverBuild": "Windows build and Linux/amd64 trimpath game-only release build passed.",
+    "package": "Archive and all 1,076 payload hashes verified locally and on the VPS.",
+    "installedRelease": "27,722 installed files checked; only game/wyd-server changed.",
+    "activeProcesses": "Both running executable paths and hashes match the candidate.",
+    "databaseBackup": "Fresh backup checksum and pg_restore archive-list checks passed.",
+    "repositoryLayout": "Passed: 222 indexed documents; layout and local links verified.",
+    "diffCheck": "Passed after deployment documentation updates."
+  },
+  "postActivationGameplayAccepted": false,
+  "notes": "Game channels restarted under explicit owner authority. Client revision 103 remains required. Gameplay acceptance is pending. No commit or push."
+}

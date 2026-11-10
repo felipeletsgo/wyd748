@@ -5,6 +5,7 @@
 #include "../internal/render/resources/ModelTextureDirectory.h"
 #include "../internal/render/mesh/CostumeTable.generated.h"
 #include "../internal/core/WYD748Assets.h"
+#include "../internal/wire/CorruptedCrystalAppearance.h"
 #include <d3d9.h>
 #include "../internal/render/resources/TextureManager.h"
 
@@ -20,6 +21,23 @@
 #include <share.h>
 
 namespace {
+static_assert(corrupted_crystal::CrackStage(10000000, 10000000) == 0);
+static_assert(corrupted_crystal::CrackStage(7500001, 10000000) == 0);
+static_assert(corrupted_crystal::CrackStage(7500000, 10000000) == 1);
+static_assert(corrupted_crystal::CrackStage(5000001, 10000000) == 1);
+static_assert(corrupted_crystal::CrackStage(5000000, 10000000) == 2);
+static_assert(corrupted_crystal::CrackStage(2500001, 10000000) == 2);
+static_assert(corrupted_crystal::CrackStage(2500000, 10000000) == 3);
+static_assert(corrupted_crystal::CrackStage(0, 10000000) == 3);
+static_assert(corrupted_crystal::CrackStage(UINT32_MAX, UINT32_MAX) == 0);
+static_assert(corrupted_crystal::CrackStage(0, 0) == 0);
+static_assert(corrupted_crystal::IsFace(1000, 4095) && corrupted_crystal::Scale(4095) == 1.0f);
+static_assert(corrupted_crystal::IsFace(1000, 4094) && corrupted_crystal::Scale(4094) == 0.65f);
+static_assert(corrupted_crystal::IsFace(1000, 4093) && corrupted_crystal::Scale(4093) == 0.4f);
+static_assert(!corrupted_crystal::IsFace(999, 4093));
+static_assert(!corrupted_crystal::IsFace(1000, 4092));
+static_assert(!corrupted_crystal::IsFace(1000, 4096));
+
 std::filesystem::path FindRuntimeFile(const char* relativePath)
 {
     wchar_t executable[MAX_PATH]{};

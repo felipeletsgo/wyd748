@@ -13,10 +13,10 @@ import (
 
 func ultimateSkillGold(ch *model.Char) uint32 {
 	if isCelestialEvolution(ch) {
-		return 100_000_000
+		return 50_000_000
 	}
 	if isArch(ch) {
-		return 50_000_000
+		return 10_000_000
 	}
 	return 5_000_000
 }
@@ -98,25 +98,23 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		return
 	}
 	w.recalcPlayer(ch)
-	// Only Mortal uses the book level requirement. Arch, Celestial and
-	// SubCelestial still validate class, points, mastery, chain and gold.
-	levelRequirementMet := isArch(ch) || isCelestialEvolution(ch) ||
-		int(playerLevel(ch)) >= itemDef.ReqLevel
+	// Native Celestial forms skip book level and mastery requirements.
+	celestial := isCelestialEvolution(ch)
 	if int(playerSkillPoints(ch)) < skill.SkillPoint {
 		log.Printf("[#%d] insufficient points for skill=%d points=%d/%d", s.ID,
 			globalSkill, playerSkillPoints(ch), skill.SkillPoint)
 		reject("Insufficient Skill Points to learn this skill.")
 		return
 	}
-	if !levelRequirementMet {
+	if !celestial && int(playerLevel(ch)) < itemDef.ReqLevel {
 		log.Printf("[#%d] insufficient level for skill=%d level=%d/%d", s.ID,
 			globalSkill, playerLevel(ch), itemDef.ReqLevel)
 		reject("Insufficient level to learn this skill.")
 		return
 	}
-	if int(playerMastery(ch, 1)) < itemDef.ReqInt ||
+	if !celestial && (int(playerMastery(ch, 1)) < itemDef.ReqInt ||
 		int(playerMastery(ch, 2)) < itemDef.ReqDex ||
-		int(playerMastery(ch, 3)) < itemDef.ReqCon {
+		int(playerMastery(ch, 3)) < itemDef.ReqCon) {
 		log.Printf("[#%d] insufficient mastery for skill=%d mastery=%v", s.ID,
 			globalSkill, effectiveScore(ch).Mastery)
 		reject("Insufficient mastery to learn this skill.")
@@ -750,8 +748,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if skill.Aggressive == 0 {
 		affected := w.applySupportSkillToTargets(p, supportTargets, skill, mastery)
 		if skillIndex >= 56 && skillIndex <= 63 && len(affected) == 0 {
-			// GenerateSummon returns zero for a family conflict, reached limit or
-			// unavailable party/mob slot. TMSrv restores the charged MP on failure.
+			// Restore MP when no learned summon type could be added.
 			restorePlayerMP(p.Char, uint32(mana))
 		}
 		primary := p

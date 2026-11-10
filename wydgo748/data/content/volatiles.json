@@ -661,7 +661,7 @@
       "counters": {
         "fame": 10
       },
-      "description": "Warrior's_Seal (4146): +10 fame. Port of _MSG_UseItem.cpp:7147, where extra.Fame += 10. Fame is spent at Lindy (1, unlocks Arch level 370) and Odin (200, Celestial level 40)."
+      "description": "Warrior's_Seal (4146): +10 fame. Port of _MSG_UseItem.cpp:7147, where extra.Fame += 10. Fame is spent at Lindy (1, unlocks Arch level 370) and on attempts to unlock Celestial level 90 (500)."
     },
     "203": {
       "action": "chaos_remission",
@@ -686,7 +686,7 @@
     "211": {
       "action": "celestial_ideal",
       "consume": true,
-      "description": "Ideal Stone: creates the Celestial from the Arch, or the SubCelestial form from Celestial 121+."
+      "description": "Ideal Stone: creates the Celestial from the Arch, or the SubCelestial form from Celestial 120+."
     },
     "212": {
       "action": "nightmare_ticket",

@@ -740,6 +740,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pHelpPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_HELP_PANEL));
 		if (m_pHelpPanel)
 		{
+			PositionCompatHelpPanel();
 			// Native 7.48 FUN_0052d2c8 writes whisper notices beginning with '!'
 			// directly into list 874.  The compatibility initializer must therefore
 			// bind the complete resource-owned Help group before network packets can
@@ -778,7 +779,11 @@ int TMFieldScene::InitializeCompatFieldScene()
 			if (m_pHelpList[0])
 				LoadMsgText(m_pHelpList[0], (char*)"UI\\interface.txt");
 			if (m_pHelpList[1])
-				LoadMsgText(m_pHelpList[1], (char*)"UI\\command.txt");
+			{
+				// The complete player guide exceeds the resource's 100-row limit.
+				m_pHelpList[1]->m_nMaxCount = 256;
+				TMScene::LoadMsgText2(m_pHelpList[1], "UI\\command.txt", 0, 255);
+			}
 			if (m_pHelpList[2])
 				LoadMsgText(m_pHelpList[2], (char*)"UI\\etc.txt");
 			if (m_pHelpInterfaceList[0])
@@ -1691,6 +1696,17 @@ void TMFieldScene::PositionCompatGamblePanel()
 	m_pGambleStore->SetPos(
 		viewportCenterX - m_pGambleStore->m_nWidth * 0.5f + 10.0f,
 		viewportCenterY - m_pGambleStore->m_nHeight * 0.5f);
+	// Reserve separate bounds for localized BET/APOSTA and the six-digit amount.
+	if (auto label = m_pControlContainer->FindControl(6409))
+	{
+		label->SetPos(RenderDevice::UiPx(45.0f), RenderDevice::UiPx(316.0f));
+		label->SetSize(RenderDevice::UiPx(62.0f), RenderDevice::UiPx(16.0f));
+	}
+	if (auto amount = m_pControlContainer->FindControl(6416))
+	{
+		amount->SetPos(RenderDevice::UiPx(112.0f), RenderDevice::UiPx(316.0f));
+		amount->SetSize(RenderDevice::UiPx(65.0f), RenderDevice::UiPx(16.0f));
+	}
 }
 
 void TMFieldScene::PositionCompatPartyPanel()
@@ -1720,9 +1736,21 @@ void TMFieldScene::PositionCompatQuestPanel()
 
 	// Native FUN_00441823 centers root 320 on both axes. The imported 7.59
 	// initializer used 0.6 of the panel height and shifted the whole hitbox up.
-	m_pQuestPanel->SetPos(
-		(static_cast<float>(g_pDevice->m_dwScreenWidth) - m_pQuestPanel->m_nWidth) * 0.5f,
-		(static_cast<float>(g_pDevice->m_dwScreenHeight) - m_pQuestPanel->m_nHeight) * 0.5f);
+	const auto origin = CenteredPanelOrigin(static_cast<float>(g_pDevice->m_dwScreenWidth),
+		static_cast<float>(g_pDevice->m_dwScreenHeight), m_pQuestPanel->m_nWidth, m_pQuestPanel->m_nHeight);
+	m_pQuestPanel->SetPos(origin.x, origin.y);
+}
+
+void TMFieldScene::PositionCompatHelpPanel()
+{
+	if (!g_pDevice || !m_pHelpPanel)
+		return;
+
+	// Move resource root 864, as Quest moves root 320. Its relative children
+	// carry the frame, title, tabs, pages, close button and scrollbars together.
+	const auto origin = CenteredPanelOrigin(static_cast<float>(g_pDevice->m_dwScreenWidth),
+		static_cast<float>(g_pDevice->m_dwScreenHeight), m_pHelpPanel->m_nWidth, m_pHelpPanel->m_nHeight);
+	m_pHelpPanel->SetPos(origin.x, origin.y);
 }
 
 void TMFieldScene::SelectQuestTab(int tabIndex)
@@ -1752,6 +1780,7 @@ void TMFieldScene::SelectHelpTab(int tabIndex)
 {
 	if (tabIndex < 0 || tabIndex >= 5)
 		return;
+	PositionCompatHelpPanel();
 
 	// FieldScene2.bin can materialize the native Help controls as siblings of
 	// the 6067 panel instead of as one strict child tree.  FindControl() only

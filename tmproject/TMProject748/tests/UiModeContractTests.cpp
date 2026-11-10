@@ -1,9 +1,11 @@
 #include "SourceMethod.h"
 #include "../internal/core/CameraInput.h"
+#include "../internal/core/CameraZoom.h"
 #include "../internal/core/UiLayout.h"
 #include "../internal/application/NativeSpecialSkills.h"
 #include "../internal/application/NativeCostumeSlot.h"
 #include "../internal/application/InstanceTimerProjection.h"
+#include "../internal/application/DropSearchLayout.h"
 
 #include <algorithm>
 #include <cmath>
@@ -121,6 +123,33 @@ int RunUiModeContractTests(int& checks)
     // and quits only when that panel is missing; 0x3001 refuses above 699.
     const auto field = ReadAppSource("internal/app/scenes/TMFieldScene.cpp");
     const auto ui = ReadAppSource("internal/app/scenes/TMFieldSceneUI.cpp");
+    check(ui.find("m_pHelpList[1]->m_nMaxCount = 256;") != std::string::npos &&
+        ui.find("TMScene::LoadMsgText2(m_pHelpList[1], \"UI\\\\command.txt\", 0, 255);") != std::string::npos,
+        "the complete Help guide loads beyond the former hundred-row limit");
+    for (const float width : {800.0f, 1024.0f, 1280.0f, 1920.0f, 2560.0f})
+        for (const float height : {600.0f, 768.0f, 1080.0f, 1440.0f})
+            for (const float scale : {0.5f, 1.0f, 1.25f, 1.8f})
+            {
+                const float panelWidth = 492.0f * scale, panelHeight = 430.0f * scale;
+                const auto origin = CenteredPanelOrigin(width, height, panelWidth, panelHeight);
+                check(std::fabs(origin.x + panelWidth * 0.5f - width * 0.5f) < 0.001f &&
+                    std::fabs(origin.y + panelHeight * 0.5f - height * 0.5f) < 0.001f,
+                    "Help center matches the viewport at each resolution and UI scale");
+            }
+    for (const char* method : {"void TMFieldScene::PositionCompatQuestPanel()",
+        "void TMFieldScene::PositionCompatHelpPanel()"})
+        check(source_contract::Method(ui, method).find("CenteredPanelOrigin(") != std::string::npos,
+            "Help and Quest share the tested pixel centering policy");
+    const auto helpKey = source_contract::Method(input, "int TMFieldScene::OnKeyHelp(char iCharCode, int lParam)");
+    check(helpKey.find("PositionCompatHelpPanel();") != std::string::npos &&
+        source_contract::Method(ui, "void TMFieldScene::SelectHelpTab(int tabIndex)")
+            .find("PositionCompatHelpPanel();") != std::string::npos,
+        "Help reopening and page changes refresh the complete window position");
+    const auto serverCommand = field.find("case chat_submit::Command::ServerQuery:");
+    const auto nextCommand = field.find("case chat_submit::Command::Nickname:", serverCommand);
+    check(serverCommand != std::string::npos && nextCommand != std::string::npos &&
+        field.substr(serverCommand, nextCommand - serverCommand).find("SendPacket(") != std::string::npos,
+        "the documented channel command reaches the server instead of being discarded");
     const auto party = source_contract::Method(ui, "void TMFieldScene::PositionCompatPartyPanel()");
     check(party.find("PartyHintOffsetX(m_pPartyBtn->m_nWidth,") != std::string::npos &&
         party.find("m_pAltText->m_nPosX +") == std::string::npos,
@@ -194,6 +223,67 @@ int RunUiModeContractTests(int& checks)
         "multiple wheel notches cannot overshoot the camera bounds");
     check(CameraZoomDistance(5.0f, 1.2f, 10.0f, 0, 0, 0) == 5.0f,
         "no wheel movement preserves the distance");
+
+    for (const int view : {0, 1})
+        for (const int rotation : {0, 1})
+            for (const float nearLimit : {1.2f, 2.5f})
+            {
+                const int rawOut = view == 1 && rotation ? -120 : 120;
+                const int wheelOut = rotation ? -rawOut : rawOut;
+                float distance = camera_zoom::FieldDefaultDistance;
+                check(distance > camera_zoom::LegacyDistance &&
+                    distance < camera_zoom::FieldMaximumDistance,
+                    "field entry leaves room for further zoom out");
+                for (int step = 0; step < 12; ++step)
+                    distance = CameraZoomDistance(distance, nearLimit,
+                        camera_zoom::FieldMaximumDistance, view, wheelOut, rawOut);
+                check(distance == 24.0f,
+                    "both camera settings can pass the previous limit and stop at 24");
+                distance = CameraZoomDistance(distance, nearLimit,
+                    camera_zoom::FieldMaximumDistance, view, -wheelOut, -rawOut);
+                check(distance == 23.5f,
+                    "zoom can return from the expanded maximum without locking");
+                distance = CameraZoomDistance(distance, nearLimit,
+                    camera_zoom::FieldMaximumDistance, view, -wheelOut * 200, -rawOut * 200);
+                check(distance == nearLimit,
+                    "expanded zoom preserves mounted and unmounted near limits");
+            }
+    check(camera_zoom::GroundTilePadding(3.5f) == 0 &&
+        camera_zoom::GroundTilePadding(20.0f) == 0 &&
+        camera_zoom::GroundTilePadding(20.5f) == 1 &&
+        camera_zoom::GroundTilePadding(22.0f) == 1 &&
+        camera_zoom::GroundTilePadding(22.5f) == 2 &&
+        camera_zoom::GroundTilePadding(24.0f) == 2 &&
+        camera_zoom::GroundTilePadding(30.0f) == 2,
+        "terrain query padding follows zoom and stays bounded at two tile rings");
+    const auto zoomWorld = ReadAppSource("internal/app/scenes/TMFieldSceneWorld.cpp");
+    const auto initCamera = source_contract::Method(zoomWorld, "void TMFieldScene::InitCameraView()");
+    const auto changeCamera = source_contract::Method(zoomWorld, "void TMFieldScene::SetCameraView()");
+    check(initCamera.find("m_fMaxCamLen = camera_zoom::FieldMaximumDistance;") != std::string::npos &&
+        initCamera.find("m_fSightLength = camera_zoom::FieldDefaultDistance;") != std::string::npos &&
+        initCamera.find("m_fWantLength = camera_zoom::FieldDefaultDistance;") != std::string::npos &&
+        changeCamera.find("m_fSightLength = camera_zoom::FieldDefaultDistance;") != std::string::npos,
+        "field entry and the normal camera preset share the farther default");
+    check(camera.find("? camera_zoom::FieldDefaultDistance : pCamera->m_fMaxCamLen;") != std::string::npos &&
+        camera.find("targetDistance * fProgress;") != std::string::npos,
+        "the entry animation ends at the field default instead of the wheel maximum");
+    const auto zoomPackets = ReadAppSource("internal/game/entities/TMHumanPackets.cpp");
+    const auto teleportCamera = source_contract::Method(zoomPackets, "int TMHuman::OnPacketIllusion(MSG_STANDARD* pStd)");
+    const auto enterDungeon = teleportCamera.find("if (bDestIsDungeon == 1 && !bNowIsDungeon)");
+    const auto leaveDungeon = teleportCamera.find("else if (bNowIsDungeon == 1 && !bDestIsDungeon)");
+    check(enterDungeon != std::string::npos && leaveDungeon != std::string::npos &&
+        teleportCamera.find("m_fMaxCamLen = camera_zoom::FieldMaximumDistance;", enterDungeon) < leaveDungeon &&
+        teleportCamera.find("m_fMaxCamLen = camera_zoom::FieldMaximumDistance;", leaveDungeon) != std::string::npos &&
+        teleportCamera.find("m_fMaxCamLen = 20.0f;") == std::string::npos,
+        "both dungeon transitions retain the expanded zoom limit");
+    const auto zoomRender = ReadAppSource("internal/render/world/terrain/TMGroundRender.cpp");
+    const auto zoomQueries = ReadAppSource("internal/render/world/terrain/TMGroundQueries.cpp");
+    check(zoomRender.find("camera_zoom::GroundTilePadding(pCamera->m_fSightLength)") != std::string::npos &&
+        zoomRender.find("nLen = 13 + cameraTilePadding;") != std::string::npos &&
+        zoomQueries.find("camera_zoom::GroundTilePadding(pCamera->m_fSightLength)") != std::string::npos &&
+        zoomQueries.find("int nClipIndex = 25 + cameraTilePadding * 2;") != std::string::npos &&
+        zoomQueries.find("const int pickRadius = 12 + cameraTilePadding;") != std::string::npos,
+        "fixed terrain and both cursor query bounds use the expanded zoom padding");
     const auto opener = source_contract::Method(ui, "int TMFieldScene::OpenNativeServerPanel()");
     check(field.find("case 633: // native System: select server\n\t\t{ extractedResult = OpenNativeServerPanel();") != std::string::npos,
         "System button 633 opens the native channel panel");
@@ -556,5 +646,48 @@ int RunUiModeContractTests(int& checks)
         inventoryPackets.find("m_sFamiliar = 0;") == std::string::npos &&
         selectChar.find("m_sFamiliar = 0;") == std::string::npos,
         "no equipment projection discards the slot-13 familiar");
+    // A drop-search frame must fit between the real status/minimap and bottom HUD.
+    for(const auto viewport : {std::pair<float,float>{800.0f,600.0f},{1024.0f,768.0f},{1280.0f,720.0f},{1920.0f,1080.0f}}) {
+        const float scale=std::floor((std::min)(viewport.first/800.0f,viewport.second/600.0f)*20.0f)/20.0f;
+        const float hudTop=170.0f*scale, hudBottom=viewport.second-49.0f*scale;
+        const auto placement=drop_search_layout::Place(viewport.first,viewport.second,scale,hudTop,hudBottom);
+        check(placement.fits && placement.panel.y>=hudTop+8.0f*scale &&
+            placement.panel.y+placement.panel.height<=hudBottom-8.0f*scale &&
+            placement.panel.x>=8.0f*scale && placement.panel.x+placement.panel.width<=viewport.first-8.0f*scale,
+            "drop search preserves the HUD at supported default viewport scales");
+    }
+    check(!drop_search_layout::Place(800,600,2,340,502).fits &&
+        !drop_search_layout::Place(800,600,0,170,551).fits,
+        "oversized or invalid UI scales cannot open a frame outside its safe band");
+    const auto closeArtwork=drop_search_layout::CloseButton;
+    check(closeArtwork.y+closeArtwork.height<=drop_search_layout::Height &&
+        closeArtwork.x>0 && closeArtwork.x+closeArtwork.width<drop_search_layout::Width &&
+        closeArtwork.y>390.0f*drop_search_layout::Height/420.0f,
+        "the close hit area stays inside the existing lower-button artwork");
+    const auto dropHumanRender=ReadAppSource("internal/game/entities/TMHumanRender.cpp");
+    const auto dropHumanUI=ReadAppSource("internal/game/entities/TMHumanUI.cpp");
+    const auto labelProjection=source_contract::Method(dropHumanUI,"void TMHuman::UpdateLabelPosition(bool commonMesh)");
+    check(dropHumanRender.find("UpdateLabelPosition(false);")!=std::string::npos &&
+        dropHumanRender.find("UpdateLabelPosition(true);")!=std::string::npos &&
+        dropHumanRender.find("\n            LabelPosition();")==std::string::npos &&
+        dropHumanRender.find("\n    LabelPosition2();")==std::string::npos &&
+        source_contract::InOrder(labelProjection.find("IsDropSearchVisible()"),labelProjection.find("HideLabel();")) &&
+        source_contract::InOrder(labelProjection.find("HideLabel();"),labelProjection.find("LabelPosition2();")) &&
+        source_contract::InOrder(labelProjection.find("HideLabel();"),labelProjection.find("LabelPosition();")),
+        "both human mesh paths hide world overlays before projecting labels while drop search is open");
+    const auto dropItem=ReadAppSource("internal/game/entities/TMItem.cpp");
+    const auto itemProjection=source_contract::Method(dropItem,"void TMItem::LabelPosition()");
+    check(itemProjection.find("IsDropSearchVisible()")!=std::string::npos &&
+        itemProjection.find("m_stGuildMark.pGuildMark->SetVisible(0);")!=std::string::npos,
+        "ground-item and gate labels use the same drop-search visibility rule");
+    const auto dropScene=ReadAppSource("internal/app/scenes/TMFieldSceneDropList.cpp");
+    const auto openDrop=source_contract::Method(dropScene,"void TMFieldScene::ToggleDropSearch()");
+    const auto closeDrop=source_contract::Method(dropScene,"void TMFieldScene::CloseDropSearch()");
+    check(source_contract::InOrder(openDrop.find("m_pDropListPanel->SetVisible(1);"),openDrop.find("human->HideLabel();")) &&
+        openDrop.find("item->LabelPosition();")!=std::string::npos,
+        "opening hides existing world labels before the first UI queue pass");
+    check(closeDrop.find("m_dropSearchEdit->SetFocused(0);")!=std::string::npos &&
+        closeDrop.find("m_pControlContainer->m_pFocusControl=nullptr;")!=std::string::npos,
+        "closing releases the hidden edit in both keyboard modes");
     return failures;
 }

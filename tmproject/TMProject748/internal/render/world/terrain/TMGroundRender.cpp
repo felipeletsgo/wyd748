@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CameraZoom.h"
 #include "../../../platform/diagnostics/PerfTrace.h"
 // TMGround split by responsibility; terrain lifecycle and loading stay in TMGround.cpp.
 #include "TMSea.h"
@@ -77,7 +78,9 @@ int TMGround::Render()
 
     g_pDevice->m_pd3dDevice->SetMaterial(&m_materials);
 
-    int nClipIndex = 15;
+    const int cameraTilePadding = g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD
+        ? camera_zoom::GroundTilePadding(pCamera->m_fSightLength) : 0;
+    int nClipIndex = 15 + cameraTilePadding;
     if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_DEMO)
         nClipIndex = 18;
 
@@ -104,7 +107,7 @@ int TMGround::Render()
             || RenderDevice::m_bDungeon == 4)
             && g_pObjectManager->m_pCamera->m_fVerticalAngle > -0.69999999f)
         {
-            nLen = 13;
+            nLen = 13 + cameraTilePadding;
         }
 
         if (nLen < 6)

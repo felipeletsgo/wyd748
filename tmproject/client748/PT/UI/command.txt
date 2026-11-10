@@ -1,49 +1,115 @@
-FFFFFF 
-FFFFFF Comandos de guilda
-33FFFF guild
-AAFFAA Consultar aliados e inimigos dos membros da guilda conectados
-33FFFF guildtax [taxa]
-AAFFAA Ajustar os impostos da guilda (de 0% a 20%)
-AAFFAA Usado pelo líder da guilda para definir os impostos da cidade conquistada
-33FFFF /summonguildmembers
-AAFFAA Reunir os membros da guilda conectados
-AAFFAA O líder pode reunir todos, incluindo os vice-líderes
-AAFFAA O vice-líder pode invocar os membros da sua subguilda
-33FFFF /expel [nome do membro]
-AAFFAA Expulsar um membro da guilda
-33FFFF /tele [nome do membro]
-AAFFAA Mover-se até um membro da guilda
-AAFFAA Exclusivo do líder e de quem usa a medalha do reino
-33FFFF /Endwar
-AAFFAA Encerrar a inimizade com outra guilda
-AAFFAA Exclusivo do líder da guilda
-33FFFF /Endallies
-AAFFAA Encerrar todas as alianças com outras guildas
-AAFFAA Exclusivo do líder da guilda
-FFFFFF 
-FFFFFF Comandos de chat
-33FFFF /nome do jogador [mensagem]
-AAFFAA Enviar mensagem privada
-33FFFF /r [mensagem]
-AAFFAA Responder à mensagem privada
-33FFFF = [mensagem]
-AAFFAA Chat de grupo, visível apenas para seus membros
-33FFFF - [mensagem]
-AAFFAA Chat de guilda, visível apenas para seus membros
-33FFFF -- [mensagem]
-AAFFAA Chat global, visível para todos os jogadores conectados ao servidor
-33FFFF * [mensagem]
-AAFFAA Exibir mensagem sobre a cabeça do personagem por 10 segundos
-33FFFF /nome do jogador ! [mensagem]
-AAFFAA Enviar mensagem curta, que desaparece após ser recebida
-FFFFFF 
-FFFFFF Comandos de reino
-33FFFF /Town ou /Kingdom
-AAFFAA Enviar o personagem ao seu reino
-AAFFAA Exclusivo de personagens que entraram em um reino
-33FFFF /king
-AAFFAA Teleportar para perto do rei
-AAFFAA Para personagens que desejam entrar em um reino
-FFFFFF Evocações de BeastMaster
-33FFFF /dispensar ou /unsummon
-AAFFAA Dispense suas evocações para invocar outra família.
+FFFFFF
+FFFFFF Comandos de jogador
+AAFFAA Digite no chat. <...> indica um valor obrigatório.
+AAFFAA Aliases separados por | têm a mesma função.
+FFFFFF
+FFFFFF Saldos e personagem
+33FFFF /balance | /saldo
+AAFFAA Consultar seus saldos de Donate, Fama, Honra, Pass e Kefra.
+33FFFF /medals | /medalhas
+AAFFAA Consultar suas medalhas douradas, vermelhas e azuis.
+33FFFF /cp | /chaos
+AAFFAA Consultar seus pontos de Chaos/PK (-75 a +75).
+33FFFF /fame
+AAFFAA Consultar a Fama do personagem, separada da Fama da guilda.
+33FFFF /time
+AAFFAA Consultar a data e a hora do servidor.
+33FFFF /parry <nome>
+AAFFAA Consultar sua precisão e esquiva contra um jogador online.
+33FFFF /srv <canal>
+AAFFAA Trocar para um canal disponível quando seu estado permitir.
+FFFFFF
+FFFFFF Evocações de BeastMaster e inventário
+33FFFF /unsummon | /dispensar
+AAFFAA Dispensar todas as suas evocações de BeastMaster.
+AAFFAA Use uma evocação aprendida para chamar uma de cada tipo aprendido.
+33FFFF /clearinv | /limparinv
+AAFFAA ATENÇÃO: apagar permanentemente todos os itens do inventário!
+FFFFFF
+FFFFFF Gerenciamento de guilda
+33FFFF /create <guilda> | /criar <guilda>
+AAFFAA Criar uma guilda com o nome indicado.
+33FFFF /invite <nome> | /convidar <nome>
+AAFFAA Líder da guilda: convidar um jogador online.
+33FFFF /accept | /aceitar
+AAFFAA Aceitar seu convite pendente de guilda.
+33FFFF /leave | /sair
+AAFFAA Sair da guilda; a saída do líder segue as regras de sucessão.
+33FFFF /expel <nome> | /expulsar <nome>
+AAFFAA Líder da guilda: expulsar um membro.
+33FFFF /createsub <nome> | /subcreate <nome> | /criarsub <nome>
+AAFFAA Líder: promover um membro para uma vaga de sublíder.
+33FFFF guildoff | guildon
+AAFFAA Ocultar ou mostrar sua identificação de guilda (sem barra).
+FFFFFF
+FFFFFF Guerras de guilda
+33FFFF /guildfame | /famaguild
+AAFFAA Consultar a Fama da sua guilda.
+33FFFF /citywar
+AAFFAA Consultar donos, desafiantes, lances e vitórias das cidades.
+33FFFF /citywar <1..4> <lance total>
+AAFFAA Líder: registrar um lance por uma cidade usando Fama da guilda.
+AAFFAA Só o aumento do lance é cobrado; valem as regras de inscrição.
+33FFFF /tower
+AAFFAA Entrar na guerra de torre ativa em Erion, com guilda de reino.
+FFFFFF
+FFFFFF Viagens de reino
+33FFFF /kingdom | /reino
+AAFFAA Viajar para a área do seu reino ou para a área neutra.
+33FFFF /king | /rei
+AAFFAA Visitar o rei do reino que você escolheu.
+FFFFFF
+FFFFFF Identificação e anúncios
+33FFFF /tab <texto>
+AAFFAA Definir texto sobre o nome; use /tab sem texto para apagar.
+AAFFAA Cores: /tab2, /tab3, /tab4, /tab5, /tab6, /tab7, /tab8, /tab9.
+AAFFAA Limite: 25 caracteres. Mortais precisam de nível 70 para definir.
+33FFFF /snd <texto>
+AAFFAA Definir status consultado por /nome. Use /snd para apagar.
+33FFFF /spk <mensagem> | /gritar <mensagem>
+AAFFAA Anunciar uma mensagem; consome uma Trombeta Mágica (Shout).
+FFFFFF
+FFFFFF Chat
+33FFFF /nome <mensagem>
+AAFFAA Enviar mensagem privada a um jogador online.
+33FFFF /nome
+AAFFAA Consultar informações e status de um jogador online.
+33FFFF /nome ! <mensagem>
+AAFFAA Enviar uma carta à aba Mensagem do HELP do jogador.
+33FFFF = <mensagem>
+AAFFAA Chat de grupo.
+33FFFF - <mensagem>
+AAFFAA Chat de guilda.
+33FFFF -- <mensagem>
+AAFFAA Chat global entre canais.
+33FFFF @ <mensagem>
+AAFFAA Chat do seu canal atual.
+33FFFF @@ <mensagem>
+AAFFAA Chat de cidadania entre canais.
+33FFFF * <mensagem>
+AAFFAA Mostrar mensagem local sobre a cabeça por dez segundos.
+FFFFFF
+FFFFFF Comandos locais do cliente
+AAFFAA Digite sem barra os comandos abaixo que não começam com /.
+33FFFF /help
+AAFFAA Abrir ou fechar o HELP (igual ao H).
+33FFFF /fps
+AAFFAA Mostrar ou ocultar FPS e ping sob o minimapa.
+33FFFF fps
+AAFFAA Alternar o contador original de FPS.
+33FFFF effects
+AAFFAA Mostrar ou ocultar efeitos visuais de skills e buffs.
+33FFFF effects2
+AAFFAA Alternar a opção adicional de efeitos visuais.
+33FFFF effectold
+AAFFAA Mostrar ou ocultar efeitos visuais de buffs.
+33FFFF exp
+AAFFAA Mostrar ou ocultar mensagens de EXP recebida.
+33FFFF /guildaforum
+AAFFAA Cancelar a entrada atual do chat.
+FFFFFF
+FFFFFF Sincronização automática
+33FFFF /day
+AAFFAA Atualizar o calendário do cliente; enviado automaticamente.
+33FFFF /nig
+AAFFAA Atualizar o relógio de Pesadelo; enviado automaticamente.

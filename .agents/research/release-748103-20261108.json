@@ -1,0 +1,341 @@
+{
+  "schemaVersion": 1,
+  "dateLocal": "2026-11-08",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "authorization": "Retained explicit session authority for the continuing droplist rollout: ok. suba as melhorias para o vps e reinicie. Scope: game channels 1 and 2 only. Latest approval authorizes publishing the corrected local candidate.",
+  "latestOwnerRequest": "aprovado. suba tudo pro vps",
+  "mode": "working-tree",
+  "head": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "clientVersion": "7.48.103",
+  "minimumRevision": 103,
+  "feedVersion": 48103,
+  "published": true,
+  "activated": true,
+  "priorRelease": "/srv/wyd-go/releases/20261108T123541Z",
+  "rollback": "/srv/wyd-go/releases/20261108T123541Z",
+  "activeRelease": "/srv/wyd-go/releases/20261108T150126Z",
+  "serverSupersededBy": {
+    "activeRelease": "/srv/wyd-go/releases/20261108T172846Z",
+    "receipt": ".agents/research/release-bm-summoner-20261108.json",
+    "scope": "Server activation only; client release 7.48.103 remains current."
+  },
+  "activationStartedAt": "2026-11-08T15:01:23Z",
+  "databaseBackup": {
+    "at": "2026-11-08T15:01:26Z",
+    "archive": "wydgo-20261108T150125Z.dump",
+    "bytes": 552532,
+    "sha256": "8d40b6d8a71c0a72e4889a6f63c79c87489d37e213ac972608817b85d0dab881"
+  },
+  "schema": "20",
+  "server": {
+    "sha256": "456eaeac80e17ee9b1954d8256935e98e9c1f1555b4c294a5731474ed37b5c58",
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 14394192,
+      "sha256": "a62f84e198320cf62516593af3459620cc2259067054c53e5608bd956127fa7c"
+    },
+    "payloadFiles": 1076,
+    "payloadHashesVerified": 1076,
+    "sourceRecordsVerified": 2332,
+    "changedPaths": [
+      "game/wyd-server"
+    ]
+  },
+  "clientPatch": {
+    "version": 48103,
+    "url": "https://wyd.forjago.com/patch/patch-48103.zip",
+    "sizeBytes": 931980,
+    "sha256": "5739f3df256a823fd31acacecfc91d7e2fdaf265ef667e337725087f4369703e",
+    "files": [
+      {
+        "path": "EN/UI/UIString.txt",
+        "source": "tmproject/client748/EN/UI/UIString.txt",
+        "size": 4758,
+        "sha256": "7018b5786fadebd10c9b56e82db711574a37d127ca5e166f0ef197ccc4841a72"
+      },
+      {
+        "path": "PT/UI/UIString.txt",
+        "source": "tmproject/client748/PT/UI/UIString.txt",
+        "size": 5138,
+        "sha256": "86dca463433e9d4220db02dff881aa0cfd66903a1a814310a8be4764bd46ce13"
+      },
+      {
+        "path": "UI/UIString.txt",
+        "source": "tmproject/client748/UI/UIString.txt",
+        "size": 4758,
+        "sha256": "7018b5786fadebd10c9b56e82db711574a37d127ca5e166f0ef197ccc4841a72"
+      },
+      {
+        "path": "WYD.exe",
+        "source": "tmproject/build/drop-list-103/WYD.exe",
+        "size": 2085888,
+        "sha256": "23b40806a698bb143051faf547fe9e68731372b2db2ab68d109f5c46f561a8fd"
+      }
+    ],
+    "unchangedDependencies": [
+      {
+        "path": "EN/UI/interface.txt",
+        "source": "tmproject/client748/EN/UI/interface.txt",
+        "size": 2368,
+        "sha256": "0ef7b3b4d84d34d3dd316b4582c365082025c964d449f2ad07bad34788ff91c8"
+      },
+      {
+        "path": "ItemListWide.csv",
+        "source": "tmproject/client748/ItemListWide.csv",
+        "size": 225,
+        "sha256": "4e777cf0c799525527226b0d8e39446ad70927c52fd044f2cb81c4e880e6837b"
+      },
+      {
+        "path": "PT/UI/interface.txt",
+        "source": "tmproject/client748/PT/UI/interface.txt",
+        "size": 2700,
+        "sha256": "895fbe9e2868f9e8c2ec28d54b9cadf77a4648822e497eee9c3eae0e4bad92fc"
+      },
+      {
+        "path": "UI/interface.txt",
+        "source": "tmproject/client748/UI/interface.txt",
+        "size": 2368,
+        "sha256": "0ef7b3b4d84d34d3dd316b4582c365082025c964d449f2ad07bad34788ff91c8"
+      },
+      {
+        "path": "WydCrashReporter.dll",
+        "source": "tmproject/build/TMProject748/Release/WydCrashReporter.dll",
+        "size": 564224,
+        "sha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6"
+      }
+    ],
+    "publicDownloadHashVerified": true,
+    "localExecutableInstalled": true,
+    "localInstallationReceipt": "tmproject/build/drop-list-103/local-install.json"
+  },
+  "website": {
+    "archive": {
+      "path": "website.tar.gz",
+      "size": 876453,
+      "sha256": "25e89ce6fa64901c8eee5df9f19393e9ba577dfe7f374bab0d50ad38ed295080"
+    },
+    "payloadFiles": 6661,
+    "payloadHashesVerified": 6661,
+    "advertisedVersion": "7.48.103",
+    "preservedExternalFullClient": true,
+    "newsPublished": false
+  },
+  "services": {
+    "wyd-game@1": {
+      "MainPID": "588567",
+      "NRestarts": "0",
+      "Id": "wyd-game@1.service",
+      "ActiveState": "active",
+      "executablePath": "/srv/wyd-go/releases/20261108T150126Z/game/wyd-server",
+      "sha256": "456eaeac80e17ee9b1954d8256935e98e9c1f1555b4c294a5731474ed37b5c58"
+    },
+    "wyd-game@2": {
+      "MainPID": "588568",
+      "NRestarts": "0",
+      "Id": "wyd-game@2.service",
+      "ActiveState": "active",
+      "executablePath": "/srv/wyd-go/releases/20261108T150126Z/game/wyd-server",
+      "sha256": "456eaeac80e17ee9b1954d8256935e98e9c1f1555b4c294a5731474ed37b5c58"
+    },
+    "wyd-player": {
+      "MainPID": "3492238",
+      "NRestarts": "0",
+      "Id": "wyd-player.service",
+      "ActiveState": "active"
+    },
+    "wyd-log-reader": {
+      "MainPID": "3492336",
+      "NRestarts": "0",
+      "Id": "wyd-log-reader.service",
+      "ActiveState": "active"
+    }
+  },
+  "readiness": {
+    "player": "200",
+    "listeners": [
+      "8281",
+      "8282"
+    ]
+  },
+  "preservation": {
+    "privateAndPreservedFileHashes": "unchanged",
+    "playerApiPidPreserved": true,
+    "logReaderPidPreserved": true
+  },
+  "admission": {
+    "at": "2026-11-08T15:02:01.213073+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 102,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 103,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 102,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 103,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "publicVerification": {
+    "at": "2026-11-08T15:02:34.053471+00:00",
+    "allFourPatchEntriesVerified": true,
+    "websiteVerified": true,
+    "requests": {
+      "public-feed-http.txt": {
+        "url": "http://wyd.forjago.com/patch/update.htm",
+        "finalUrl": "http://wyd.forjago.com/patch/update.htm",
+        "status": 200,
+        "bytes": 89,
+        "sha256": "8d813263f3681a15d9cf0c33c532837a9117a0116119c5c21daea55e2fc67eac"
+      },
+      "public-feed-https.txt": {
+        "url": "https://wyd.forjago.com/patch/update.htm",
+        "finalUrl": "https://wyd.forjago.com/patch/update.htm",
+        "status": 200,
+        "bytes": 89,
+        "sha256": "8d813263f3681a15d9cf0c33c532837a9117a0116119c5c21daea55e2fc67eac"
+      },
+      "public-patch-48103.zip": {
+        "url": "https://wyd.forjago.com/patch/patch-48103.zip",
+        "finalUrl": "https://wyd.forjago.com/patch/patch-48103.zip",
+        "status": 200,
+        "bytes": 931980,
+        "sha256": "5739f3df256a823fd31acacecfc91d7e2fdaf265ef667e337725087f4369703e"
+      },
+      "public-client-manifest.json": {
+        "url": "https://wyd.forjago.com/client-manifest.json",
+        "finalUrl": "https://wyd.forjago.com/client-manifest.json",
+        "status": 200,
+        "bytes": 629,
+        "sha256": "2ca3290b010870bd58e5a6d239a34712ea74c9f361218d9b0b8a5f8c03a72cc2"
+      },
+      "public-download.html": {
+        "url": "https://wyd.forjago.com/download/",
+        "finalUrl": "https://wyd.forjago.com/download/",
+        "status": 200,
+        "bytes": 4275,
+        "sha256": "f2a643587b63ac06225e008bc29c5014f14429ab03c077493eb8d167b9dc1892"
+      },
+      "public-changelog.html": {
+        "url": "https://wyd.forjago.com/changelog/",
+        "finalUrl": "https://wyd.forjago.com/changelog/",
+        "status": 200,
+        "bytes": 21713,
+        "sha256": "dbc4347f32cef913458812d899fa7794a306d13df9edd15f835bb31275a99622"
+      }
+    }
+  },
+  "postflight": {
+    "at": "2026-11-08T15:05:21.001232+00:00",
+    "activeRelease": "/srv/wyd-go/releases/20261108T150126Z",
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "588567",
+        "NRestarts": "0",
+        "Id": "wyd-game@1.service",
+        "ActiveState": "active"
+      },
+      "wyd-game@2": {
+        "MainPID": "588568",
+        "NRestarts": "0",
+        "Id": "wyd-game@2.service",
+        "ActiveState": "active"
+      },
+      "wyd-player": {
+        "MainPID": "3492238",
+        "NRestarts": "0",
+        "Id": "wyd-player.service",
+        "ActiveState": "active"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "Id": "wyd-log-reader.service",
+        "ActiveState": "active"
+      }
+    },
+    "readiness": {
+      "8082": "200",
+      "8083": "200"
+    },
+    "journalLinesReviewed": 1482,
+    "errorCount": 0,
+    "warnings": [],
+    "shutdownEvidence": [
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 systemd[1]: Stopping wyd-game@1.service - WYD authoritative native game server, channel 1...",
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 wyd-server[564097]: 2026/11/08 15:01:23 shutdown: 0 final account write(s) took 0s with 4 worker(s)",
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 wyd-server[564097]: 2026/11/08 15:01:23 shutdown: 0 accounts persisted, 0 failures",
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 systemd[1]: Stopping wyd-game@2.service - WYD authoritative native game server, channel 2...",
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 wyd-server[564097]: 2026/11/08 15:01:23 shutdown complete",
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 wyd-server[564096]: 2026/11/08 15:01:23 shutdown: 1 final account write(s) took 12ms with 4 worker(s)",
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 wyd-server[564096]: 2026/11/08 15:01:23 shutdown: 1 accounts persisted, 0 failures",
+      "Nov 08 15:01:23 ubuntu-4gb-nbg1-2 wyd-server[564096]: 2026/11/08 15:01:23 shutdown complete",
+      "Nov 08 15:01:24 ubuntu-4gb-nbg1-2 systemd[1]: wyd-game@2.service: Deactivated successfully.",
+      "Nov 08 15:01:24 ubuntu-4gb-nbg1-2 systemd[1]: Stopped wyd-game@2.service - WYD authoritative native game server, channel 2.",
+      "Nov 08 15:01:24 ubuntu-4gb-nbg1-2 systemd[1]: wyd-game@1.service: Deactivated successfully.",
+      "Nov 08 15:01:24 ubuntu-4gb-nbg1-2 systemd[1]: Stopped wyd-game@1.service - WYD authoritative native game server, channel 1."
+    ]
+  },
+  "cleanup": {
+    "removed": [
+      "/tmp/wyd-web-748103-20261108",
+      "/srv/wyd-go/releases/20261108T150126Z/website-748103-stage"
+    ],
+    "officialStagingRemoved": true,
+    "rollbackPreserved": "/srv/wyd-go/releases/20261108T123541Z",
+    "previousWebDirectoriesPreserved": true
+  },
+  "verification": {
+    "goTests": "game and wire passed for exact candidate; unchanged prior integration evidence reused",
+    "goVet": "game and wire passed",
+    "clientBuild": "incremental Release -NoDeploy passed",
+    "localeTests": "22 passed",
+    "portalTests": "116 passed",
+    "portalCheck": "0 errors, 0 warnings, 0 hints",
+    "portalBuild": "3311 pages passed",
+    "staticAudit": "17 areas recorded in DOCS/protocol/drop-list.md",
+    "clientLayout": "EN/PT GDI measurements and HUD placement cases passed",
+    "databaseAndRaceTests": "not rerun; no persistence or economy contract changed",
+    "repositoryLayout": "222 indexed documents; layout and local links passed",
+    "diffCheck": "passed"
+  },
+  "ownerLocalApproval": {
+    "approved": true,
+    "statement": "aprovado. suba tudo pro vps",
+    "scenarioCapturesProvided": false,
+    "candidateSha256": "23b40806a698bb143051faf547fe9e68731372b2db2ab68d109f5c46f561a8fd"
+  },
+  "postActivationGameplayAccepted": false,
+  "diagnostics": [
+    {
+      "issue": "Initial staged verification ran before the upload completed.",
+      "resolution": "Waited for successful transfer completion, then verified every archive and entry hash."
+    },
+    {
+      "issue": "Temporary activation wrapper had CRLF; Bash rejected set before any service change.",
+      "exitStatus": 2,
+      "resolution": "Confirmed unchanged release and service PIDs; normalized only the wrapper to LF and activated."
+    },
+    {
+      "issue": "Public website verifier checked the general Play page for a release version.",
+      "resolution": "Checked the actual Download page and changelog; both advertise 7.48.103."
+    }
+  ],
+  "notes": "Only game channels restarted. Native launcher delivers mandatory patch. Full client remains external. News draft retained. No commit or push. Local candidate approved by owner; post-activation gameplay not observed."
+}

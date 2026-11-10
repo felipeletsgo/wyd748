@@ -4,6 +4,18 @@
 constexpr float WYD748_UI_BASE_WIDTH = 800.0f;
 constexpr float WYD748_UI_BASE_HEIGHT = 600.0f;
 
+struct PanelOrigin
+{
+    float x, y;
+};
+
+// Controls already contain scaled pixel dimensions. Do not scale the origin again.
+inline PanelOrigin CenteredPanelOrigin(float screenWidth, float screenHeight,
+    float panelWidth, float panelHeight)
+{
+    return {(screenWidth - panelWidth) * 0.5f, (screenHeight - panelHeight) * 0.5f};
+}
+
 struct ImeCandidateRect
 {
     float x, y, width, height;

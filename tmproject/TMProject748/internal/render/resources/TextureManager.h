@@ -1,4 +1,5 @@
 #pragma once
+#include "../../wire/CorruptedCrystalAppearance.h"
 
 #include "RuntimeAssetLimits.h"
 #include "UITextureSetList.h"
@@ -63,6 +64,7 @@ public:
 	int LoadModelTexture(int nIndex);
 	IDirect3DTexture9* GetModelTexture(int nIndex, DWORD showTime);
 	int GetModelTextureIndex(char* szTextureName);
+	int GetCrystalTextureIndex(int stage, int baseIndex) const;
 
 	int InitEnvTextureList();
 	int LoadEnvTexture(int nIndex);
@@ -113,4 +115,7 @@ public:
 	IDirect3DSurface9* m_pBloomSurface1[2];
 	IDirect3DTexture9* m_pGlowTexture[2];
 	IDirect3DSurface9* m_pGlowSurface[2];
+
+private:
+	int m_crystalTextureIndices[corrupted_crystal::CriticalCracks + 1]{};
 };

@@ -32,7 +32,7 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
 		}
-		if m == nil || m.Dead || m.Def == nil || m.SummonerID != 0 || m.GuildWarTower {
+		if m == nil || m.Dead || m.Def == nil || m.SummonerID != 0 || m.GuildWarTower || m.crystalRole != crystalNone {
 			continue
 		}
 		if m.Def.IsCityGuard() {
@@ -152,7 +152,7 @@ func (w *World) tickActiveMobActions(now time.Time) {
 			}
 			continue
 		}
-		if m.GuildWarTower {
+		if m.GuildWarTower || m.crystalRole != crystalNone {
 			continue
 		}
 		if inst := w.instanceForMob(m); inst != nil && inst.RuneTrack != nil && !w.runeTrackCombatActor(m, now) {

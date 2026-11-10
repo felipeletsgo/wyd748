@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CameraZoom.h"
 // TMGround split by responsibility; terrain lifecycle and loading stay in TMGround.cpp.
 #include "TMSea.h"
 #include "TMGlobal.h"
@@ -34,7 +35,9 @@ D3DXVECTOR3 TMGround::GetPickPos()
 
     int nCamPosX = (int)(vecCam.x - m_vecOffset.x);
     int nCamPosY = (int)(vecCam.y - m_vecOffset.y);
-    int nClipIndex = 25;
+    const int cameraTilePadding = g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD
+        ? camera_zoom::GroundTilePadding(pCamera->m_fSightLength) : 0;
+    int nClipIndex = 25 + cameraTilePadding * 2;
     int nMinClipIndex = 0;
 
     if(fabsf(g_pObjectManager->m_pCamera->m_fVerticalAngle) > 1.0f)
@@ -88,10 +91,11 @@ D3DXVECTOR3 TMGround::GetPickPos()
         D3DXVECTOR3 vPosTransformed;
 
         int nPY = (int)((float)nCamPosY / 2.0f);
-        int nMinX = (int)((float)nCamPosX / 2.0f) - 12;
-        int nMinY = nPY - 12;
-        int nMaxX = (int)((float)nCamPosX / 2.0f) + 12;
-        int nMaxY = nPY + 12;
+        const int pickRadius = 12 + cameraTilePadding;
+        int nMinX = (int)((float)nCamPosX / 2.0f) - pickRadius;
+        int nMinY = nPY - pickRadius;
+        int nMaxX = (int)((float)nCamPosX / 2.0f) + pickRadius;
+        int nMaxY = nPY + pickRadius;
 
         if (nMinX < 0)
             nMinX = 0;

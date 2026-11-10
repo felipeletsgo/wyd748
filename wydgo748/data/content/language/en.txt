@@ -12,7 +12,7 @@ _WG_Only_God_Can_Use_Crystal	Only a God can use this crystal.
 _WG_Must_Reach_Level_Take_Oath	You must reach level 355 to take this oath.
 _NN_Youve_Done_It_Already	You have already done it.
 _WG_Must_Take_Oaths_Order	You must take the oaths in order.
-_WG_Need_Million_Experience_Oath	You need 100 million experience for this oath.
+_WG_Need_Million_Experience_Oath	You need at least 1.95 billion experience to take this oath.
 _WG_Save_Failed_Oath_Was_Not_Taken	Save failed. The oath was not taken.
 _WG_Four_Oaths_Complete	The four oaths are complete.
 
@@ -51,7 +51,7 @@ _WG_Cythera_Could_Not_Created	The Cythera could not be created.
 _WG_Save_Failed_Ideal_Stone_Was_Not	Save failed. The Ideal Stone was not consumed.
 _WG_Character_Now_Celestial_Re_Enter_From	Your character is now Celestial. Re-enter it from character selection.
 _WG_SubCelestial_Has_Already_Been_Created	The SubCelestial has already been created.
-_WG_Celestial_Must_Level_Or_Higher	The Celestial must be level 121 or higher.
+_WG_Celestial_Must_Level_Or_Higher	The Celestial must be level 120 or higher.
 _WG_Fame_Required_Create_SubCelestial	100 Fame is required to create a SubCelestial.
 _WG_Equip_SubCelestial_Class_Sefirot	Equip the SubCelestial class Sefirot.
 _WG_Celestial_Face_Invalid	The Celestial face is invalid.
@@ -649,11 +649,11 @@ _WG_War_Declared_Against_Guild	War declared against guild %s.
 _WG_Guild_Declared_War_Guild	Guild %s declared war on your guild.
 _WG_Save_Failed_Tower_Was_Not_Captured	Save failed. The tower was not captured.
 _WG_Guild_Brought_Tower_Down_New_Defender	%s of guild %s brought the tower down! New defender: %s.
-_WG_Tower_War_Starts_Within_Minutes_Enter	Tower war starts within 5 minutes! Enter with /tower in Erion.
+_WG_Tower_War_Starts_Within_Minutes_Enter	Tower war starts within 5 minutes. Enter with /tower in Erion once it starts.
 _WG_Tower_War_Starts_Minute	Tower war starts in 1 minute!
 _WG_Tower_War_Ends_Minutes_Guild_Fame	Tower war ends in 5 minutes! Guild fame is awarded only on a kingdom change.
 _WG_Tower_War_Ends_Minute	Tower war ends in 1 minute!
-_WG_Tower_War_Started_Use_Tower_Erion	Tower war started! Use /tower in Erion. Duration: 60 minutes.
+_WG_Tower_War_Started_Use_Tower_Erion	Tower war started! Use /tower in Erion. It lasts %d minutes.
 _WG_City_War_Interrupted_Owners_Kept_Only	City war interrupted; owners kept. Only bids from the current fame week can be refunded.
 _WG_Saturday_Bids_Open_Until_Citywar_Total	Saturday bids open until 23:59:59! /citywar <1..4> <total guild fame>. No entry fee.
 _WG_City_War_Applications_Closed_Check_Owners	City war applications closed. Check owners and challengers with /citywar.
@@ -1124,3 +1124,14 @@ _WG_Roll_Penalty_Success	Penalty Success: %d/%d
 _WG_Roll_Penalty_Fail	Penalty Fail: %d/%d
 
 _WG_Sale_Quote_Changed	The sale quote changed. Reopen the shop and check the price. Your item was not sold.
+
+_WG_Crystal_Event_Object_Name	Large Crystal
+_WG_Crystal_Event_Medium_Name	Medium Crystal
+_WG_Crystal_Event_Small_Name	Small Crystal
+_WG_Crystal_Event_Appeared	A Corrupted Crystal has appeared nearby.
+_WG_Crystal_Event_MediumWave	The large crystal shattered into five medium crystals.
+_WG_Crystal_Event_SmallWave	Each medium crystal shattered into four small crystals.
+_WG_Crystal_Event_Victory	All the crystals have shattered.
+_WG_Remove_Helmet_Before_Celestial	Remove your helmet before becoming Celestial.
+_WG_Fury_Unlock_Failed	The Fury Stone failed to unlock level 90.
+_WG_Equip_Arcana_Base_Cythera	Equip a Cythera eligible for Arcana.

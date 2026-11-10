@@ -5,6 +5,7 @@ Historical packages are needed only for explicit regeneration, not these tests.
 """
 from collections import Counter
 import copy
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -129,6 +130,22 @@ class ClientLocalesTests(unittest.TestCase):
                         self.assertRegex(row, rb'^[0-9A-Fa-f]{8} ')
                         self.assertLess(len(row[9:]), 128, (language, name, index))
 
+    def test_angel_item_help_matches_kr_bonuses(self):
+        bonuses = {
+            3900: [16], 3901: [32], 3902: [16, 32],
+            3903: [16], 3904: [32], 3905: [16, 32],
+            3906: [16], 3907: [32], 3908: [16, 32],
+            3911: [32], 3912: [32], 3913: [32],
+            3914: [16, 32], 3915: [18, 50],
+        }
+        paths = [self.runtime / directory / 'itemhelp.dat' for directory in ('.', 'EN', 'PT')]
+        for path in paths:
+            records = locales.help_records(path.read_bytes())
+            for index, expected in bonuses.items():
+                text = b' '.join(records[index])
+                actual = [int(value) for value in re.findall(rb'\+(\d+)%', text)]
+                self.assertEqual(actual, expected, (path, index))
+
     def test_skill_ids_and_formula_numbers_match_current_help(self):
         english = locales.help_records(self.read('EN', 'skillhelp.dat'))
         portuguese = locales.help_records(self.read('PT', 'skillhelp.dat'))
@@ -187,6 +204,22 @@ class ClientLocalesTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 locales.message_overrides(base, invalid, 'PT')
 
+    def test_pvp_and_ancient_tooltip_resources(self):
+        expected_effects = {2171: (57, 12), 2175: (57, 10),
+                            **{i: (76, 10) for i in range(3641, 3645)},
+                            **{i: (75, 30) for i in range(3701, 3705)}}
+        for language in ('.', 'EN', 'PT'):
+            catalog = locales.item_rows(self.read(language, 'ItemList.bin'))
+            for item, (effect, value) in expected_effects.items():
+                self.assertIn((effect, value), struct.iter_unpack('<hh', catalog[item][80:128]))
+            messages = self.read(language, 'UI/strdef.bin')
+            for row, args in ((435, (4, 2)), (436, (2, 4)), (438, (37,)), (439, (60,))):
+                text = bytes(x ^ 0x5a for x in messages[row * 128:(row + 1) * 128])
+                text = text.split(b'\0', 1)[0].decode('cp1252')
+                locale = 'PT' if language == 'PT' else 'EN'
+                self.assertEqual(text, self.policy['messages'][str(row)][locale])
+                self.assertTrue(text % args)
+
     def test_official_npc_messages_preserve_locale_and_parameter_contract(self):
         base = (self.runtime / 'UI/strdef.bin').read_bytes()
         for language in ('EN', 'PT'):
@@ -213,7 +246,23 @@ class ClientLocalesTests(unittest.TestCase):
             return result
         en = parse(self.read('EN', 'UI/UIString.txt')); pt = parse(self.read('PT', 'UI/UIString.txt'))
         self.assertEqual(set(en), set(pt))
-        self.assertEqual(len(pt), 228)
+        # Row 231 remains reserved; the drop-search captions append 267-290.
+        self.assertEqual(set(pt), set(range(1, 291)) - {231})
+        for index in range(267, 291):
+            self.assertTrue(en[index] and pt[index])
+        self.assertEqual(en[273].decode("cp1252"), "Base chance")
+        self.assertEqual(en[274].decode("cp1252"), "With bonus")
+        self.assertEqual(pt[273].decode("cp1252"), "Chance base")
+        self.assertEqual(pt[274].decode("cp1252"), "Com bônus")
+        self.assertEqual(pt[287].decode("cp1252"), "Bônus de drop:")
+        self.assertEqual(pt[285].decode("cp1252"), "Busque monstros pelo nome.")
+        self.assertEqual(pt[286].decode("cp1252"), "Busque itens pelo nome ou ID.")
+        policy_rows = {}
+        for row in self.policy['files']['UI/UIString.txt'].splitlines():
+            index, text = row.split(None, 1)
+            policy_rows[int(index)] = text
+        for index in range(267, 291):
+            self.assertEqual(pt[index].decode("cp1252"), policy_rows[index], index)
 
     def test_custom_help_pagination_and_command_tokens_are_preserved(self):
         for name in ('interface.txt', 'interface1.txt', 'interface2.txt', 'interface3.txt',
@@ -221,12 +270,59 @@ class ClientLocalesTests(unittest.TestCase):
             self.assertEqual(len(self.read('EN', 'UI/' + name).splitlines()),
                              len(self.read('PT', 'UI/' + name).splitlines()), name)
         for language in ('EN', 'PT'):
-            commands = self.read(language, 'UI/command.txt')
-            for token in (b'/summonguildmembers', b'/Endwar', b'/Endallies', b'/Kingdom'):
-                self.assertIn(token, commands)
             interface = self.read(language, 'UI/interface.txt')
             for token in (b'Shift', b'Ctrl', b'C.C.'):
                 self.assertIn(token, interface)
+
+    def test_help_covers_all_server_player_aliases_and_client_commands(self):
+        root = Path(__file__).resolve().parents[2]
+        source = (root / 'wydgo748/internal/game/commands.go').read_text(encoding='utf-8')
+        aliases = source.split('var chatCommandAliases = map[string]string{', 1)[1].split('}', 1)[0]
+        required = set(re.findall(r'"([a-z]+)"\s*:', aliases))
+        required.update(['tab', *('tab' + str(n) for n in range(2, 10)), 'snd', 'fps', 'help'])
+        for language in ('EN', 'PT'):
+            commands = self.read(language, 'UI/command.txt')
+            documented = set(re.findall(rb'/([a-z][a-z0-9]*)', commands.lower()))
+            self.assertTrue({name.encode() for name in required} <= documented,
+                            (language, required - {name.decode() for name in documented}))
+            for token in (b'guildon', b'guildoff', b'effects', b'effects2', b'effectold', b'exp'):
+                self.assertIn(token, commands)
+            for token in (b'/goto', b'/summonguildmembers', b'/endwar', b'/endallies', b'/town'):
+                self.assertNotIn(token, commands.lower())
+            rows = commands.splitlines()
+            self.assertGreater(len(rows), 100)
+            self.assertLessEqual(len(rows), 256)
+            for row in rows:
+                self.assertRegex(row, rb'^[0-9A-F]{6}( |$)')
+                self.assertLessEqual(len(row[7:]), 66)
+                row.decode('cp1252')
+        self.assertEqual(self.read('', 'UI/command.txt'), self.read('EN', 'UI/command.txt'))
+        self.assertEqual(hashlib.sha256(self.read('', 'UI/command.txt')).hexdigest(),
+                         self.policy['canonical_text_sha256']['UI/command.txt'])
+        self.assertEqual(self.read('PT', 'UI/command.txt').decode('cp1252').replace('\r\n', '\n'),
+                         self.policy['files']['UI/command.txt'])
+
+    def test_help_frame_tabs_pages_and_scroll_lists_share_the_centered_root(self):
+        data = self.read('', 'UI/FieldScene2.bin')
+        sizes = {1: 40, 2: 40, 3: 32, 6: 52, 10: 48, 12: 52, 13: 184, 15: 28, 16: 40}
+        parents = {}; offset = 0
+        while offset < len(data):
+            kind, = struct.unpack_from('<i', data, offset)
+            offset += 4
+            control, parent = struct.unpack_from('<ii', data, offset)
+            if control == 864 or 865 <= control <= 874 or control == 879 or 6055 <= control <= 6076:
+                self.assertNotIn(control, parents)
+            parents[control] = parent
+            offset += sizes[kind]
+        self.assertEqual(offset, len(data))
+        for control in (865, 866, 867, 869, 870, 871, 872, 873, 874, 879, 6055,
+                        *range(6064, 6077)):
+            seen = set()
+            while control != 864:
+                self.assertNotIn(control, seen)
+                seen.add(control)
+                self.assertIn(control, parents)
+                control = parents[control]
 
     def test_caption_keys_cover_all_shared_layout_captions(self):
         def parse(language):

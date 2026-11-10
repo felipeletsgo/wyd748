@@ -265,6 +265,7 @@ CSound* CSoundManager::GetSoundData(int nIndex)
 	if (!m_stSoundDataList[nIndex].pSoundData)
 	{
         const char* path = m_stSoundDataList[nIndex].szFileName;
+        if (!*path) return nullptr;
         if (!asset_file::Misses().ShouldTry(path, GetTickCount64())) return nullptr;
 		perf_trace::ScopedIO timing("sound", path);
 		const HRESULT loadResult = Create(&m_stSoundDataList[nIndex].pSoundData,
@@ -285,17 +286,28 @@ CSound* CSoundManager::GetSoundData(int nIndex)
 			return nullptr;
 		}
 
+		const LONG volume = sound_playback::VolumeForSound(nIndex, m_nSoundVolume);
 		int nBufferCount = m_stSoundDataList[nIndex].pSoundData->GetBufferCount();
 		for (int j = 0; j < nBufferCount; ++j)
 		{
 			IDirectSoundBuffer* buff = m_stSoundDataList[nIndex].pSoundData->GetBuffer(j);
 
 			if(buff)
-				buff->SetVolume(m_nSoundVolume);
+				buff->SetVolume(volume);
 		}
 	}
 
 	return m_stSoundDataList[nIndex].pSoundData;
+}
+
+void CSoundManager::StopSound(int nIndex)
+{
+	if (nIndex <= 0 || nIndex >= MAX_SOUNDLIST)
+		return;
+
+	auto sound = m_stSoundDataList[nIndex].pSoundData;
+	if (sound && sound->IsSoundPlaying() && SUCCEEDED(sound->Stop()))
+		sound->Reset();
 }
 
 void CSoundManager::SetSoundVolumeByIndex(int nIndex, int nVolume)
@@ -323,10 +335,11 @@ void CSoundManager::SetSoundVolume(int nVolume)
 	{
 		if (m_stSoundDataList[i].pSoundData)
 		{
+			const LONG volume = sound_playback::VolumeForSound(i, m_nSoundVolume);
 			int nBufferCount = m_stSoundDataList[i].pSoundData->GetBufferCount();
 
 			for (int j = 0; j < nBufferCount; ++j)
-				m_stSoundDataList[i].pSoundData->GetBuffer(j)->SetVolume(m_nSoundVolume);
+				m_stSoundDataList[i].pSoundData->GetBuffer(j)->SetVolume(volume);
 		}
 	}
 }

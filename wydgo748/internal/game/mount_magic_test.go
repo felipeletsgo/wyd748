@@ -13,7 +13,7 @@ import (
 
 func mountMagicChar() *model.Char {
 	return &model.Char{Class: 1, Score: &model.Score{
-		Version: model.ScoreVersion, Level: 100, Int: 300,
+		Version: model.ScoreVersion, Level: 100, Int: 300, NativeBaseStats: true,
 		MagicAttack: 200, MagicAmp: 2, Mastery: [4]uint32{0, 80},
 		MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 	}}

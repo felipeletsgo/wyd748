@@ -1,12 +1,52 @@
 package game
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 
 	"wydgo/internal/data"
 	"wydgo/internal/model"
 )
+
+func TestPaidQuestEntriesConsumeOnlyAfterSuccessfulSave(t *testing.T) {
+	file, err := data.LoadQuests(filepath.Join("..", "..", "data", "content", "quests.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, quest := range file.Quests {
+		if quest.ID != 1 && (quest.ID < 3 || quest.ID > 6) {
+			continue
+		}
+		for _, reject := range []bool{false, true} {
+			t.Run(quest.NPC+map[bool]string{false: "/commit", true: "/reject"}[reject], func(t *testing.T) {
+				w := newZoneTestWorld()
+				st := &atomicCharStateMemoryStore{}
+				if reject {
+					st.atomicErr = errors.New("database unavailable")
+				}
+				w.store = st
+				p := addZonePlayer(w, 1, 2100, 2100, 500)
+				p.Char.UID = "paid-quest-character"
+				p.Char.Score.Level = quest.Requires.MinLevel
+				p.Char.Inv[0] = model.Item{Index: quest.Consumes[0].Index, Eff: [6]byte{61, 2}}
+				w.executeQuest(p.Session, p, &Mob{}, &quest)
+				want := uint32(1)
+				if reject {
+					want = 2
+					if p.X != 2100 || p.Y != 2100 {
+						t.Fatal("failed payment teleported the player")
+					}
+				} else if p.X != quest.Rewards.Teleport.X || p.Y != quest.Rewards.Teleport.Y {
+					t.Fatal("paid entry did not teleport")
+				}
+				if itemStackAmount(p.Char.Inv[0]) != want {
+					t.Fatal("entry charge was lost or applied more than once")
+				}
+			})
+		}
+	}
+}
 
 // TestQuestsDeDadosReaisSaoValidas carrega o data/content/quests.json e o data/npcs de
 // verdade e roda o mesmo cruzamento do boot. Uma quest apontando para NPC
@@ -84,18 +124,18 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 			quest.Rewards.Teleport.Y != want.y {
 			t.Fatalf("quest %s divergiu da tabela nativa: %+v", quest.NPC, *quest)
 		}
-		// No client 7.48 estas cinco quests de level sao portais por faixa:
-		// nenhum item 4038..4042 pode bloquear ou ser consumido na entrada.
-		if len(quest.Requires.Items) != 0 || len(quest.Consumes) != 0 {
-			t.Errorf("quest %s voltou a exigir item de entrada: requires=%+v consumes=%+v",
-				quest.NPC, quest.Requires.Items, quest.Consumes)
+		// Owner-selected paid entry uses the supplied 7.59 quest scripts.
+		ticket := map[string]uint16{"Gravedigger": 4038, "Gardener": 4039, "Scout": 4040, "Guard__": 4041, "Envoy": 4042}[quest.NPC]
+		if len(quest.Requires.Items) != 1 || len(quest.Consumes) != 1 || quest.Requires.Items[0].Index != ticket || quest.Consumes[0].Index != ticket || quest.Consumes[0].Quantity() != 1 {
+			t.Fatalf("quest %s has an incorrect entry charge", quest.NPC)
 		}
-		// Reproduz o bug real: personagem na faixa, inventario completamente
-		// vazio. A validacao runtime precisa autorizar a entrada.
 		player := questTestPlayer(want.min, 0)
+		if _, allowed := (&World{}).questRequirementsMet(player, quest); allowed {
+			t.Fatalf("quest %s accepted an empty inventory", quest.NPC)
+		}
+		player.Char.Inv[0] = model.Item{Index: ticket}
 		if reason, allowed := (&World{}).questRequirementsMet(player, quest); !allowed {
-			t.Errorf("quest %s recusou entrada sem item na faixa correta: %s",
-				quest.NPC, reason)
+			t.Fatalf("quest %s rejected its entry ticket: %s", quest.NPC, reason)
 		}
 	}
 	if len(seenQuests) != len(wantQuests) {
@@ -182,9 +222,7 @@ func TestQuestsComplementaresConfirmadasNaSource(t *testing.T) {
 	}
 }
 
-// TestItensDeEntradaTemFonteViva protege as OUTRAS quests que realmente exigem
-// itens. As cinco quests de level 1/3/4/5/6 sao intencionalmente entrada livre
-// dentro da faixa e, portanto, nao aparecem nesta varredura.
+// Entry tickets must remain obtainable from enabled world generators.
 // lacunasDeFonte sao itens consumidos por quest que hoje NAO tem como ser
 // obtidos. Ficam listados em vez de silenciados: o teste registra cada um no
 // log, e RECLAMA se algum ganhar fonte e ninguem tirar daqui -- assim a lista

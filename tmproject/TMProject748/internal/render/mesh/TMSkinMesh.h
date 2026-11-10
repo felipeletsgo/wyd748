@@ -38,7 +38,8 @@ public:
 private:
 	void RenderSkinMeshEffect();
 	void RenderEffect_HorseFireLeg();
-    effect_emission::Clock m_fireLegEmission;
+    effect_emission::Clock m_mountEffectEmission;
+    unsigned int m_lastDragonMountEffectTime{};
 	void SetHardcoreMantle(char* szTexture, char* szName);
 	void SetOldCostume(int costype, char* szTexture, char* szName);
 	void SetRenewOldCostume(int costype, char* szTexture, char* szName);
@@ -90,7 +91,6 @@ public:
 	short m_nMeshType;
 	short m_nCosType;
 	int m_bMount;
-	int m_bRenderEffect;
 
 private:
 	void ReleaseFrames();

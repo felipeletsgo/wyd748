@@ -10,8 +10,8 @@ import (
 func TestHellGate759SkillSelection(t *testing.T) {
 	counts := map[int]int{}
 	for roll := 0; roll < 100; roll++ {
-		counts[hellGateAttackSkill([4]byte{32, 33, 34, 255}, roll)]++
-		if got := hellGateAttackSkill([4]byte{255, 255, 255, 255}, roll); got != -1 {
+		counts[historicalMonsterAttackSkill([4]byte{32, 33, 34, 255}, roll)]++
+		if got := historicalMonsterAttackSkill([4]byte{255, 255, 255, 255}, roll); got != -1 {
 			t.Fatalf("empty bar selected skill %d", got)
 		}
 	}
@@ -24,7 +24,7 @@ func TestHellGate759SkillDamageUsesAttackAndCompressedResistance(t *testing.T) {
 	m := &Mob{Def: &model.NPCDef{Score: &model.Score{Attack: 3600, MagicAttack: 99999, Int: 9999}}}
 	zero := func(int) int { return 0 }
 	for _, tc := range []struct{ resist, want uint32 }{{0, 3465}, {200, 1732}, {210, 1697}, {300, 1386}, {320, 1351}} {
-		got := hellGateSkillDamage(m, 200, model.ElementalResists{Fire: tc.resist}, model.SkillDef{InstanceType: 2, InstanceValue: 999}, zero, time.Time{})
+		got := historicalMonsterSkillDamage(m, 200, model.ElementalResists{Fire: tc.resist}, model.SkillDef{InstanceType: 2, InstanceValue: 999}, zero, time.Time{})
 		if got != tc.want {
 			t.Fatalf("resistance %d: damage=%d want=%d", tc.resist, got, tc.want)
 		}

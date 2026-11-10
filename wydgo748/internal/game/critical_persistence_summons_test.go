@@ -177,11 +177,12 @@ func TestCriticalSummonCreationRejectsReservedOwnerBeforeChanges(t *testing.T) {
 	for _, scenario := range []string{"bm-cast", "contract-plan"} {
 		t.Run(scenario, func(t *testing.T) {
 			w, owner, target, _ := manaControlCombatFixture(t, false)
+			owner.Char.Class, owner.Char.LearnedSkill = 2, 0xff<<8
 			beforeOwner := cloneCharacterState(owner.Char)
 			mobCount, summonCount := len(w.mobs), len(w.summons)
 			create := func() bool {
 				if scenario == "bm-cast" {
-					return w.castSummon(owner, model.SkillDef{InstanceValue: 1}, 30)
+					return w.castSummon(owner, model.SkillDef{Index: 56, InstanceValue: 1}, 30)
 				}
 				plan, ok := w.planContractSummon(owner, &model.VolatileSummon{Name: "Contract", Face: 206, HP: 100})
 				return ok && plan != nil
@@ -273,7 +274,8 @@ func TestSummonTemplatesSpawnEnglishNamesWithoutChangingFaces(t *testing.T) {
 	for i, name := range names {
 		t.Run(name, func(t *testing.T) {
 			w, owner, _, _ := manaControlCombatFixture(t, false)
-			if !w.castSummon(owner, model.SkillDef{InstanceValue: i + 1}, 80) || len(w.summons) == 0 {
+			owner.Char.Class, owner.Char.LearnedSkill = 2, uint32(1)<<(8+i)
+			if !w.castSummon(owner, model.SkillDef{Index: 56 + i, InstanceValue: i + 1}, 80) || len(w.summons) == 0 {
 				t.Fatal("fixture did not materialize the summon template")
 			}
 			for _, summon := range w.summons {

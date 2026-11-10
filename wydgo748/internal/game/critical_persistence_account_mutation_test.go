@@ -113,7 +113,7 @@ func TestCriticalAccountEconomySettlement(t *testing.T) {
 						t.Fatal("Arch oath did not bind experience debit and consumed crystal")
 					}
 				case "reset-premium", "reset-sapphires":
-					if prepared.Score.Str != 58 || prepared.Score.Int != 4 || prepared.Score.Dex != 7 || prepared.Score.Con != 6 ||
+					if prepared.Score.Str != 62 || prepared.Score.Int != 4 || prepared.Score.Dex != 7 || prepared.Score.Con != 13 ||
 						(operation == "reset-premium" && (prepared.Inv[0].Index != 0 || prepared.Inv[1] != before.Chars[p.CharSlot].Inv[1])) ||
 						(operation == "reset-sapphires" && (prepared.Inv[1].Index != 0 || prepared.Inv[2].Index != 0 || prepared.Inv[3].Index != 0)) {
 						t.Fatal("attribute reset changed payment priority or attribute limits")

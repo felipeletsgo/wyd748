@@ -170,6 +170,13 @@ int RunFieldActionSafetyTests(int& checks)
         field_action::ResolveShortSkill(255) == -1,
         "A05-02 only populated, in-range shortcut values resolve to skills");
 
+    check(field_action::CanPrioritizeGroundPickup(413, 0) &&
+        field_action::CanPrioritizeGroundPickup(454, 0) &&
+        !field_action::CanPrioritizeGroundPickup(0, 0) &&
+        !field_action::CanPrioritizeGroundPickup(746, 0) &&
+        !field_action::CanPrioritizeGroundPickup(773, 1),
+        "right-click pickup priority admits powder and gold but excludes the cannon and gate");
+
     // A05-03: support skills cannot target ordinary monsters or missing IDs.
     check(field_action::IsNonPlayerTarget(0, false, false) &&
         field_action::IsNonPlayerTarget(1000, false, false) &&

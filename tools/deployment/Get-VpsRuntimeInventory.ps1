@@ -15,7 +15,7 @@ function Get-VpsRuntimeInventory {
         'catalog/itemlist.csv', 'catalog/Itemname.csv', 'catalog/ItemEffect.h', 'catalog/SkillData.csv',
         'content/quest_zones.json', 'content/quests.json', 'content/droprate.json',
         'content/volatiles.json', 'content/instances.json', 'content/repliction.json',
-        'content/mounts.json', 'content/character_templates.json',
+        'content/mounts.json', 'content/character_templates.json', 'content/corrupted_crystal.json',
         'content/language/en.txt', 'content/language/pt.txt',
         'config/network_admission.json', 'config/client_integrity.json',
         'world/maps/HeightMap.dat', 'world/maps/AttributeMap.dat'

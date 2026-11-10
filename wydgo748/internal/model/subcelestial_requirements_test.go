@@ -4,11 +4,11 @@ import "testing"
 
 func TestSubCelestialSavedRequirements(t *testing.T) {
 	for _, evolution := range []string{"celestial", " Celestial ", "", "mortal", "arch", "subcelestial", "unknown"} {
-		for _, level := range []uint32{0, 119, 120, 121, ^uint32(0)} {
+		for _, level := range []uint32{0, 118, 119, 120, ^uint32(0)} {
 			for _, fame := range []uint32{0, 99, 100, 101, ^uint32(0)} {
 				for _, sefirot := range []uint16{0, 1759, 1760, 1761, 1762, 1763, 1764} {
 					r := EvaluateSubCelestialRequirements(evolution, level, fame, sefirot, true, true, true, true)
-					want := (evolution == "celestial" || evolution == " Celestial ") && level >= 120 && fame >= 100 && sefirot >= 1760 && sefirot <= 1763
+					want := (evolution == "celestial" || evolution == " Celestial ") && level >= 119 && fame >= 100 && sefirot >= 1760 && sefirot <= 1763
 					if r.Met() != want {
 						t.Fatalf("%q level=%d fame=%d sefirot=%d: %+v", evolution, level, fame, sefirot, r)
 					}

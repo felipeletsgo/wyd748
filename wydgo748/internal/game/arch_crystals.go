@@ -24,13 +24,9 @@ const (
 	// Each crystal costs experience. Recalculate the level from the reduced
 	// experience; the resulting level decrease is intentional.
 	archCrystalExpCost = uint32(100_000_000)
-	// Minimum internal level, using the king's archMinLevel convention.
-	// Historical _MSG_UseItem.cpp:6362 requires BaseScore.Level >= 355;
-	// the client text also specifies an ascension requirement of level 355.
-	//
-	// Check the minimum before deducting experience. Checking it afterwards
-	// would reject a valid oath because its own cost lowers the level.
-	archCrystalMinLevel = uint32(355)
+	// Native 7.59 checks displayed level 355 and EXP before deducting the cost.
+	archCrystalMinLevel = uint32(354)
+	archCrystalMinExp   = uint32(1_950_000_000)
 )
 
 // archCrystalStep returns the crystal's position in the sequence (1..4).
@@ -73,7 +69,7 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	if ch.Score.Level < archCrystalMinLevel {
+	if ch.Score == nil || ch.Score.Level < archCrystalMinLevel {
 		s.Send(wire.MessagePanel(w.msg("_WG_Must_Reach_Level_Take_Oath")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -88,17 +84,13 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	// Guard unsigned underflow even if edited state or a changed level table
-	// violates the usual minimum-level experience assumptions. Wrapping a
-	// uint32 subtraction would reward experience instead of charging it.
-	if ch.Exp < archCrystalExpCost {
+	if ch.Exp < archCrystalMinExp {
 		s.Send(wire.MessagePanel(w.msg("_WG_Need_Million_Experience_Oath")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 
-	anteriorItem, anteriorExp := *item, ch.Exp
-	anteriorNivel, anteriorCristais := ch.Score.Level, ch.ArchCrystals
+	snapshot := cloneCharacterState(ch)
 
 	ch.ArchCrystals = passo
 	ch.Exp -= archCrystalExpCost
@@ -111,12 +103,9 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 
 	// Persist before confirming this costly oath; restore all state on failure.
 	if err := w.saveAccount(p.Account); err != nil {
-		*item, ch.Exp = anteriorItem, anteriorExp
-		ch.Score.Level, ch.ArchCrystals = anteriorNivel, anteriorCristais
-		syncProgression(ch)
-		w.recalcPlayer(ch)
+		*ch = snapshot
 		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Oath_Was_Not_Taken")))
-		log.Printf("[#%d] ERROR saving crystal %d: %v", s.ID, anteriorItem.Index, err)
+		log.Printf("[#%d] ERROR saving crystal %d: %v", s.ID, item.Index, err)
 		return
 	}
 
@@ -129,6 +118,6 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 		s.Send(wire.MessagePanel(w.msg("_WG_Four_Oaths_Complete")))
 	}
 	log.Printf("[#%d] CRYSTAL %d (%d/%d) item=%d volatile=%d exp=%d->%d level=%d->%d",
-		s.ID, passo, ch.ArchCrystals, archCrystalCount, anteriorItem.Index, code,
-		anteriorExp, ch.Exp, anteriorNivel, ch.Score.Level)
+		s.ID, passo, ch.ArchCrystals, archCrystalCount, snapshot.Inv[slot].Index, code,
+		snapshot.Exp, ch.Exp, snapshot.Score.Level, ch.Score.Level)
 }

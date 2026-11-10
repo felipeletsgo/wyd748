@@ -849,10 +849,12 @@ func CreateItem(gridX, gridY, itemID uint16, it model.Item, rotate, state, heigh
 	b[26] = rotate
 	b[27] = state
 	b[28] = height
-	b[29] = create
+	b[GroundItemCreateFlagOffset] = create
 	putU16(b, 30, owner)
 	return b
 }
+
+const GroundItemCreateFlagOffset = 29
 
 // UpdateItem builds 0x374 (20B): changes the state of a materialized item.
 // 7.48 consumes ItemID i32@12, State i16@16, Height i8@18 and reserved@19.

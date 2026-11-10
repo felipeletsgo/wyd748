@@ -92,11 +92,11 @@ the Windows system timezone.
 
 | Event | Time | Action |
 | --- | --- | --- |
-| Tower, Monday to Friday | 20:55 and 20:59 | Five-minute and one-minute warnings |
-| Tower | 21:00 | Create the tower for the castle's kingdom and announce the start |
+| Tower, Monday to Friday | 21:00 and 21:04 | Five-minute and one-minute warnings |
+| Tower | 21:05 | Create the tower for the castle's kingdom and announce the 30-minute battle |
 | Each capture | During combat | Persist the capturing kingdom/guild and medal claims; restore tower HP; recall only opposing kingdoms |
-| Tower | 21:55 and 21:59 | Five-minute and one-minute closing warnings |
-| Tower | 22:00 | Settle conditional guild fame and medal claims, remove the tower, recall opponents |
+| Tower | 21:30 and 21:34 | Five-minute and one-minute closing warnings |
+| Tower | 21:35 | Settle conditional guild fame and medal claims, remove the tower, recall opponents |
 | Cities | Saturday 00:00 through 23:59:59 | Explicit cumulative guild-fame bids |
 | Guild fame | Sunday 00:00 | Close bidding and reset unspent guild fame; retain accepted bids |
 | Cities, Sunday | 19:55 and 19:59 | Five-minute and one-minute warnings |
@@ -156,9 +156,9 @@ Economic results do not depend on this queue.
   in one account/guild transaction. Offline players, full inventories and
   active trades leave the claim pending; failed saves neither consume the
   claim nor reroll its color. Critical writes publish only after acknowledgement.
-- Restart recovery restores the owner and deadline. It recreates a still-active
-  tower at full HP or completes a pending expired-round reward without
-  duplication.
+- Restart recovery restores the owner and schedule. It recreates a still-active
+  tower at full HP or completes an expired round once. Rounds saved before the
+  schedule change keep their original one-hour combat window.
 
 Ordinary generator loading and respawning exclude Tower of Thor generators
 inside Noatum `(1036,1672)..(1144,1764)`. W2PP creates those towers explicitly
@@ -534,7 +534,8 @@ tower_war_hour=21
 city_war_hour=20
 ```
 
-Hours are 0..23; the default offsets are listed above. Configuration is
+Hours are 0..23. The tower hour sets its first warning. Combat starts five
+minutes later and lasts 30 minutes. Configuration is
 read at startup without changing the machine clock. Disabling guild wars
 turns off scheduling, registration, and war combat/movement gates; it does
 not remove existing ownership. Gold war economics remain disabled once the

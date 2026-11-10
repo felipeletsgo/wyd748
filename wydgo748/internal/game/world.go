@@ -206,6 +206,7 @@ type Player struct {
 	CityWarCity         int
 	CityWarGuild        uint16
 	CityWarUntil        time.Time
+	LastDropList        time.Time
 	LastCraft           time.Time
 	DeadAt              time.Time
 	LastPotion          time.Time
@@ -295,6 +296,7 @@ type Party struct {
 
 // Mob is a live NPC/monster instance of an NPCDef in the world.
 type Mob struct {
+	crystalRole      crystalPhase
 	GuildWarTower    bool
 	ID               uint16
 	Def              *model.NPCDef
@@ -616,6 +618,9 @@ type World struct {
 	autoSaveScratch       []*Player
 	activationScratch     activationNeighborhood // one recomputeMobsNearCell pass
 	nextTimedItemSweep    time.Time
+	dropListIndex         []dropListRelation
+	dropListEventIndex    []dropListRelation
+	dropListEvent         *globalDropState
 	dropRates             [model.MaxCarry]int // native drop rate by carry slot
 	volatiles             model.VolatileCatalog
 	mounts                model.MountCatalog
@@ -735,8 +740,9 @@ type World struct {
 	bosses map[uint16]*BossRuntime
 	// bossCatalog is loaded from data/content/boss/*.lua; bossSpawns holds live encounter
 	// state (current instance and respawn deadline).
-	bossCatalog model.BossCatalog
-	bossSpawns  []*bossSpawnState
+	bossCatalog      model.BossCatalog
+	bossSpawns       []*bossSpawnState
+	corruptedCrystal *corruptedCrystal
 	// itemInstances are temporary rooms created by consumables. One World map
 	// replaces per-room tickers and goroutines.
 	itemInstances map[string]*ItemInstance
@@ -1027,6 +1033,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	if err := w.spawnConfiguredBosses(); err != nil {
 		return nil, err
 	}
+	if err := w.initCorruptedCrystal(now); err != nil {
+		return nil, err
+	}
 	if err := w.restoreInstanceState(); err != nil {
 		return nil, fmt.Errorf("restore instance state: %w", err)
 	}
@@ -1036,6 +1045,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		return nil, err
 	}
 	w.startLoginHistory()
+	w.dropListIndex = w.buildDropListIndex()
 	return w, nil
 }
 
@@ -2118,6 +2128,7 @@ func (w *World) tick() {
 	// Boss actions use the world clock, with no per-boss ticker.
 	w.tickBossActions(now)
 	w.tickBossRespawns(now)
+	w.tickCorruptedCrystal(now)
 	w.tickSummonCombat(now)
 	w.tickSephiraObjects(now)
 	// Timed equipment expires before affects/recalculation can consume its
@@ -2493,6 +2504,8 @@ func (w *World) handle(cmd command) {
 		w.onDoJackpotBet(cmd.s, cmd.pkt)
 	case wire.OpSellItem:
 		w.onSellItem(cmd.s, cmd.pkt)
+	case wire.OpDropListQuery:
+		w.onDropListQuery(cmd.s, cmd.pkt)
 	case wire.OpQuotedSellItem:
 		w.onQuotedSellItem(cmd.s, cmd.pkt)
 	case wire.OpApplyBonus:

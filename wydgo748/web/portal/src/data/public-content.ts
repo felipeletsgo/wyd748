@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 2,
   // Owner-selected full-client baseline; subsequent patches start at 48101.
-  clientVersion: '7.48.100',
-  feedVersion: 48100,
-  publishedAt: '2026-11-02' as string | null,
+  clientVersion: '7.48.108',
+  feedVersion: 48108,
+  publishedAt: '2026-11-09' as string | null,
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -16,10 +16,10 @@ export const clientRelease = {
     sha256: '7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66' as string | null,
   },
   patch: {
-    url: null,
-    sizeBytes: null,
-    sha256: null,
-    executableSha256: '2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4',
+    url: '/patch/patch-48108.zip',
+    sizeBytes: 1127703,
+    sha256: 'eca7114a11bdc57371652829f94f51737c106a255abe5c238e4abc0b6aea8431',
+    executableSha256: '43141E0B164EC100AB178362D50F9EF063794BE0B9AFD2C4DD393A43F300FC0D',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -29,6 +29,74 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-11-09', category: 'Client and server', title: 'Client 7.48.108 — progression, equipment and PvP', entries: [
+    'Correct class attributes, progression points, mastery limits and Celestial and SubCelestial unlocks.',
+    'Align equipment, mount and Angel bonuses with the Korean catalog. Correct excessive mana recovery from equipment.',
+    'Correct Ancient weapon bonuses and PvP damage. Show PvP attack and defense in the item tooltip.',
+    'Lower rain and snow volume so combat sounds are easier to hear.',
+    'Corrige atributos de classe, pontos de evolução, limites de maestria e desbloqueios de Celestial e Subcelestial.',
+    'Ajusta os bônus de equipamentos, montarias e Anjos com base no catálogo coreano e corrige a recuperação excessiva de mana por equipamento.',
+    'Corrige os adicionais das armas Anct e o dano PvP. Exibe Ataque PvP e Defesa PvP na descrição do item.',
+    'Reduz o volume da chuva e da neve para facilitar a audição dos sons de combate.',
+  ] },
+  { date: '2026-11-09', category: 'Client and server', title: 'Client 7.48.107 — combat effects, sounds and cape icons', entries: [
+    'Restore attack effects and attack range for Beastmaster summons and restore mount attack visuals.',
+    'Pick up ground items with the right mouse button when a character or monster covers them.',
+    'Restore skill and world effects, ambient sounds and the ground-drop sound for Laktorerium Powder.',
+    'Correct the inventory icons for 36 capes.',
+    'Restaura os efeitos e o alcance dos ataques das evocações do Beastmaster e os efeitos de ataque das montarias.',
+    'Use o botão direito para pegar itens no chão quando um personagem ou monstro estiver sobre eles.',
+    'Restaura efeitos de habilidades e do mundo, sons ambientes e o som da Poeira de Lac ao cair no chão.',
+    'Corrige os ícones de 36 capas no inventário.',
+  ] },
+  { date: '2026-11-09', category: 'Client and server', title: 'Client 7.48.106 — Corrupted Crystal waves', entries: [
+    'The large crystal breaks into five medium crystals. Defeat all five to release four small crystals from each.',
+    'Each crystal scatters single units of Laktorerium Powder. A complete encounter drops 60 units.',
+    'O cristal grande se parte em cinco médios. Derrote os cinco para liberar quatro pequenos de cada um.',
+    'Cada cristal espalha unidades de Poeira de Lac pelo chão. O ciclo completo rende 60 unidades.',
+  ] },
+  { date: '2026-11-08', category: 'Client and server', title: 'Client 7.48.105 — Corrupted Crystal aura and health', entries: [
+    'The Corrupted Crystal has a persistent purple Lightning Storm aura and 100 million HP.',
+    'Each event guardian and the Crystal Warden has 10 million HP.',
+    'O Cristal Corrompido tem uma aura roxa contínua do Trovão e 100 milhões de HP.',
+    'Cada guardião do evento e o Orc Corrompido têm 10 milhões de HP.',
+  ] },
+  { date: '2026-11-08', category: 'Client and server', title: 'Client 7.48.104 — Corrupted Crystal', entries: [
+    'Fight the Corrupted Crystal at X 1104, Y 1711. It cracks as its HP falls and shatters to release the guards.',
+    'Defeat the guards and the Crystal Warden to earn its ground drop.',
+    'Open the centered Help table with H to see player commands. The camera can zoom out farther.',
+    'Enfrente o Cristal Corrompido em X 1104, Y 1711. Ele racha ao perder vida e se despedaça para liberar os guardiões.',
+    'Derrote os guardiões e o Orc Corrompido para receber o drop no chão.',
+    'Abra a tabela de ajuda centralizada com H para ver os comandos. A câmera pode se afastar mais.',
+  ] },
+  { date: '2026-11-08', category: 'Client and server', title: 'Client 7.48.103 — drop search layout and interaction corrections', entries: [
+    'Use a smaller drop-search window with text inside its columns and Close aligned with the frame button.',
+    'Hide character and NPC names, shop signs, health bars and ground-item labels while the window is open.',
+    'Clarify the selected tab, unavailable pages, loading, empty results and search failures.',
+    'Improve searches with extra spaces and prevent an old response or hidden input focus from affecting a reopened window.',
+    'Janela menor, textos dentro das colunas e botão Fechar alinhado à moldura.',
+    'Oculta nomes de personagens e NPCs, lojas, barras de vida e nomes de itens enquanto a droplist está aberta.',
+    'Melhora as abas, a paginação e os avisos de busca; corrige espaços extras, respostas antigas e o foco ao fechar.',
+    'Mandatory launcher update. Feche o jogo e atualize pelo launcher antes de conectar.',
+  ] },
+  { date: '2026-11-08', category: 'Client and server', title: 'Client 7.48.102 — drop search clarity and spawn filtering', entries: [
+    'Initial world-label occlusion change; the remaining actor render path is corrected in 7.48.103.',
+    'Show the personal drop bonus separately, clarify base and adjusted chances, and improve search modes, empty results and page controls.',
+    'Exclude unused NPC templates from ordinary and global-event drop results; keep configured boss, encounter and instance sources.',
+    'A correção inicial dos nomes recebeu complemento na versão 7.48.103.',
+    'Destaca o bônus pessoal, esclarece as chances e melhora os modos de busca, resultados vazios e paginação.',
+    'Remove templates de NPC sem fonte ativa dos resultados comuns e de eventos globais; mantém as fontes configuradas de bosses, encontros e instâncias.',
+    'Mandatory launcher update. Atualização obrigatória pelo launcher. In-game acceptance remains pending.',
+  ] },
+  { date: '2026-11-07', category: 'Client and server', title: 'Client 7.48.101 — drop search and gameplay corrections', entries: [
+    'Press D to search drops by monster or item. View base chances and chances with your current drop bonus.',
+    'Correct character-name layout, party feedback and visibility, skill-shop clicks and slot-machine layout.',
+    'Restore quest entry tickets, collected-item stacking exclusive to the Golden Fairy, and direct gold-coin conversion.',
+    'Aperte D para pesquisar drops por monstro ou item e consultar as chances básicas e com seu bônus atual.',
+    'Corrige o campo de nome, mensagens e visualização do grupo, cliques na loja de skills e o layout do caça-níquel.',
+    'Restaura os ingressos das quests, o agrupamento exclusivo da Fada Dourada e a conversão de moedas em gold.',
+    'Mandatory launcher update. Atualização obrigatória pelo launcher. In-game acceptance remains pending.',
+  ] },
   { date: '2026-11-02', category: 'Client and server', title: 'Client 7.48.100 — native HTTPS baseline', entries: [
     'Download the new full client from Google Drive. The native launcher uses HTTPS with certificate validation. Subsequent updates start at 7.48.101.',
     'Baixe o novo cliente completo pelo Google Drive. O launcher nativo usa HTTPS com validação de certificado. Os próximos updates começam em 7.48.101.',

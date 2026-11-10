@@ -334,7 +334,7 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 	}
 
 	unlock := []uint16{4127, 4127, 5135, 5113, 5129, 5112, 5110}
-	if exactRecipe(req, unlock) && advancedEvolution(p.Char, "celestial") && playerLevel(p.Char) == 39 &&
+	if exactRecipe(req, unlock) && isCelestialEvolution(p.Char) && playerLevel(p.Char) == 39 &&
 		!p.Char.CelestialLevel40Unlocked {
 		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 		changed := make(map[int]struct{}, 7)

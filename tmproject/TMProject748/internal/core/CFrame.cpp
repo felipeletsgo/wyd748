@@ -716,15 +716,15 @@ void CFrame::UpdateFrames(D3DXMATRIX* matCur)
 			if (m_dwID == 2)
 				nIndex = 6;
 
-			if (nIndex >= 0 && nIndex < 10)
+			if (nIndex >= 0)
 			{
 				D3DXVec3Transform(&vecOut, &vecIn, &m_matCombined);
-				if (m_pParentSkin->m_pOwner->m_nSkinMeshType == 38)
-				{
-					m_pParentSkin->m_pOwner->m_vecTempPos[nIndex].x = vecOut.x;
-					m_pParentSkin->m_pOwner->m_vecTempPos[nIndex].y = vecOut.y;
-					m_pParentSkin->m_pOwner->m_vecTempPos[nIndex].z = vecOut.z;
-				}
+				auto* owner = m_pParentSkin->m_pOwner;
+				const TMVector3 position{vecOut.x, vecOut.y, vecOut.z};
+				if (m_pParentSkin == owner->m_pMount)
+					owner->UpdateMountFlame(nIndex, position);
+				else if (owner->m_nSkinMeshType == 38)
+					owner->m_vecTempPos[nIndex] = position;
 			}
 			if (m_dwID == 3)
 				m_pParentSkin->m_OutMatrix = m_matCombined;

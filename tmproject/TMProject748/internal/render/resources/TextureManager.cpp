@@ -728,7 +728,30 @@ int TextureManager::InitModelTextureList()
 		LOG_WRITELOG("Cannot register costume textures: missing asset or table capacity\n");
 		return 0;
 	}
+	const costume748::Texture crystalTexture[] = {
+		{"mesh\\xc740101.wys", 'N'},
+		{"mesh\\xc74crack1.wys", 'N'},
+		{"mesh\\xc74crack2.wys", 'N'},
+		{"mesh\\xc74crack3.wys", 'N'},
+	};
+	static_assert(_countof(crystalTexture) == _countof(m_crystalTextureIndices));
+	if (!model_texture_748::RegisterTextures(m_stModelTextureList, _countof(m_stModelTextureList),
+		crystalTexture, _countof(crystalTexture), [](const char* path) { return _access(path, 0) == 0; }))
+	{
+		LOG_WRITELOG("Cannot register corrupted crystal texture\n");
+		return 0;
+	}
+	for (int i = 1; i <= corrupted_crystal::CriticalCracks; ++i)
+		m_crystalTextureIndices[i] = model_texture_748::Find(crystalTexture[i].name,
+			m_stModelTextureList, _countof(m_stModelTextureList));
 	return 1;
+}
+
+int TextureManager::GetCrystalTextureIndex(int stage, int baseIndex) const
+{
+	if (stage > 0 && stage <= corrupted_crystal::CriticalCracks && m_crystalTextureIndices[stage] >= 0)
+		return m_crystalTextureIndices[stage];
+	return baseIndex;
 }
 
 int TextureManager::LoadModelTexture(int nIndex)

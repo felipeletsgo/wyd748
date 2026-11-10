@@ -20,6 +20,16 @@
 
 int TMHuman::Render()
 {
+    // Only the bones reached by this frame's mount render can show their flames.
+    if (m_nMountSkinMeshType == 38)
+    {
+        for (auto* flame : m_mountFlames)
+        {
+            if (flame)
+                flame->m_bVisible = 0;
+        }
+    }
+
     if (m_dwDelayDel)
         return 0;
     if (m_cDeleted == 1)
@@ -279,7 +289,7 @@ int TMHuman::Render()
         }
         RenderEffect();
         if (m_bVisible == 1)
-            LabelPosition();
+            UpdateLabelPosition(false);
         return 1;
     }
 
@@ -383,7 +393,7 @@ int TMHuman::Render()
         pMesh->Render(m_vecPosition.x, m_fHeight, m_vecPosition.y, 0, 0, 0, 0, 0);
     }
 
-    LabelPosition2();
+    UpdateLabelPosition(true);
     return 1;
 }
 

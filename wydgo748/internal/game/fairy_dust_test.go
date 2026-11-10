@@ -94,7 +94,7 @@ func TestFairyDustPreservesProgressionLimits(t *testing.T) {
 		{"arch", 354, true, true}, {"arch", 369, true, true},
 		{"celestial", 39, true, true}, {"celestial", 89, true, true},
 		{"mortal", 398, false, true}, {"arch", 398, true, true},
-		{"celestial", 198, true, true}, {"subcelestial", 198, false, true},
+		{"celestial", 198, true, true}, {"subcelestial", 198, true, true}, {"subcelestial", 39, false, false},
 	}
 	for _, tc := range cases {
 		for _, coordinated := range []bool{false, true} {

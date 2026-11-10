@@ -10,20 +10,34 @@ constexpr bool IsNativeMixReceptacle(int gridType)
     return gridType >= 12 && gridType <= 22 && gridType % 2 == 0;
 }
 
-// Cape catalog offsets do not identify the intended blue/red/white icons in
-// the active 7.48 model directory. Master capes reuse their elite icons.
-// Correct grid presentation only; world capes, kingdom identity and the
-// shared item catalog remain unchanged.
+// FUN_0040d13e adjusts the texture offsets for mesh-27 capes in the grid.
+// Elite and Master share the approved gold-trimmed icons. Commander uses
+// its equipped artwork because the native grid does not resolve both variants.
 constexpr int IconTexture(int itemIndex, int catalogTexture)
 {
     switch (itemIndex) {
-    case 3191: return 25; // Elite Of Hekalotia: mt010128.wys, blue.
-    case 3192: return 26; // Elite Of Akeronia: mt010129.wys, red.
-    case 3193: return 27; // Elite Of Adventurer: mt010130.wys, white.
-    case 3197: return 25; // Master Of Hekalotia reuses the blue elite icon.
-    case 3198: return 26; // Master Of Akeronia reuses the red elite icon.
-    case 3199: return 27; // Master Of Adventurer reuses the white elite icon.
-    case 4006: return 17; // Apprentice Mantle: native mesh-27 grid maps 19 to 17.
+    case 548:
+    case 550: return 5; // Wanderer and Monster White.
+    case 549: return 6; // Adventurer.
+    case 1766: return 7;
+    case 1768: return 9;
+    case 1769: return 10;
+    case 1771: return 12;
+    case 572: return 13;
+    case 574: return 15;
+    case 4006: return 17; // Apprentice.
+    case 4008: return 19; // Commander: mt010122.wys.
+    case 4009: return 20; // Commander: mt010123.wys.
+    case 3191:
+    case 3194:
+    case 3197: return 25; // Hekalotia, blue.
+    case 3192:
+    case 3195:
+    case 3198: return 26; // Akelonia, red.
+    case 3193:
+    case 3196:
+    case 3199: return 27; // Adventurer, white.
+    case 4015: return 0; // Bersec uses the first material of dmantua.msa.
     case 4148: return 8; // Mysterious Stone reuses Lactolerium 100% (3022).
     default: return catalogTexture;
     }
@@ -31,6 +45,8 @@ constexpr int IconTexture(int itemIndex, int catalogTexture)
 
 constexpr int IconMesh(int itemIndex, int catalogMesh)
 {
+    if (itemIndex == 4015)
+        return 2830; // Bersec Cape: dmantua.msa uses mt010124.wys.
     if (itemIndex == 4148)
         return 2874; // Lactolerium 100%: secretst.msa, not idealst.msa.
     return itemIndex >= 3197 && itemIndex <= 3199 ? 27 : catalogMesh;

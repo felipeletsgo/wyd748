@@ -438,7 +438,7 @@ func TestExtendedMagicRecalcUsesRefinedMagicAmplification(t *testing.T) {
 	ch := &model.Char{Class: 1, Score: &model.Score{
 		Version: model.ScoreVersion, Level: 400,
 		MaxHP: 60, CurHP: 60, MaxMP: 65, CurMP: 65,
-		Str: 5, Int: 308, Dex: 5, Con: 5,
+		Str: 5, Int: 308, Dex: 5, Con: 11, NativeBaseStats: true,
 	}}
 
 	ch.Equip[6] = model.Item{Index: 100, Eff: [6]byte{43, 234}} // +11

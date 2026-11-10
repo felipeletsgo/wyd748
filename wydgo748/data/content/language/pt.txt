@@ -9,7 +9,7 @@ _WG_Only_God_Can_Use_Crystal	Somente um Deus pode usar este cristal.
 _WG_Must_Reach_Level_Take_Oath	Você precisa atingir o nível 355 para fazer este juramento.
 _NN_Youve_Done_It_Already	Você já fez isso.
 _WG_Must_Take_Oaths_Order	Você precisa fazer os juramentos em ordem.
-_WG_Need_Million_Experience_Oath	Você precisa de 100 milhões de experiência para este juramento.
+_WG_Need_Million_Experience_Oath	Você precisa de pelo menos 1,95 bilhão de experiência para fazer este juramento.
 _WG_Save_Failed_Oath_Was_Not_Taken	Falha ao salvar. O juramento não foi feito.
 _WG_Four_Oaths_Complete	Os quatro juramentos foram concluídos.
 
@@ -48,7 +48,7 @@ _WG_Cythera_Could_Not_Created	Não foi possível criar a Cythera.
 _WG_Save_Failed_Ideal_Stone_Was_Not	Falha ao salvar. A Pedra Ideal não foi consumida.
 _WG_Character_Now_Celestial_Re_Enter_From	Seu personagem agora é Celestial. Entre novamente pela seleção de personagem.
 _WG_SubCelestial_Has_Already_Been_Created	O SubCelestial já foi criado.
-_WG_Celestial_Must_Level_Or_Higher	O Celestial precisa ter nível 121 ou superior.
+_WG_Celestial_Must_Level_Or_Higher	O Celestial precisa ter nível 120 ou superior.
 _WG_Fame_Required_Create_SubCelestial	São necessários 100 de Fama para criar um SubCelestial.
 _WG_Equip_SubCelestial_Class_Sefirot	Equipe o Sefirot da classe do SubCelestial.
 _WG_Celestial_Face_Invalid	A face do Celestial é inválida.
@@ -646,11 +646,11 @@ _WG_War_Declared_Against_Guild	Guerra declarada contra a guilda %s.
 _WG_Guild_Declared_War_Guild	A guilda %s declarou guerra à sua guilda.
 _WG_Save_Failed_Tower_Was_Not_Captured	Falha ao salvar. A torre não foi capturada.
 _WG_Guild_Brought_Tower_Down_New_Defender	%s da guilda %s derrubou a torre! Novo defensor: %s.
-_WG_Tower_War_Starts_Within_Minutes_Enter	A Guerra da Torre começa em até 5 minutos! Entre com /tower em Erion.
+_WG_Tower_War_Starts_Within_Minutes_Enter	A Guerra da Torre começa em até 5 minutos. Após o início, use /tower em Erion.
 _WG_Tower_War_Starts_Minute	A Guerra da Torre começa em 1 minuto!
 _WG_Tower_War_Ends_Minutes_Guild_Fame	A Guerra da Torre termina em 5 minutos! Fama de guilda só se o reino mudar.
 _WG_Tower_War_Ends_Minute	A Guerra da Torre termina em 1 minuto!
-_WG_Tower_War_Started_Use_Tower_Erion	A Guerra da Torre começou! Use /tower em Erion. Duração: 60 minutos.
+_WG_Tower_War_Started_Use_Tower_Erion	A Guerra da Torre começou! Use /tower em Erion. A batalha dura %d minutos.
 _WG_City_War_Interrupted_Owners_Kept_Only	Guerra de cidades interrompida; donos mantidos. Só lances da semana atual são devolvidos.
 _WG_Saturday_Bids_Open_Until_Citywar_Total	Lances de sábado abertos até 23:59:59! /citywar <1..4> <fama total>. Sem taxa.
 _WG_City_War_Applications_Closed_Check_Owners	Inscrições da guerra de cidades encerradas. Veja donos e desafiantes com /citywar.
@@ -1121,3 +1121,14 @@ _WG_Roll_Penalty_Success	Penalidade - Sucesso: %d/%d
 _WG_Roll_Penalty_Fail	Penalidade - Falha: %d/%d
 
 _WG_Sale_Quote_Changed	O preço de venda mudou. Reabra a loja e confira o valor. Seu item não foi vendido.
+
+_WG_Crystal_Event_Object_Name	Cristal Grande
+_WG_Crystal_Event_Medium_Name	Cristal Médio
+_WG_Crystal_Event_Small_Name	Cristal Pequeno
+_WG_Crystal_Event_Appeared	Um Cristal Corrompido surgiu por perto.
+_WG_Crystal_Event_MediumWave	O cristal grande se partiu em cinco cristais médios.
+_WG_Crystal_Event_SmallWave	Cada cristal médio se partiu em quatro cristais pequenos.
+_WG_Crystal_Event_Victory	Todos os cristais foram destruídos.
+_WG_Remove_Helmet_Before_Celestial	Retire o elmo antes de evoluir para Celestial.
+_WG_Fury_Unlock_Failed	A Pedra da Fúria falhou ao destravar o nível 90.
+_WG_Equip_Arcana_Base_Cythera	Equipe uma Cythera compatível com a composição Arcana.

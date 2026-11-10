@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "CameraZoom.h"
 #include "../../application/AssetLoadValidation.h"
 #include "WeatherPacket.h"
 #include "WeatherPresentation.h"
@@ -304,8 +305,8 @@ void TMFieldScene::SetCameraView()
 		}
 
 		pCamera->m_nQuaterView = 0;
-		pCamera->m_fSightLength = pCamera->m_fMaxCamLen;
-		pCamera->m_fWantLength = pCamera->m_fMaxCamLen;
+		pCamera->m_fSightLength = camera_zoom::FieldDefaultDistance;
+		pCamera->m_fWantLength = camera_zoom::FieldDefaultDistance;
 		pCamera->m_fCamHeight = 0.33f;
 		g_pDevice->m_bFog = 1;
 		m_pSky->m_bVisible = 0;
@@ -358,10 +359,11 @@ void TMFieldScene::SetCameraView()
 void TMFieldScene::InitCameraView()
 {
 	auto pCamera = g_pObjectManager->m_pCamera;
+	pCamera->m_fMaxCamLen = camera_zoom::FieldMaximumDistance;
 	pCamera->m_nQuaterView = 0;
 	pCamera->m_fVerticalAngle = -0.78539819f;
-	pCamera->m_fSightLength = pCamera->m_fMaxCamLen;
-	pCamera->m_fWantLength = pCamera->m_fMaxCamLen;
+	pCamera->m_fSightLength = camera_zoom::FieldDefaultDistance;
+	pCamera->m_fWantLength = camera_zoom::FieldDefaultDistance;
 	pCamera->m_fCamHeight = 0.33000001f;
 	pCamera->m_fHorizonAngle = 0.78539819f;
 	g_pDevice->m_bFog = 1;
@@ -534,6 +536,20 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	pHuman->InitPosition(vecPosition.x, m_pGround->GetHeight(vecPosition), vecPosition.y);
 	pHuman->m_cHide = (pHuman->m_dwID < 1000) && ((pHuman->m_stScore.Merchant & 1) != 0);
 	m_pHumanContainer->AddChild(pHuman);
+	// The roster outlives visible actors. Restore its projection after InitObject.
+	if (m_pPartyList)
+	{
+		for (int i = 0; i < m_pPartyList->m_nNumItem; ++i)
+		{
+			auto member = static_cast<SListBoxPartyItem*>(m_pPartyList->m_pItemList[i]);
+			if (member && member->m_nState != 1 && member->m_dwCharID == pHuman->m_dwID)
+			{
+				pHuman->m_bParty = 1;
+				pHuman->SetInMiniMap(0xAAFFFF00);
+				break;
+			}
+		}
+	}
 	return 1;
 }
 

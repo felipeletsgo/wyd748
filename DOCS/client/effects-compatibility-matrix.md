@@ -134,7 +134,7 @@ from the branches where both sides allocate one object (for example
 `TMEffectBillBoard`, 388 bytes, native `0x180`). Allocations are counted where
 they appear in the source, not how often a loop runs them.
 
-## Findings and recommended decisions (2026-10-03)
+## Historical findings and decisions (2026-10-03)
 
 Decision rule (project owner, 2026-10-03): native 7.48 evidence informs the
 decision but is not the default; keep the superior TMProject effect where one
@@ -156,3 +156,50 @@ for the first two types and `"%s %d %d %d"` otherwise. `Mesh/BoneAni4.txt`
 (native `FUN_004b00e4`, TMProject `MeshManager`): `"%d %d %d %s"` rows, then
 `%s.bon` skeletons and `%s%04d.ani` cuts. No divergence found at format level;
 per-mesh animation selection is covered by the TMHuman research records.
+
+## Combat and world effects audit (2026-11-09)
+
+This source audit covers the local 7.48.107 candidate. It separates server
+damage and state, packet delivery, client presentation, and asset identity.
+The regenerated allocation scan reports 45 attack branches and 55 deferred
+event branches. It flags 22 rows for review. It does not follow all callees,
+track effect ownership, or execute a scene. The decisions below supersede
+the corresponding historical recommendations.
+
+| Status | Flow | Evidence |
+| --- | --- | --- |
+| Corrected in source | Growth (13) | Replaced deferred mesh 2838 with the native violet billboard and ground shade. The attack handler uses `TMSkillHolyTouch` variant 1 at the caster. |
+| Corrected in source | Cancellation (100) | Restored sound 156 during attack dispatch. The server removes Immunity through its support path. |
+| Excluded by owner | Weather near BerialGuard | Generator 5140 places the guard at (2130, 2147), outside the permanent snow fields. The aura clears rendered weather and writes that value to `g_nWeather`. The skill tooltip, panel, and cast preview use it. The server still applies rain (fire −10%, thunder +30%) or snow (ice +20%). |
+| Present in source | Rapid Hit (95) | The native attack branch offsets damage feedback per target. The adapted attack uses per-target delay, and `PlayEffectEvent` creates the projectiles and billboards. |
+| Present in source | Soul of Limits (102) | The native and adapted clients call class-specific avatar effect routines. The scan cannot attribute their allocations to the selector. |
+| Present in source | Throwing Knife (94) | Current attack dispatch has a dedicated renderer and selects a valid target for facing when the primary target is absent. The historical missing-branch finding is obsolete. |
+| Pending visual comparison | Other allocation deltas | Compare skills 39, 52, 98, 99, 108, 111 and deferred events 38, 48, 49, 95, 104, 105. A difference in allocation counts alone cannot establish a missing effect. |
+
+See the [Growth and Cancellation trace](../../.agents/research/client748/flows/combat/skill-visual-dispatch.md#growth-and-cancellation-cast-effects-2026-11-09).
+
+### World and replicated effects
+
+| Flow | Verified path | Pending client scenario |
+| --- | --- | --- |
+| BM summons | Eight attack profiles. Go tests exercise range, misses, owner and observer packets, and poison. The client has distinct rock, breath, and beam paths. See the [BM attack trace](../../.agents/research/client748/flows/combat/bm-summon-attacks.md). | Show the near and far attacks, spells, and debuffs in both views. |
+| Mounts | Fire Tiger uses the 7.48 flame bones. Iceland Wolf, Dragon Lich, and the Death Shadow variants use the KR render branches. Rider damage absorption has separate Go coverage. See the [mount trace](../../.agents/research/client748/flows/ui/mount-species-effects.md). | Equip, swap, dismount, leave the field, and relog with an observer. |
+| Corrupted Crystal and Lightning Storm | Server damage tests cover the purple crystal pulse and the Foema's Thunderbolt pulse. The client binds the crystal aura and hit visual separately. | Confirm the aura, pulse, cracks, and break animation from the attacker and observer views. |
+| Boss casts and shields | `bossCastSkill` sends the skill index in the standard attack flow. `bossApplyEffect` and `bossRemoveEffect` publish the shield as affect 19. Go tests cover damage calculation and shield removal. | Check each configured boss cast and verify shield playback when an observer arrives during the phase. |
+| Rune Track | The server sends effect 32 in `0x3A2` to eligible nearby members. The client resolves the ground height, clips the grid, and creates the explosion. The server applies damage separately. See the [environment packet trace](../../.agents/research/client748/flows/transport/environment-effect-contract.md). | Check protected and damaging tiles, floor boundaries, spectators, and scene teardown. |
+| Magic Chamber and Kefra | Rune Slate state follows the chamber run. The Kefra snapshot gates the model and both portal effects. See [BUG-010](../bug-register.md#bug-010--magic-chamber-ground-markings) and the [Kefra trace](../../.agents/research/client748/flows/gameplay/kefra-portal-visuals.md). | Check current candidate playback, room changes, relogin, and Kefra reset. |
+| Ambient map objects | The 119 active `FieldNNNN.dat` files contain 135,133 records. The record scan found no size, coordinate, sea-grid, or count rejection. All 95 stock Portuguese files have active counterparts. Seven files differ. The loader has dedicated routes for water, wildlife, dust, braziers, local lights, and effect meshes. | Compare changed fields and representative unchanged fields at zone boundaries and under each effects setting. |
+| Effect textures | All 418 populated rows of the 512-slot active effect table resolve to files. The active table preserves each populated stock Portuguese path at its original index. | Compare actual blending, animation, and visibility in game. |
+
+### Validation
+
+- STATICALLY VERIFIED: compared the 7.48 decompiler output with the current
+  C++ and Go dispatches. Checked the Growth and Cancellation call sites in
+  the PE disassembly. The stock Portuguese asset census is separate from the
+  executable used for the attack trace.
+- AUTOMATED TESTED: focused Go combat, weather, mount, Rune Track, Magic
+  Chamber, Kefra, and environment packet tests passed. Candidate architecture
+  and socket suites passed. The binary map and effect table scans passed.
+- CLIENT-TESTED: pending for this audit. The 104 named server skill records
+  and the 100 allocation-comparison rows measure different scopes. Neither
+  count certifies all skills, affects, creatures, or maps in a running client.

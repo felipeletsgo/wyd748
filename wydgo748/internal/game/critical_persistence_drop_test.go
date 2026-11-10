@@ -131,8 +131,8 @@ func TestCriticalGroundDropDetachedCommitAndHiddenReservation(t *testing.T) {
 					g.criticalDrop != 0 || w.groundItems[g.ID] != g || len(queue.pending) != 0 || fallback.saves != 0 {
 					t.Fatal("drop acknowledgement did not apply only the durable source removal")
 				}
-				assertCriticalPickupPacket(t, observer, w.groundItemCreatePacket(g))
-				assertCriticalPickupPacket(t, p, w.groundItemCreatePacket(g))
+				assertAudibleGroundDrop(t, w, observer, g)
+				assertAudibleGroundDrop(t, w, p, g)
 				assertCriticalPickupPacket(t, p, wire.CNFDropItem(uint32(source.place), uint32(source.slot), 17, g.X, g.Y))
 				assertCriticalPickupPacket(t, p, wire.SendItem(p.ID, source.place, byte(source.slot), model.Item{}))
 				if p.Session.QueuedPacketsForTest() != 0 || observer.Session.QueuedPacketsForTest() != 0 {
@@ -233,7 +233,7 @@ func TestCriticalGroundDropDisconnectWaitsForSourceRemoval(t *testing.T) {
 				g.criticalDrop != 0 || p.Session.QueuedPacketsForTest() != 0 {
 				t.Fatal("final disconnect save lost committed drop or replied to closed transport")
 			}
-			assertCriticalPickupPacket(t, observer, w.groundItemCreatePacket(g))
+			assertAudibleGroundDrop(t, w, observer, g)
 			awaitReadyCriticalResults(t, queue, 1)
 			w.processCriticalCompletions(1)
 			if w.players[p.Session] != nil || len(queue.pending) != 0 ||
@@ -386,7 +386,7 @@ func TestCriticalGroundDropAllowsMetadataOnlyInstanceRelease(t *testing.T) {
 	g.InstanceID = ""
 	delete(w.itemInstances, runtimeID)
 	observer := criticalDropObserver(t, w, p, g)
-	w.publishItemSpawn(g)
+	w.publishItemAppearance(g, false)
 	w.refreshPlayerVisibility(observer)
 	w.onGetItem(observer.Session, criticalPickupRequest(g.ID, 7))
 	if observer.hasVisible(g.ID) || observer.Session.QueuedPacketsForTest() != 0 || len(queue.pending) != 1 {
@@ -398,7 +398,22 @@ func TestCriticalGroundDropAllowsMetadataOnlyInstanceRelease(t *testing.T) {
 	if g.criticalDrop != 0 || g.InstanceID != "" || p.Char.Inv[5].Index != 0 || w.shuttingDown {
 		t.Fatal("metadata-only release prevented committed publication")
 	}
+	assertAudibleGroundDrop(t, w, observer, g)
+	w.publishItemSpawn(g)
+	if observer.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("repeated publication replayed the drop")
+	}
+
+	observer.hide(g.ID)
+	w.refreshPlayerVisibility(observer)
 	assertCriticalPickupPacket(t, observer, w.groundItemCreatePacket(g))
+}
+
+func assertAudibleGroundDrop(t *testing.T, w *World, observer *Player, g *GroundItem) {
+	t.Helper()
+	want := w.groundItemCreatePacket(g)
+	want[29] = 1
+	assertCriticalPickupPacket(t, observer, want)
 }
 
 func TestCriticalGroundDropMaterializesUIDOnce(t *testing.T) {
@@ -525,7 +540,7 @@ func TestCriticalGroundDropActualDispatcherKeepsWorldResponsive(t *testing.T) {
 					if g.criticalDrop != 0 || len(queue.pending) != 0 || w.shuttingDown || playerSlotOf(p, place, 5).Index != 0 {
 						t.Fatal("actor drop did not apply the durable removal exactly once")
 					}
-					assertCriticalPickupPacket(t, p, w.groundItemCreatePacket(g))
+					assertAudibleGroundDrop(t, w, p, g)
 					assertCriticalPickupPacket(t, p, wire.CNFDropItem(uint32(place), 5, 17, g.X, g.Y))
 					assertCriticalPickupPacket(t, p, wire.SendItem(p.ID, place, 5, model.Item{}))
 				}

@@ -201,6 +201,9 @@ func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 	if !nonRefinableEffects[effect] {
 		value = refineAbility(value, sanc)
 	}
+	if effect == "EF_HWORDGUILD" || effect == "EF_LWORDGUILD" {
+		value = int(uint8(value)) // Native item ability returns the low byte.
+	}
 	if effect == "EF_RUNSPEED" {
 		if value >= 3 {
 			value = 2
@@ -213,6 +216,33 @@ func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 		value *= sanc
 	}
 	return value
+}
+
+func (w *World) equipmentPvPAbility(ch *model.Char, effect string) int {
+	total := 0
+	for slot, item := range ch.Equip {
+		if item.Index == 0 || slot == mountSlot || !clientEquipSlotSupported(byte(slot)) {
+			continue
+		}
+		if def, ok := w.items[item.Index]; ok && def.Pos > 1 {
+			total += itemAbility(item, def, effect)
+		}
+	}
+	return total
+}
+
+func (w *World) weaponCriticalDamage(p *Player) int {
+	if p == nil || p.Char == nil {
+		return 0
+	}
+	bonus := 0
+	for _, slot := range [...]int{6, 7} {
+		item := p.Char.Equip[slot]
+		if def, ok := w.items[item.Index]; ok && def.Pos&64 != 0 {
+			bonus += itemAbility(item, def, "EF_CRITICALDAMAGE")
+		}
+	}
+	return bonus
 }
 
 func (w *World) equipmentDamage(ch *model.Char) int {
@@ -464,8 +494,8 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.Range = extendedValue(int64(maxInt(1, rangeValue)))
 	runtime.SaveMana = uint32(minInt(99, int(base.SaveMana)+int(total("EF_SAVEMANA"))))
 	runtime.MagicAmp = extendedValue(magicAmp)
-	runtime.RegenHP = uint32(clampInt(int(base.RegenHP)+int(total("EF_REGENHP")), 0, 255))
-	runtime.RegenMP = uint32(clampInt(int(base.RegenMP)+int(total("EF_REGENMP")), 0, 255))
+	runtime.RegenHP = minU32(extendedValue(int64(base.RegenHP)+total("EF_REGENHP")), maxRegenIndex)
+	runtime.RegenMP = minU32(extendedValue(int64(base.RegenMP)+total("EF_REGENMP")), maxRegenIndex)
 	resAll := int(total("EF_RESISTALL"))
 	runtime.ResistFire = uint32(clampInt(int(base.ResistFire)+int(total("EF_RESIST1"))+resAll, 0, 100))
 	runtime.ResistIce = uint32(clampInt(int(base.ResistIce)+int(total("EF_RESIST2"))+resAll, 0, 100))
@@ -486,9 +516,8 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		runtime.ResistHoly = uint32(clampInt(int(runtime.ResistHoly)+mRes, 0, 100))
 		runtime.ResistThunder = uint32(clampInt(int(runtime.ResistThunder)+mRes, 0, 100))
 	}
-	// Imported premium mounts are ordinary UID-bound Equip[14] items rather
-	// than native baby/adult mounts. Their catalog values are authoritative:
-	// flat physical damage, exact magic attack percentage and additive speed.
+	// Premium mounts use flat attack, evasion and resistance, a magic attack
+	// percentage and a final mounted speed.
 	premium := w.premiumMountBonus(ch, w.now())
 	if premium.attack != 0 {
 		runtime.Attack = extendedValue(int64(runtime.Attack) + int64(premium.attack))

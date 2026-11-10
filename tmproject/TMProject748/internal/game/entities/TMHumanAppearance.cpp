@@ -3,6 +3,7 @@
 #include "../../application/EquipmentAppearanceContract.h"
 #include "../../application/NativeCostumeSlot.h"
 #include "../../ui/CapePresentation748.h"
+#include "../../wire/CorruptedCrystalAppearance.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "HumanCostumeRefinement.h"
@@ -22,6 +23,15 @@ void TMHuman::SetRace(short sIndex)
 {
     if (m_dwDelayDel != 0)
         return;
+
+    if (corrupted_crystal::IsFace(m_dwID, sIndex))
+    {
+        m_nClass = corrupted_crystal::MonsterClass;
+        m_nSkinMeshType = corrupted_crystal::SkinType;
+        m_nCrystalCrackStage = corrupted_crystal::CrackStage(m_stScore.CurHP, m_stScore.MaxHP);
+        m_fScale = corrupted_crystal::Scale(sIndex);
+        return;
+    }
 
     STRUCT_ITEM item{};
     item.sIndex = sIndex;
@@ -1142,9 +1152,18 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
     {
         m_sHeadIndex = sEquip[0] & 0xFFF;
         m_sHelmIndex = sEquip[1] & 0xFFF;
-        m_cLegend = static_cast<char>(g_pItemList[sEquip[0] & 0xFFF].nGrade);
-        m_stLookInfo.FaceMesh = g_pItemList[sEquip[0] & 0xFFF].nIndexMesh;
-        m_stLookInfo.FaceSkin = g_pItemList[sEquip[0] & 0xFFF].nIndexTexture;
+        if (corrupted_crystal::IsFace(m_dwID, m_sHeadIndex))
+        {
+            m_cLegend = 0;
+            m_stLookInfo.FaceMesh = 0;
+            m_stLookInfo.FaceSkin = 0;
+        }
+        else
+        {
+            m_cLegend = static_cast<char>(g_pItemList[sEquip[0] & 0xFFF].nGrade);
+            m_stLookInfo.FaceMesh = g_pItemList[sEquip[0] & 0xFFF].nIndexMesh;
+            m_stLookInfo.FaceSkin = g_pItemList[sEquip[0] & 0xFFF].nIndexTexture;
+        }
         // A circlet hides the helmet, as in SetPacketMOBItem; without the else
         // branch observers kept the previous helmet mesh.
         if (!human_equipment::IsCirclet(sEquip[1] & 0xFFF))
@@ -1613,6 +1632,12 @@ int TMHuman::GetBloodColor()
 
 void TMHuman::SetCharHeight(float fCon)
 {
+    if (corrupted_crystal::IsFace(m_dwID, m_sHeadIndex))
+    {
+        m_fScale = corrupted_crystal::Scale(m_sHeadIndex);
+        return;
+    }
+
     // Character CON is combat state, not a visual scale input. Keep the same
     // appearance for the owner, observers, and character selection.
     if ((m_dwID >= 0 && m_dwID < 1000) || g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR)

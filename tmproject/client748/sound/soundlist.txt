@@ -187,7 +187,7 @@
 218 sound\\monster\\argosatt.wav 1
 219 sound\\monster\\argosdam.wav 1
 220 sound\\monster\\argosdie.wav 1
-220 sound\\monster\\argosidle.wav 1
+221 sound\\monster\\argosidle.wav 1
 222 sound\\monster\\cyclopsatt.wav 1
 223 sound\\monster\\cyclopsdam.wav 1
 224 sound\\monster\\cyclopsdie.wav 1

@@ -80,9 +80,25 @@ func (w *World) planMobDrops(p *Player, m *Mob) []plannedDrop {
 		}
 		// MobKilled runs SetItemBonus on each carry drop before PutItem.
 		item = w.applyDropItemBonus(item, lvl, w.dropBonusFor(p))
-		if slot := addToInv(p.Char, item); slot >= 0 {
-			planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
-				item: p.Char.Inv[slot], source: m.Def.Name, sourceSlot: i})
+		if def, exists := w.items[item.Index]; exists {
+			if rule, _, ok := w.volatiles.Rule(item.Index); ok && rule.Action == "ground_gold" {
+				value := volatileGoldValue(rule, item, def)
+				if value > 0 && p.Char.Gold <= maxCharacterGold && value <= maxCharacterGold-p.Char.Gold {
+					p.Char.Gold += value
+					continue
+				}
+				// Preserve the coin on the ground if its full value cannot fit.
+				planned = append(planned, plannedDrop{player: p, inventoryPos: -1,
+					item: item, x: m.X, y: m.Y, instanceID: strings.TrimSpace(m.InstanceID),
+					source: m.Def.Name, sourceSlot: i})
+				continue
+			}
+		}
+		if slots, ok := w.receiveLoot(p.Char, item, -1); ok {
+			for _, slot := range slots {
+				planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
+					item: p.Char.Inv[slot], source: m.Def.Name, sourceSlot: i})
+			}
 		} else {
 			planned = append(planned, plannedDrop{player: p, inventoryPos: -1,
 				item: item, x: m.X, y: m.Y, instanceID: strings.TrimSpace(m.InstanceID),

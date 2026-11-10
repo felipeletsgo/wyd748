@@ -1,4 +1,5 @@
 #include "ReceivedPacketDispatchTestSupport.h"
+#include "../internal/application/DropSearchText.h"
 
 // ReceivedPacketDispatch tests: WorldState. Split from ReceivedPacketDispatchTests.cpp.
 int RunReceivedPacketDispatchWorldStateTests(int& checks)
@@ -11,6 +12,58 @@ int RunReceivedPacketDispatchWorldStateTests(int& checks)
             std::fprintf(stderr, "FAIL: %s\n", name);
         }
     };
+
+    check(drop_search::Key("Po\xe7\xe3o_M\xc1GICA")=="pocao magica",
+        "localized item matching folds accents and underscores");
+    check(drop_search::Key(nullptr).empty(),"missing item caption is safe");
+    check(drop_search::Key("  Po\xe7\xe3o_\t_M\xc1GICA \r\n")=="pocao magica",
+        "localized searches trim and collapse whitespace like the server");
+    check(drop_search::Key(" \t\r\n").empty(),"whitespace-only search is an empty search");
+    // Drop search is a coordinated, bounded result; reject it before scene delivery.
+    drop_list::Result drop{};
+    drop.Header.Size=sizeof(drop);drop.Header.Type=drop_list::ResultOpcode;drop.Header.ID=0x7530;
+    drop.Version=1;drop.ID=42;drop.Total=1;drop.Count=1;
+    drop.Rows[0].Item=412;drop.Rows[0].Flags=1;
+    drop.Rows[0].Base=31250;drop.Rows[0].Current=62500;
+    std::memcpy(drop.Rows[0].Monster,"Skeleton",9);
+    drop_list::Result parsed{};
+    check(drop_list::Parse(&drop,sizeof(drop),parsed),"drop result parses its complete v1 ABI");
+    check(received_packet::CanDispatch({drop_list::ResultOpcode,reinterpret_cast<const char*>(&drop),sizeof(drop)}),
+        "drop result reaches scene dispatch");
+    for(std::size_t n=0;n<sizeof(drop);++n)
+        check(!drop_list::Parse(&drop,n,parsed),"drop result rejects truncated frames");
+    drop_list::PendingQuery pending;
+    pending.Begin(drop.ID,drop.Mode);
+    auto stale=drop;stale.ID--;
+    check(!pending.Consume(stale) && pending.IsPending(),"old search reply preserves the pending request");
+    stale=drop;stale.Mode=1;
+    check(!pending.Consume(stale),"another search mode cannot consume a pending request");
+    check(pending.Consume(drop) && !pending.IsPending(),"matching search reply is consumed once");
+    check(!pending.Consume(drop),"search reply replay is ignored");
+    pending.Begin(drop.ID,drop.Mode);pending.Reset();
+    check(!pending.Consume(drop),"closed or expired search ignores late replies");
+    const auto first=pending.Start(drop.Mode);
+    pending.Reset();
+    const auto reopened=pending.Start(drop.Mode);
+    stale=drop;stale.ID=first;
+    check(first && reopened && first!=reopened && !pending.Consume(stale) && pending.IsPending(),
+        "closing and reopening in one clock tick cannot reuse a search identity");
+    stale.ID=reopened;
+    check(pending.Consume(stale),"a reopened search accepts only its own reply");
+    auto invalid=drop;invalid.Count=11;
+    check(!drop_list::Parse(&invalid,sizeof(invalid),parsed),"drop row limit enforced");
+    invalid=drop;invalid.Rows[0].Item=6500;
+    check(!drop_list::Parse(&invalid,sizeof(invalid),parsed),"drop item bound enforced");
+    invalid=drop;invalid.Rows[0].Base=drop_list::ChanceScale+1;
+    check(!drop_list::Parse(&invalid,sizeof(invalid),parsed),"drop chance bound enforced");
+    invalid=drop;invalid.Rows[1].Item=412;
+    check(!drop_list::Parse(&invalid,sizeof(invalid),parsed),"unused drop rows must be zero");
+    invalid=drop;invalid.Offset=10;
+    check(!drop_list::Parse(&invalid,sizeof(invalid),parsed),"drop page cannot exceed total");
+    invalid=drop;std::memset(invalid.Rows[0].Monster,'x',48);
+    check(!drop_list::Parse(&invalid,sizeof(invalid),parsed),"drop names need a terminator");
+    invalid=drop;invalid.Version=2;
+    check(!drop_list::Parse(&invalid,sizeof(invalid),parsed),"unknown drop version rejected");
 
     // Both instance counters use MSG_STANDARDPARM: a 16-byte envelope
     // with the integer value at offset 12. The callback receives the same

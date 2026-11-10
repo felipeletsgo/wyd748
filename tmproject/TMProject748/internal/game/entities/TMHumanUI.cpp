@@ -390,6 +390,21 @@ int TMHuman::OnCharEvent(char iCharCode, int lParam)
     return TreeNode::OnCharEvent(iCharCode, lParam);
 }
 
+void TMHuman::UpdateLabelPosition(bool commonMesh)
+{
+    // Both animated humans/NPCs and common meshes use this visibility gate.
+    if (g_pCurrentScene && g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD &&
+        static_cast<TMFieldScene*>(g_pCurrentScene)->IsDropSearchVisible())
+    {
+        HideLabel();
+        return;
+    }
+    if (commonMesh)
+        LabelPosition2();
+    else
+        LabelPosition();
+}
+
 void TMHuman::LabelPosition()
 {
     auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);

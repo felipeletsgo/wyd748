@@ -9,6 +9,8 @@ const maxScoreValue uint32 = model.MaxScoreValue
 // maxCriticalPerMille caps Critical, kept in tenths of a percent, at 100%.
 const maxCriticalPerMille = 1000
 
+const maxRegenIndex uint32 = 1000
+
 // addCritical adds a Critical bonus in tenths of a percent, capped at 100%.
 func addCritical(current uint32, perMille int) uint32 {
 	return uint32(clampInt(int(current)+perMille, 0, maxCriticalPerMille))
@@ -62,8 +64,8 @@ func clampRuntime(e *model.Score) {
 	e.ResistThunder = minU32(clampScoreValue(e.ResistThunder), 100)
 	e.SaveMana = minU32(clampScoreValue(e.SaveMana), 99)
 	e.MagicAmp = clampScoreValue(e.MagicAmp)
-	e.RegenHP = minU32(clampScoreValue(e.RegenHP), 255)
-	e.RegenMP = minU32(clampScoreValue(e.RegenMP), 255)
+	e.RegenHP = minU32(e.RegenHP, maxRegenIndex)
+	e.RegenMP = minU32(e.RegenMP, maxRegenIndex)
 	e.StatusPts = clampScoreValue(e.StatusPts)
 	e.MasterPts = clampScoreValue(e.MasterPts)
 	e.SkillPts = clampScoreValue(e.SkillPts)

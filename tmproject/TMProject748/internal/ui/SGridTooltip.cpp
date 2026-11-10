@@ -255,7 +255,10 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	SGridControl::m_sLastMouseOverIndex = pItem->m_pItem->sIndex;
 
 	int nSanc = BASE_GetItemSanc(pItem->m_pItem);
-	int nGuildId = BASE_GetItemAbility(pItem->m_pItem, 57) | (BASE_GetItemAbility(pItem->m_pItem, 56) << 8);
+	unsigned int nItemPos = BASE_GetItemAbility(pItem->m_pItem, EF_POS);
+	int nGuildId = nItemPos <= 1
+		? BASE_GetItemAbility(pItem->m_pItem, EF_LWORDGUILD) | (BASE_GetItemAbility(pItem->m_pItem, EF_HWORDGUILD) << 8)
+		: 0;
 
 	auto pDescNameText = pFScene->m_pDescNameText;
 
@@ -281,7 +284,6 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 
 	int nAddHP = BASE_GetItemAbility(pItem->m_pItem, 4);
 	int nAddMP = BASE_GetItemAbility(pItem->m_pItem, 5);
-	unsigned int nItemPos = BASE_GetItemAbility(pItem->m_pItem, 17);
 	int nWeaponType = BASE_GetItemAbility(pItem->m_pItem, 21);
 	int nClassType = BASE_GetItemAbility(pItem->m_pItem, 18);
 	int nLineId = 0;
@@ -365,6 +367,39 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	}
 
 	char szDesc[128]{};
+	const auto* catalog = CatalogRow(pItem->m_pItem->sIndex);
+	const int nGrade = catalog ? catalog->nGrade : 0;
+	struct BonusRow { char text[128]; unsigned int color; } bonusRows[6]{};
+	int bonusRowCount = 0;
+	const auto addBonusRow = [&](const char* text, unsigned int color) {
+		if (bonusRowCount == _countof(bonusRows)) return;
+		auto& row = bonusRows[bonusRowCount++];
+		strcpy_s(row.text, text);
+		row.color = color;
+	};
+	item_bonus_text::ForEachCombat(pItem->m_pItem, addBonusRow);
+	if (nItemPos > 1 && !(nItemPos & 0x4000))
+	{
+		int gemValues[4]{};
+		constexpr int baseGemValues[]{8, 40, 2, 40};
+		if (nGrade >= 5 && nGrade <= 8)
+			gemValues[nGrade - 5] = baseGemValues[nGrade - 5];
+		const int raw = BASE_GetSancEffValue(*pItem->m_pItem);
+		if (raw >= 230 && raw <= 253)
+		{
+			const int gem = (raw - 230) % 4;
+			const int scale = gem % 2 == 0 ? 1 : (raw - 230) / 4 + 1;
+			gemValues[gem] += baseGemValues[gem] * scale;
+		}
+		for (int gem = 0; gem < 4; ++gem)
+		{
+			if (!gemValues[gem]) continue;
+			const char* label = g_pMessageStringTable[195 + gem];
+			if (gem % 2 == 0) sprintf_s(szDesc, label, gemValues[gem]);
+			else sprintf_s(szDesc, "%s : %d", label, gemValues[gem]);
+			addBonusRow(szDesc, 0xFF88AAFF);
+		}
+	}
 	if (IsSkill(pItem->m_pItem->sIndex) == 1)
 	{
 		DescribeSkillItem(pItem, pFScene, dwColor, nLineId, szDesc);
@@ -521,61 +556,15 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	}
 	else
 	{
-		DescribeGeneralItem(pItem, pFScene, dwColor, dwServerTime, nItemPos, nLineId, nWeaponType, pMobData, szDesc);
+		DescribeGeneralItem(pItem, pFScene, dwColor, dwServerTime, nItemPos, nLineId, nWeaponType, pMobData, szDesc,
+			NUM_ITEM_DESC_PARAMS - bonusRowCount);
 	}
 
-	int hGuild = BASE_GetItemAbility(pItem->m_pItem, 56);
-	if (hGuild > 0)
+	for (int i = 0; i < bonusRowCount; ++i)
+		SetTooltipRow(pFScene, nLineId++, bonusRows[i].text, bonusRows[i].color);
+
+	if (nGrade == 9 || nGrade == 10 || (nGrade >= 20 && nGrade <= 22) || nGrade == 25 || nGrade == 26)
 	{
-		sprintf(szDesc, g_pMessageStringTable[439], hGuild / 10, hGuild % 10);
-		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFF00);
-		++nLineId;
-	}
-	hGuild = BASE_GetItemAbility(pItem->m_pItem, 57);
-	if (hGuild > 0)
-	{
-		sprintf(szDesc, g_pMessageStringTable[440], hGuild / 10, hGuild % 10);
-		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFF00);
-		++nLineId;
-	}
-
-	int nGrade = g_pItemList[pItem->m_pItem->sIndex].nGrade;
-	if (pItem->m_pItem
-		&& (nGrade >= 5 && nGrade <= 10 || nGrade >= 20 && nGrade <= 22 || nGrade >= 24 && nGrade <= 26 || nSanc >= 10))
-	{
-		if (nSanc >= 10)
-		{
-			int sancValue = BASE_GetSancEffValue(*pItem->m_pItem);
-
-			int sancCalc = (sancValue - 230) % 4;
-			int mult = 1;
-			int sanc = BASE_GetItemSanc(pItem->m_pItem) - 9;
-			if (sanc < 0)
-				sanc = 0;
-			if (nGrade >= 5 && nGrade <= 8)
-				mult = 2;
-
-			if (!sancCalc)
-				sprintf(szDesc, g_pMessageStringTable[195], 8 * mult);
-			if (sancCalc == 1)
-				sprintf(szDesc, "%s : %d", g_pMessageStringTable[196], mult * 40 * sanc);
-			if (sancCalc == 2)
-				sprintf(szDesc, g_pMessageStringTable[197], 2 * mult);
-			if (sancCalc == 3)
-				sprintf(szDesc, "%s : %d", g_pMessageStringTable[198], mult * 40 * sanc);
-		}
-		else
-		{
-			if (nGrade == 5)
-				sprintf(szDesc, g_pMessageStringTable[195], 8);
-			if (nGrade == 6)
-				sprintf(szDesc, "%s : %d", g_pMessageStringTable[196], 40);
-			if (nGrade == 7)
-				sprintf(szDesc, g_pMessageStringTable[197], 2);
-			if (nGrade == 8)
-				sprintf(szDesc, "%s : %d", g_pMessageStringTable[198], 40);
-		}
-
 		int sancCalc = 10;
 
 		if (nGrade >= 20)
@@ -1396,8 +1385,8 @@ void SGridControl::DescribeTimedItem(SGridControlItem*& pItem, TMFieldScene*& pF
 
 }
 
-// Extracted from SGridControl::MouseOver; behavior is unchanged.
-void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, unsigned int& dwColor, unsigned int& dwServerTime, unsigned int& nItemPos, int& nLineId, int& nWeaponType, STRUCT_MOB*& pMobData, char (&szDesc)[128])
+// Reserve the final rows for combat and gem bonuses.
+void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, unsigned int& dwColor, unsigned int& dwServerTime, unsigned int& nItemPos, int& nLineId, int& nWeaponType, STRUCT_MOB*& pMobData, char (&szDesc)[128], int lineLimit)
 {
 	if (pItem->m_pItem->sIndex >= 3980 && pItem->m_pItem->sIndex <= 3999 &&
 		pItem->m_pItem->sIndex != 3993 && pItem->m_pItem->sIndex != 3994)
@@ -1512,7 +1501,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 		pMobData->Equip,
 		g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex);
 
-	for (int l = 0; l < 49; ++l)
+	for (int l = 0; l < 49 && nLineId < lineLimit; ++l)
 	{
 		// Mounted speed is fixed by the mount, not a bonus. Imported KR mounts
 		// keep EF_RUNSPEED in their row as the server's final mounted speed, which
@@ -1527,7 +1516,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 			SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 			++nLineId;
 		}
-		else if (add && nLineId < NUM_ITEM_DESC_PARAMS)
+		else if (add)
 		{
 			if (l == 0)
 			{
@@ -1741,13 +1730,13 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 	}
 
 	item_bonus_text::ForEach(pItem->m_pItem, [&](unsigned int position, int effect, int value, char* text) {
-		if (nLineId >= NUM_ITEM_DESC_PARAMS) return;
+		if (nLineId >= lineLimit) return;
 		SetTooltipRow(pFScene, nLineId, text, BASE_GetOptionColor(position, effect, value));
 		++nLineId;
 	});
 	// Optional lines stop at the final FieldScene2 row; the 7.59 tooltip's
 	// extra controls do not exist in the 7.48 resource.
-	if (nLineId < NUM_ITEM_DESC_PARAMS && BASE_GetItemSanc(pItem->m_pItem) >= 9)
+	if (nLineId < lineLimit && BASE_GetItemSanc(pItem->m_pItem) >= 9)
 	{
 		unsigned int nPos = BASE_GetItemAbility(pItem->m_pItem, 17);
 		if (nPos == 4 || nPos == 8 || nPos == 128)

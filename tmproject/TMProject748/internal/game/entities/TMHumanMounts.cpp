@@ -2,11 +2,13 @@
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "TMScene.h"
+#include "TMEffectBillBoard.h"
 #include "TMEffectMeshRotate.h"
 #include "TMEffectSkinMesh.h"
 #include "TMGround.h"
 #include "TMFieldScene.h"
 #include "HumanVisualPolicy.h"
+#include <new>
 
 void TMHuman::UpdateMount()
 {
@@ -27,6 +29,7 @@ void TMHuman::UpdateMount()
         }
     }
 
+    ClearMountFlames();
     SAFE_DELETE(m_pMount);
 
     if (m_cMount > 0)
@@ -78,8 +81,27 @@ void TMHuman::UpdateMount()
             }
         }
 
-        if (m_pMount)
-            m_pMount->RestoreDeviceObjects();
+        if (m_pMount && SUCCEEDED(m_pMount->RestoreDeviceObjects()) &&
+            m_nMountSkinMeshType == 38 && !m_bImportedMountVisual &&
+            m_pParentScene && m_pParentScene->m_pEffectContainer)
+        {
+            // Native 7.48 Fire Tiger uses seven persistent billboards on the mount bones.
+            for (int i = 0; i < std::size(m_mountFlames); ++i)
+            {
+                const float scale = (i == 0 ? 1.0f : i == 5 ? 3.0f : 1.2f) * m_fScale;
+                auto* flame = new (std::nothrow) TMEffectBillBoard(101, 0, scale, scale, scale, 0.0f, 8, 80);
+                if (!flame)
+                    continue;
+
+                flame->SetColor(0xFFFF5500);
+                flame->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                flame->m_nFade = 0;
+                flame->m_bFrameMove = 0;
+                flame->m_bVisible = 0;
+                m_mountFlames[i] = flame;
+                m_pParentScene->m_pEffectContainer->AddChild(flame);
+            }
+        }
 
         return;
     }
@@ -89,6 +111,26 @@ void TMHuman::UpdateMount()
         pScene->SetPosPKRun();
         SetSpeed(pScene->m_bMountDead);
     }
+}
+
+void TMHuman::ClearMountFlames()
+{
+    // The actor is destroyed before its scene's effect container. Deletion unlinks each billboard.
+    for (auto*& flame : m_mountFlames)
+        SAFE_DELETE(flame);
+}
+
+void TMHuman::UpdateMountFlame(int index, const TMVector3& position)
+{
+    auto* flame = m_mountFlames[index];
+    if (!flame)
+        return;
+
+    flame->m_vecPosition = position;
+    if (index >= 1 && index <= 4)
+        flame->m_vecPosition.y += 0.5f * m_fScale;
+    flame->m_bVisible = 1;
+    flame->FrameMove(0);
 }
 
 float TMHuman::GetMyHeight()

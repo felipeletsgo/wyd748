@@ -144,9 +144,10 @@ crafting não foi promovido a `PARIDADE_NATIVA` nem a `CLIENT_TESTED`.
   apenas no mesmo espaço de jogo. Limites de alvos e Limite da Alma têm
   testes específicos; o cooldown server-side de 102 é de um segundo, mas
   isso não comprova o comportamento da barra/cooldown no client.
-- `skill_summons.go`: contagem por maestria, conflito de família e devolução
-  de MP na rejeição; summons pertencem somente ao dono e não ocupam party.
-  Criação parcial por esgotamento de IDs não devolve MP após criar criaturas.
+- `skill_summons.go`: casting one learned BM summon skill creates one creature
+  per learned type. Mastery affects attributes. Summons belong only to their
+  owner and stay outside parties. A cast that creates no creature refunds MP;
+  partial creation retains the charge. See [current rules](server/operations.md#bm-learned-summons-2026-11-08).
 - PvP: defesa dobrada no cálculo comum de skill, Ethereal com escolha entre
   queima de MP e dispel, e parry de Exterminar cobertos por testes. Propostas
   ofensivas para 79/86 foram descartadas: o catálogo 7.48 as define como buffs

@@ -6,24 +6,35 @@ import (
 	"wydgo/internal/model"
 )
 
-// RegenMob applies MaxHP/MP * EF_REGEN / 120 plus the natural floor of 10.
-const playerRegenInterval = 3 * time.Second
+// Native 7.59 runs recovery every 16 half-second timer passes.
+const playerRegenInterval = 8 * time.Second
 
-func regenAmount(max uint32, rate int) uint32 {
-	value := uint64(max)*uint64(clampInt(rate, 0, 255))/120 + 10
-	if value > uint64(maxScoreValue) {
-		return maxScoreValue
+func naturalRecovery(attribute byte) uint32 {
+	switch {
+	case attribute&0x20 != 0:
+		return 1000
+	case attribute&0x01 != 0:
+		return 500
+	default:
+		return 200
 	}
-	return uint32(value)
 }
 
-func applyPlayerRegen(ch *model.Char) bool {
+func regenAmount(base, index uint32) uint32 {
+	// The native score stores the index in units of four points.
+	return base + index/4*4
+}
+
+func applyPlayerRegen(ch *model.Char, base uint32) bool {
 	if ch == nil || playerCurHP(ch) == 0 {
 		return false
 	}
 	oldHP, oldMP := playerCurHP(ch), playerCurMP(ch)
 	e := effectiveScore(ch)
-	heal := regenAmount(playerMaxHP(ch), int(e.RegenHP))
+	if oldHP >= e.MaxHP && oldMP >= e.MaxMP {
+		return false
+	}
+	heal := regenAmount(base, e.RegenHP)
 	// Hide multiplies the normal HP recovery, not maximum HP. Expired
 	// affects are removed by the World before its regeneration tick.
 	if ch.Class == 3 {
@@ -35,7 +46,7 @@ func applyPlayerRegen(ch *model.Char) bool {
 		}
 	}
 	restorePlayerHP(ch, heal)
-	restorePlayerMP(ch, regenAmount(playerMaxMP(ch), int(e.RegenMP)))
+	restorePlayerMP(ch, regenAmount(base, e.RegenMP))
 	return oldHP != playerCurHP(ch) || oldMP != playerCurMP(ch)
 }
 
@@ -45,7 +56,8 @@ func (w *World) tickPlayerRegen(now time.Time) {
 			continue
 		}
 		p.NextRegen = now.Add(playerRegenInterval)
-		if applyPlayerRegen(p.Char) {
+		base := naturalRecovery(w.terrain.AttributeAt(p.X, p.Y))
+		if applyPlayerRegen(p.Char, base) {
 			w.syncPlayerVitals(p)
 			w.updatePartyMember(p)
 		}

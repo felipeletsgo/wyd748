@@ -495,7 +495,7 @@ func TestPostgresGuildExportFailureDoesNotUndoCommittedState(t *testing.T) {
 	registry := sampleGuild()
 	registry.Guilds[0].Fame = 100
 	registry.Wars.Tower = model.TowerWarState{
-		Day: "2026-09-14", EndsAt: time.Date(2026, 9, 15, 0, 35, 0, 0, time.UTC),
+		Day: "2026-09-14", StartsAt: time.Date(2026, 9, 15, 0, 5, 0, 0, time.UTC), EndsAt: time.Date(2026, 9, 15, 0, 35, 0, 0, time.UTC),
 		Owner: registry.Guilds[0].ID, Started: true, Finished: true,
 	}
 	registry.Wars.Cities.Territories[0] = model.CityTerritory{Owner: registry.Guilds[0].ID, Victories: 2, Treasury: 5_500_000_000}
@@ -511,7 +511,7 @@ func TestPostgresGuildExportFailureDoesNotUndoCommittedState(t *testing.T) {
 		t.Fatalf("guild autoritativa nao foi confirmada: got=%d want=%d",
 			len(loaded.Guilds), len(registry.Guilds))
 	}
-	if loaded.Guilds[0].Fame != 100 || !loaded.Wars.Tower.Finished || loaded.Wars.Tower.Owner != registry.Guilds[0].ID ||
+	if loaded.Guilds[0].Fame != 100 || loaded.Wars.Tower != registry.Wars.Tower ||
 		loaded.Wars.Cities.Territories[0] != registry.Wars.Cities.Territories[0] {
 		t.Fatal("war result/fame lost after PostgreSQL commit and derived export failure")
 	}

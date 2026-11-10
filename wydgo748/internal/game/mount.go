@@ -91,6 +91,8 @@ func (w *World) premiumMountBonus(ch *model.Char, now time.Time) premiumMountSta
 	return premiumMountStats{
 		attack:       staticAbility(def, "EF_DAMAGE"),
 		magicPercent: staticAbility(def, "EF_MAGIC"),
+		evasion:      staticAbility(def, "EF_PARRY"),
+		resist:       staticAbility(def, "EF_RESISTALL"),
 		runSpeed:     staticAbility(def, "EF_RUNSPEED"),
 	}
 }

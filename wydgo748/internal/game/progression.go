@@ -60,6 +60,7 @@ var celestialNextLevel = func() [201]uint32 {
 	for level := range table {
 		table[level] = uint32(level) * 20_000_000
 	}
+	table[199], table[200] = 4_000_000_000, 4_020_000_000
 	return table
 }()
 
@@ -113,10 +114,9 @@ func archExperienceLocked(ch *model.Char) bool {
 	return level >= archLockLevel355 && !ch.ArchLevel355
 }
 
-// The 40/90 locks belong to the validated 7.48 progression contract.
-// EXP grants must honor unlocks; Sub characters do not have these two locks.
+// Celestial forms use the same 40/90 unlock flags.
 func celestialExperienceLocked(ch *model.Char) bool {
-	if ch == nil || ch.Score == nil || !advancedEvolution(ch, "celestial") {
+	if !isCelestialEvolution(ch) || ch.Score == nil {
 		return false
 	}
 	if ch.Score.Level >= 89 && !ch.CelestialLevel90Unlocked {
@@ -150,7 +150,7 @@ func progressionExperienceCap(ch *model.Char) uint32 {
 			return minU32(cap, table[archLockLevel370])
 		}
 	}
-	if advancedEvolution(ch, "celestial") {
+	if isCelestialEvolution(ch) {
 		if !ch.CelestialLevel40Unlocked {
 			return minU32(cap, table[39])
 		}
@@ -375,7 +375,7 @@ func grantExp(ch *model.Char, reward uint32) (int, uint32) {
 	table := progressionTable(ch)
 	maxLevel := progressionMaxLevel(ch)
 	maximum := progressionExperienceCap(ch)
-	if !canReceiveMortalExperience(ch) || reward == 0 {
+	if !canReceiveMortalExperience(ch) || reward == 0 || ch.Exp > maximum {
 		syncProgression(ch)
 		return 0, 0
 	}

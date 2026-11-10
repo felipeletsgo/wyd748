@@ -151,7 +151,7 @@ func (w *World) prepareAdvancedCraft(p *Player, req combineRequest, artisan stri
 		return plan, nil
 	}
 	if exactRecipe(req, []uint16{4127, 4127, 5135, 5113, 5129, 5112, 5110}) &&
-		advancedEvolution(ch, "celestial") && playerLevel(ch) == 39 &&
+		isCelestialEvolution(ch) && playerLevel(ch) == 39 &&
 		!ch.CelestialLevel40Unlocked && ch.UID != "" {
 		consume(0, 6)
 		ch.CelestialLevel40Unlocked, plan.sidecar = true, true

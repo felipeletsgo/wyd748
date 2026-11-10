@@ -191,22 +191,31 @@ func TestSummonsInheritRuntimeAndCannotTargetAnotherRuntime(t *testing.T) {
 	if target := w.summonTarget(owner, otherMob.ID); target.id != 0 {
 		t.Fatal("summon conseguiu alvejar mob de outro runtime")
 	}
+	owner.Char.Class, owner.Char.LearnedSkill = 2, 0xff<<8
+	if !w.castSummon(owner, model.SkillDef{Index: 56, InstanceValue: 1}, 320) || len(w.summons) != 8 {
+		t.Fatal("cast did not create all learned BM summons in the private runtime")
+	}
 	contract := &model.VolatileSummon{Name: "Knight", Face: 300, HP: 500,
 		Attack: 100, Defense: 100, MoveSpeed: 4, AttackRange: 1}
 	mustCommitContractSummon(t, w, owner, contract)
+	if len(w.summons) != 9 {
+		t.Fatal("contract summon replaced a BM creature")
+	}
 	for _, summon := range w.summons {
 		if summon.SummonerID == owner.ID && summon.InstanceID != "water-a" {
 			t.Fatalf("summon nao herdou runtime do dono: %q", summon.InstanceID)
 		}
-		if !w.mobVisibleToPlayer(other, summon) {
+		if w.mobVisibleToPlayer(owner, summon) && owner.hasVisible(summon.ID) &&
+			!w.mobVisibleToPlayer(other, summon) && !other.hasVisible(summon.ID) {
 			continue
 		}
-		t.Fatal("summon privado vazou para outro runtime")
+		t.Fatal("private summon visibility crossed runtime ownership")
 	}
 }
 
 func TestExistingSummonRebindsWhenOwnerEntersPrivateRuntime(t *testing.T) {
 	owner, _ := networkedTestPlayer(1, "Owner", 2200, 2200)
+	owner.Char.Class, owner.Char.LearnedSkill = 2, 1<<8
 	w := testSpatialWorld(nil, owner)
 	oldDef := &model.NPCDef{Tipo: model.TipoMonstro,
 		Equip: model.Equip{Rosto: model.Item{Index: summonTemplates[0].face}},
@@ -220,8 +229,8 @@ func TestExistingSummonRebindsWhenOwnerEntersPrivateRuntime(t *testing.T) {
 		"water-a": privateTestInstance("water-a", owner.ID),
 	}
 	w.rebuildPlayerInstanceIndex()
-	if w.castSummon(owner, model.SkillDef{InstanceValue: 1}, 0) {
-		t.Fatal("recaste com limite zero deveria retornar falha como GenerateSummon")
+	if w.castSummon(owner, model.SkillDef{Index: 56, InstanceValue: 1}, 0) {
+		t.Fatal("recast should not add a second creature of an existing type")
 	}
 	if existing.InstanceID != "water-a" {
 		t.Fatalf("summon existente manteve runtime antigo: %q", existing.InstanceID)
@@ -242,7 +251,9 @@ func TestBMSummonRecastCannotMovePartyMembersSummon(t *testing.T) {
 			}
 			w.rebuildPlayerInstanceIndex()
 		}
-		if !w.castSummon(other, model.SkillDef{InstanceValue: 1}, 30) {
+		other.Char.Class, other.Char.LearnedSkill = 2, 1<<8
+		owner.Char.Class, owner.Char.LearnedSkill = 2, 1<<8
+		if !w.castSummon(other, model.SkillDef{Index: 56, InstanceValue: 1}, 30) {
 			t.Fatal("invocacao inicial falhou")
 		}
 		var existing *Mob
@@ -250,7 +261,7 @@ func TestBMSummonRecastCannotMovePartyMembersSummon(t *testing.T) {
 			existing = m
 		}
 		x, y, space := existing.X, existing.Y, existing.InstanceID
-		if !w.castSummon(owner, model.SkillDef{InstanceValue: 1}, 30) {
+		if !w.castSummon(owner, model.SkillDef{Index: 56, InstanceValue: 1}, 30) {
 			t.Fatal("invocacao de outro dono consumiu o limite do caster")
 		}
 		if existing.X != x || existing.Y != y || existing.InstanceID != space || existing.SummonerID != other.ID {

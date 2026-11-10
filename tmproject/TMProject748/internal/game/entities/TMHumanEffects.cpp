@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "../../application/AttackVisualTiming.h"
+#include "../../wire/CorruptedCrystalAppearance.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "TMItem.h"
@@ -119,7 +120,7 @@ void TMHuman::RenderEffect()
     }
     else if (m_nClass == 16 && m_stLookInfo.FaceMesh == 6)
     {
-        RenderEffect_BoneDragon(dwServerTime);
+        RenderEffect_BoneDragon(dwServerTime, m_dwGolemDustTime);
     }
     else if (m_nClass == 16 && !m_stLookInfo.FaceMesh && m_stLookInfo.FaceSkin == 1)
     {
@@ -147,7 +148,7 @@ void TMHuman::RenderEffect()
     }
     else if (m_nClass == 22 || m_nClass == 27)
     {
-        RenderEffect_Pig_Wolf(dwServerTime);
+        RenderEffect_Pig_Wolf(dwServerTime, m_monsterEmission);
     }
     else if (m_nClass == 18 && m_eMotion == ECHAR_MOTION::ECMOTION_ATTACK02)
     {
@@ -309,10 +310,6 @@ void TMHuman::RenderEffect()
     {
         RenderEffect_RudolphCostume(dwServerTime);
     }
-    else if (m_pMount && m_pMount->m_nBoneAniIndex == 31 && m_pMount->m_Look.Mesh0 == 8)
-    {
-        m_pMount->m_bRenderEffect = 1;
-    }
 
     if (m_cEnchant)
     {
@@ -422,14 +419,19 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
 
     // FUN_00506f9d keeps two rotating texture-109 billboards alive while the
     // 7.48 Lighten flag is set and destroys them as soon as the affect ends.
-    if (m_cLighten == 1 && !g_bHideEffect)
+    const bool isCrystal = m_nSkinMeshType == corrupted_crystal::SkinType &&
+        m_sHeadIndex == corrupted_crystal::FaceIndex;
+    const bool hasLighten = isCrystal ? !m_cDie && m_stScore.CurHP > 0 : m_cLighten == 1;
+    if (hasLighten && !g_bHideEffect)
     {
         if (dwServerTime - m_dwLastLighten > 500)
         {
             float fRand = (float)(rand() % 5);
 
             float fScale = 1.0f;
-            if (m_cMount == 1)
+            if (isCrystal)
+                fScale = 1.7f;
+            else if (m_cMount == 1)
                 fScale = 1.3f;
 
             for (int i = 0; i < 2; i++)
@@ -445,7 +447,9 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                         8,
                         80);
 
-                    m_pLightenStorm[i]->SetColor(0xFFFFDD00);
+                    m_pLightenStorm[i]->SetColor(isCrystal ? 0xFFBF58FF : 0xFFFFDD00);
+                    if (isCrystal)
+                        m_pLightenStorm[i]->m_bShow = !buffsHidden;
                     m_pLightenStorm[i]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
                     m_pLightenStorm[i]->m_nFade = 0;
                     g_pCurrentScene->m_pEffectContainer->AddChild(m_pLightenStorm[i]);
@@ -461,7 +465,11 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         for (int i = 0; i < 2; ++i)
         {
             if (m_pLightenStorm[i])
-                m_pLightenStorm[i]->m_vecPosition = { m_vecSkinPos.x, m_vecSkinPos.y + 1.3f, m_vecSkinPos.z + 0.1f };
+            {
+                m_pLightenStorm[i]->m_vecPosition = isCrystal
+                    ? TMVector3{ m_vecPosition.x, m_fHeight + 1.9f, m_vecPosition.y }
+                    : TMVector3{ m_vecSkinPos.x, m_vecSkinPos.y + 1.3f, m_vecSkinPos.z + 0.1f };
+            }
         }
     }
     else
@@ -1351,25 +1359,6 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                 if (m_stEffectEvent.pTarget && m_stEffectEvent.pTarget->m_pRescue)
                     m_stEffectEvent.pTarget->m_pRescue->StartVisible(dwServerTime);
                 GetSoundAndPlay(158, 0, 0);
-            }
-            else if (m_stEffectEvent.sEffectIndex == 13)
-            {
-                auto pCrArmor = new TMEffectMesh(2838, 0xFF999999, m_fAngle, 4);
-                pCrArmor->m_nTextureIndex = 413;
-                pCrArmor->m_dwLifeTime = 500;
-                pCrArmor->m_dwCycleTime = 500;
-
-                if (m_cMount == 1)
-                    pCrArmor->m_vecPosition = { m_vecSkinPos.x, (((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) / 2.0f) + m_vecSkinPos.y) - 0.3f, m_vecSkinPos.z };
-                else
-                    pCrArmor->m_vecPosition = { m_vecPosition.x, (((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) / 2.0f) + m_fHeight) + 0.3f, m_vecPosition.y };
-
-                pCrArmor->m_fScaleH = 2.5f;
-                pCrArmor->m_fScaleV = 2.5f;
-                pCrArmor->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                pCrArmor->m_cShine = 0;
-
-                g_pCurrentScene->m_pEffectContainer->AddChild(pCrArmor);
             }
             else if (m_stEffectEvent.sEffectIndex == 8 || m_stEffectEvent.sEffectIndex == 10 || m_stEffectEvent.sEffectIndex == 18)
             {
@@ -2943,39 +2932,41 @@ void TMHuman::RenderEffect_LegendBeriel(unsigned int dwServerTime)
 }
 }
 
-void TMHuman::RenderEffect_Pig_Wolf(unsigned int dwServerTime)
-{for (unsigned int emission = m_monsterEmission.Steps(dwServerTime, m_bVisible == 1); emission; --emission)
+void TMHuman::RenderEffect_Pig_Wolf(unsigned int dwServerTime, effect_emission::Clock& emissionClock)
 {
-
-    int nRand = rand() % 5;
-
-    auto pEffect = new TMEffectBillBoard(
-        0,
-        1500,
-        ((float)nRand * 0.0099999998f) + 0.0099999998f,
-        ((float)nRand * 0.029999999f) + 0.0099999998f,
-        ((float)nRand * 0.0099999998f) + 0.0099999998f,
-        0.000099999997f,
-        1,
-        80);
-
-    if (pEffect != nullptr)
+    for (unsigned int emission = emissionClock.Steps(dwServerTime, m_bVisible == 1); emission; --emission)
     {
-        pEffect->m_vecPosition = TMVector3{ ((float)(rand() % 10 - 5) * 0.02f) + m_vecTempPos[0].x, m_vecTempPos[0].y, ((float)(rand() % 10 - 5) * 0.02f) + m_vecTempPos[0].z };
-        pEffect->m_vecStartPos = pEffect->m_vecPosition;
-        pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-        pEffect->m_bStickGround = 0;
-        pEffect->m_nParticleType = 1;
-        pEffect->m_fParticleV = -1.0f;
-        pEffect->SetColor(0xFFFFFFCC);
+        int nRand = rand() % 5;
+        auto pEffect = new TMEffectBillBoard(
+            0,
+            1500,
+            ((float)nRand * 0.0099999998f) + 0.0099999998f,
+            ((float)nRand * 0.029999999f) + 0.0099999998f,
+            ((float)nRand * 0.0099999998f) + 0.0099999998f,
+            0.000099999997f,
+            1,
+            80);
 
-        if (m_nClass == 27)
-            pEffect->SetColor(0xFFFFDD88);
+        if (pEffect != nullptr)
+        {
+            pEffect->m_vecPosition = TMVector3{
+                ((float)(rand() % 10 - 5) * 0.02f) + m_vecTempPos[0].x,
+                m_vecTempPos[0].y,
+                ((float)(rand() % 10 - 5) * 0.02f) + m_vecTempPos[0].z
+            };
+            pEffect->m_vecStartPos = pEffect->m_vecPosition;
+            pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+            pEffect->m_bStickGround = 0;
+            pEffect->m_nParticleType = 1;
+            pEffect->m_fParticleV = -1.0f;
+            pEffect->SetColor(0xFFFFFFCC);
 
-        g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+            if (m_nClass == 27)
+                pEffect->SetColor(0xFFFFDD88);
+
+            g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+        }
     }
-
-}
 }
 
 void TMHuman::RenderEffect_DungeonBear(unsigned int dwServerTime)
@@ -3188,9 +3179,9 @@ void TMHuman::RenderEffect_EmeraldDragon(unsigned int dwServerTime)
     }
 }
 
-void TMHuman::RenderEffect_BoneDragon(unsigned int dwServerTime)
+void TMHuman::RenderEffect_BoneDragon(unsigned int dwServerTime, unsigned int& lastEffectTime)
 {
-    if ((dwServerTime - m_dwGolemDustTime) > 300)
+    if ((dwServerTime - lastEffectTime) > 300)
     {
         for (int i = 1; i < 8; ++i)
         {
@@ -3203,7 +3194,7 @@ void TMHuman::RenderEffect_BoneDragon(unsigned int dwServerTime)
                 g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
             }
         }
-        m_dwGolemDustTime = dwServerTime;
+        lastEffectTime = dwServerTime;
     }
 }
 

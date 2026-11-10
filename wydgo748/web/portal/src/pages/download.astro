@@ -14,8 +14,8 @@ const clientUrl = clientRelease.fullClient.url;
     <p lang="pt-BR">Instalação completa: {clientRelease.fullClient.clientVersion}. Baixe pelo Google Drive. Mantenha o launcher nativo adaptado para os próximos updates, a partir de 7.48.101.</p>
     <p>The adapted native launcher downloads updates through HTTPS and validates the server certificate.</p>
     <p lang="pt-BR">O launcher nativo adaptado baixa as atualizações por HTTPS e valida o certificado do servidor.</p>
-    <p>The server requires baseline 7.48.100. Older installations must download the new full client. Do not apply older manual patches to this baseline.</p>
-    <p lang="pt-BR">O servidor exige a base 7.48.100. Instalações anteriores precisam baixar o novo cliente completo. Não aplique patches manuais antigos sobre esta base.</p>
+    <p>The server requires client {clientRelease.clientVersion}. Install baseline 7.48.100 from Google Drive, then run the native launcher to install the mandatory update. Do not apply patches from before this baseline.</p>
+    <p lang="pt-BR">O servidor exige o cliente {clientRelease.clientVersion}. Instale a base 7.48.100 do Google Drive e abra o launcher nativo para receber a atualização obrigatória. Não aplique patches anteriores a esta base.</p>
     <ol class="steps">
       <li>Extract the client into a folder you can write to.</li>
       <li>Run <strong>WYDLauncher.exe</strong>. The native launcher installs game updates before <strong>Start</strong>.</li>

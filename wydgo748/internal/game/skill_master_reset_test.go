@@ -48,7 +48,7 @@ func TestSkillMasterUsesPremiumFirstAndResetsAtMostOneHundredPerStat(t *testing.
 	e := p.Char.Score
 	if store.saves != 1 || p.Char.Inv[0].Index != 0 ||
 		p.Char.Inv[1].Index != model.SapphirePack || p.Char.Inv[2].Index != model.SapphirePack ||
-		e.Str != 58 || e.Int != 4 || e.Dex != 7 || e.Con != 6 || e.StatusPts != 450 {
+		e.Str != 62 || e.Int != 4 || e.Dex != 7 || e.Con != 13 || e.StatusPts != 450 {
 		t.Fatalf("reset premium incorreto: saves=%d inv=%v stats=%+v",
 			store.saves, p.Char.Inv[:4], e)
 	}

@@ -157,7 +157,7 @@ func TestMortalSoulOfficialConfigurations(t *testing.T) {
 		p.Char.SoulInfo = uint8(config)
 		// Runtime includes equipment: prove it does not read raw Score here.
 		applyScore(p.Char)
-		p.Char.RuntimeScore.Str += 100
+		p.Char.RuntimeScore.Str, p.Char.RuntimeScore.Con = 251, 159
 		p.Char.Score.Str = 51
 		p.Char.Affects[0] = model.Affect{Type: 29, ExpiresAt: w.now().Add(time.Minute)}
 		w.applyExtendedAffectStats(p.Char)

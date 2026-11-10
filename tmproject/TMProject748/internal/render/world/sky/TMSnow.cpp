@@ -55,11 +55,7 @@ void TMSnow::StopAmbientSound()
 {
     // Heavy snow adds geometry, not a second owner of the same looping sound.
     if (weather_presentation::OwnsSnowSound(m_fScale) && g_pSoundManager)
-    {
-        auto sound = g_pSoundManager->GetSoundData(113);
-        if (sound && sound->IsSoundPlaying())
-            sound->Stop();
-    }
+        g_pSoundManager->StopSound(113);
 }
 
 void TMSnow::SetActive(bool active)

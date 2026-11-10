@@ -2216,7 +2216,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		p.CombatTargetID = target.ID
 		target.LastAttackerID = p.ID
 
-		hit := playerPhysicalHitPlayerWithRNG(p, target, w.intn)
+		hit := playerPhysicalHitPlayerWithRNG(p, target, w.weaponCriticalDamage(p), w.intn)
 		if !hit.Hit {
 			secondary := ironSpearSecondaryResult{}
 			if ironSpearEligible {
@@ -2239,12 +2239,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			return
 		}
 		hit = applyHuntressAirBlade(hit, p.Char, playerDefense(target.Char), airBladeEligible, w.intn)
-		calculated := hit.Damage
-		calculated = addFlatDamage(calculated, w.equipmentGemBonuses(p.Char).forceDamage)
-		calculated = absorbFlatDamage(calculated, w.playerFlatDamageAbsorb(target.Char))
-		// A living adult mount absorbs 25% of damage into its own HP.
-		calculated = uint32(w.absorbMountDamage(target, int(calculated)))
-		calculated = absorbManaControlDamageAt(target.Char, calculated, now)
+		calculated := w.resolvePlayerPvPDamage(p, target, hit.Damage, now)
 		applied := minU32(calculated, playerCurHP(target.Char))
 		setPlayerCurHP(target.Char, playerCurHP(target.Char)-applied)
 		lethal := playerCurHP(target.Char) == 0
@@ -2302,7 +2297,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// Like TMSrv SetBattle, being attacked immediately puts a mob
 	// into combat, before its next scan for visible enemies.
 	m.TargetID = p.ID
-	hit := playerPhysicalHitMobAt(p, m, w.intn, now)
+	hit := playerPhysicalHitMobAt(p, m, w.weaponCriticalDamage(p), w.intn, now)
 	if !hit.Hit {
 		secondary := ironSpearSecondaryResult{}
 		if ironSpearEligible {
@@ -2432,7 +2427,7 @@ func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastR
 			return ironSpearSecondaryResult{}
 		}
 		m.TargetID = attacker.ID
-		hit := playerPhysicalFollowupHitMobAt(attacker, m, double, critical, w.intn, now)
+		hit := playerPhysicalFollowupHitMobAt(attacker, m, double, critical, w.weaponCriticalDamage(attacker), w.intn, now)
 		result := ironSpearSecondaryResult{
 			target: wire.SkillTarget{ID: m.ID, MaxHP: m.Def.Score.MaxHP}, mob: m, oldMobHP: m.HP, ok: true,
 		}
@@ -2463,7 +2458,7 @@ func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastR
 	}
 	target.LastAttackerID = attacker.ID
 	w.cancelTrade(target, "character was attacked")
-	hit := playerPhysicalFollowupHitPlayerWithRNG(attacker, target, double, critical, w.intn)
+	hit := playerPhysicalFollowupHitPlayerWithRNG(attacker, target, double, critical, w.weaponCriticalDamage(attacker), w.intn)
 	result := ironSpearSecondaryResult{
 		target: wire.SkillTarget{ID: target.ID, MaxHP: playerMaxHP(target.Char)}, player: target, ok: true,
 	}
@@ -2471,10 +2466,7 @@ func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastR
 		result.target.Miss = true
 		return result
 	}
-	dmg := addFlatDamage(hit.Damage, w.equipmentGemBonuses(attacker.Char).forceDamage)
-	dmg = absorbFlatDamage(dmg, w.playerFlatDamageAbsorb(target.Char))
-	dmg = uint32(w.absorbMountDamage(target, int(dmg)))
-	dmg = absorbManaControlDamageAt(target.Char, dmg, now)
+	dmg := w.resolvePlayerPvPDamage(attacker, target, hit.Damage, now)
 	result.damage, result.target.Damage = dmg, dmg
 	applied := minU32(dmg, playerCurHP(target.Char))
 	setPlayerCurHP(target.Char, playerCurHP(target.Char)-applied)
@@ -2737,22 +2729,15 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 		}
 		return
 	}
-	slot := -1
-	if req.destType == placeInv { // honor the client's requested slot if free
-		if dst := slotOf(p.Char, placeInv, req.destPos); dst != nil && dst.Index == 0 {
-			*dst = g.Item
-			slot = int(req.destPos)
-		}
-	}
-	if slot < 0 {
-		slot = addToInv(p.Char, g.Item)
-	}
-	if slot < 0 {
+	beforeInv := p.Char.Inv
+	slots, received := w.receiveLoot(p.Char, g.Item, int(req.destPos))
+	if !received || len(slots) == 0 {
 		log.Printf("[#%d] pickup item %d: inventory full", s.ID, req.itemID)
 		return
 	}
+	slot := slots[0]
 	if err := w.saveAccount(p.Account); err != nil {
-		p.Char.Inv[slot] = model.Item{}
+		p.Char.Inv = beforeInv
 		log.Printf("[#%d] pickup canceled after save failure: %v", s.ID, err)
 		return
 	}
@@ -2760,7 +2745,9 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 	w.unregisterGroundItem(g)
 	// 0x171 acknowledges pickup; 0x182 fixes the authoritative slot.
 	s.Send(wire.CNFGetItem(uint32(placeInv), uint32(slot)))
-	s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
+	for _, pos := range slots {
+		s.Send(wire.SendItem(p.ID, placeInv, byte(pos), p.Char.Inv[pos]))
+	}
 	w.gameplayLogf("pickup", "[#%d] picked up item %d from the ground -> inv[%d]", s.ID, g.Item.Index, slot)
 }
 

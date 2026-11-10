@@ -4,7 +4,7 @@ title: Ground-item creation contract
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-07
+updated: 2026-11-09
 ---
 
 # Ground-item creation contract
@@ -94,6 +94,24 @@ before casting. `OnPacketCreateItem` checks the message, scene owners,
 derived fields. WYD-Go emits the same layout in visibility snapshots and
 drop publication.
 
+### Ground drop audio
+
+The native consumer plays a ground-item sound only when `Create@29` equals
+1. It first checks ability 38 for value 2, which selects sound 44. Item IDs
+412, 413, 4141, 419, and 420 select sound 48. Item 747 selects sound 306.
+Other ordinary items select sound 45. The gate branch bypasses this audio.
+
+The adapted `OnPacketCreateItem` preserves this order and gate. Sound 48 is
+`sound/item/hdustdrop.wav`. The active file and stock Portuguese file share
+SHA-256 `52EEB60122D9339127302063E512E366B0CD137F507CA31394D7F5AA32DA4BF5`.
+
+The Go publication path previously used `Create = 0` for new drops.
+`publishItemSpawn` now sets `Create = 1` when it publishes a new temporary
+drop. Snapshots, movement visibility updates, and instance cleanup leave
+the flag clear. Pending drops stay invisible until the commit completes.
+This restores the native selection for player drops, loot, and ground rewards.
+Live playback still needs verification.
+
 ## Delta matrix
 
 | Claim | Native 7.48 | Previous source | Current source | Classification |
@@ -103,6 +121,7 @@ drop publication.
 | ItemList | Direct lookup | Could index beyond 6,500 | Index validated | `MODERNIZACAO_COMPATIVEL` |
 | Existing ID with changed kind | Native assumes valid object lifecycle | Cast could write beyond allocated renderer | Reject mismatch before derived cast | `MODERNIZACAO_COMPATIVEL` |
 | Objects/effects | Native branches | Existing implementation | Preserved for valid frames | No change |
+| Drop sound | `Create@29 = 1` selects native item audio | All spawn packets used zero | New drops set the flag, and visibility replay leaves it clear | `PARIDADE_NATIVA` |
 | Player drop cell | `FUN_0046247E` sends the character cell at `GridX@24/GridY@26`; `FUN_004856C3` renders at cell + 0.5 | Server ignored the cell and scattered the drop to a random neighbor | Server uses the reported cell when walkable and within 2 cells of its position (2026-10-07) | `PARIDADE_NATIVA` |
 
 ## Decisions
@@ -129,6 +148,8 @@ drop publication.
   `FUN_0055890A` confirms `0x26E/0x20`.
 - Existing fixtures cover prefixes, excess bytes, null input, Size/Type
   mismatches, offsets, byte preservation, and ItemList bounds.
+- Ground drop tests verify the commit boundary, the audible spawn packet,
+  duplicate publication suppression, and the silent visibility refresh.
   `go test -count=1 ./internal/wire` and `go vet ./internal/wire` passed
   in the earlier contract batch.
 - On 2026-09-25, incremental Release `Build-Client.ps1 -NoDeploy` passed

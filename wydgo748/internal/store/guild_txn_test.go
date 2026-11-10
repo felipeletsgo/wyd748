@@ -15,7 +15,10 @@ func TestGuildWarFameAndCompletionPersistTogether(t *testing.T) {
 	s, _, _ := newTestStore(t)
 	r := sampleGuild()
 	r.Guilds[0].Fame = 100
-	r.Wars.Tower = model.TowerWarState{Day: "2026-09-14", EndsAt: time.Date(2026, 9, 15, 0, 35, 0, 0, time.UTC), Owner: 1, Started: true, Finished: true, Notices: 15}
+	r.Wars.Tower = model.TowerWarState{
+		Day: "2026-09-14", StartsAt: time.Date(2026, 9, 15, 0, 5, 0, 0, time.UTC), EndsAt: time.Date(2026, 9, 15, 0, 35, 0, 0, time.UTC),
+		Owner: 1, Started: true, Finished: true, Notices: 15,
+	}
 	if err := s.SaveGameState(r); err != nil {
 		t.Fatal(err)
 	}

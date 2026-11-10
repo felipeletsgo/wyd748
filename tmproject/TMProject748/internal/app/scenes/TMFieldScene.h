@@ -1,6 +1,7 @@
 #pragma once
 #include "../../game/entities/AirMoveRoutes.h"
 #include "ExtractedFlow.h"
+#include "../../wire/DropListPacket.h"
 
 #include "Basedef.h"
 #include "TMScene.h"
@@ -88,7 +89,28 @@ public:
 	void SetVisibleMixItem6(int bShow);
 	void SetVisibleHellGateStore(int bShow);
 	void SetVisibleGamble(int bShow, char cType);
-	void UpdateGambleRequestTimeout();
+    void UpdateGambleRequestTimeout();
+    void ToggleDropSearch();
+    void CloseDropSearch();
+    bool IsDropSearchVisible() const;
+    void SearchDrops(unsigned int offset);
+    void UpdateDropSearch();
+    int DropSearchControl(unsigned int id);
+    int OnDropSearchResult(const void* bytes, unsigned int size);
+    void SetDropSearchFeedback(int row, const char* fallback);
+    SEditableText* m_dropSearchEdit{};
+    SText* m_dropSearchHint{};
+    SText* m_dropSearchBonus{};
+    SText* m_dropSearchStatus{};
+    SText* m_dropSearchMessage{};
+    SText* m_dropModeLabels[2]{};
+    SText* m_dropSearchRows[10][4]{};
+    SControl* m_dropPreviousModal{};
+    drop_list::PendingQuery m_dropPending{};
+    unsigned int m_dropRequestTime{}, m_dropOffset{}, m_dropTotal{};
+    unsigned int m_dropDeferredOffset{};
+    bool m_dropDeferred{};
+    unsigned char m_dropMode{};
 	void UpdateInstanceTimerHud(unsigned int dwServerTime);
 	void SetVisiblePotal(int bShow, int nPos);
 	void SetVisibleMiniMap();
@@ -121,7 +143,7 @@ public:
 	void SetKingDomChat(char cOn);
 	void SendReqBuy(unsigned int dwControlID);
 	void SetSanc();
-	int GetItemFromGround(unsigned int dwServerTime);
+	int GetItemFromGround(unsigned int dwServerTime, bool prioritizePickup = false);
 	int GetWeaponDamage();
 	void SetMyHumanMagic();
 	void SetWeather(int nWeather);
@@ -371,6 +393,7 @@ private:
 	void PositionCompatPartyPanel();
 	// Reapplies the exact native 7.48 viewport centering for the Quest root.
 	void PositionCompatQuestPanel();
+	void PositionCompatHelpPanel();
 	// Keeps every Quest entry/exit path on one visibility, reload and button-state
 	// transition for both the native 7.48 and imported control IDs.
 	void SetQuestPanelVisible(bool visible);

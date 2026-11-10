@@ -212,7 +212,7 @@ first two are established.
 
 | Set | Present in `tmproject/client748` | Format/identity | Loader | Gameplay |
 | --- | --- | --- | --- | --- |
-| `sound/` (349 `.wav` + `soundlist.txt`) | yes, imported from `references/WYD_KR` | WAV files remain byte-identical; headers checked; five unavailable-file declarations removed from the runtime list by user authorization | 332 remaining declarations resolve; runtime loading not exercised | not `CLIENT_TESTED` |
+| `sound/` | yes, imported from KR and other reference sets | 333 registered files contain complete PCM data | 333 unique IDs resolve; runtime loading not exercised | not `CLIENT_TESTED` |
 | `music/` (13 `.mp3`) | yes, imported from `references/WYD_KR` | byte-identical to the KR set | not exercised | not `CLIENT_TESTED` |
 | `Music.txt`, `sound.txt` (root lists read by `FUN_0055baa8` and `FUN_0042978d`) | yes, copied from `references/WYD_KR` on 2026-10-03 | byte-identical; all eight music entries and the item-sound path resolve | `Music.txt`: path-column contract checked against `NewApp::InitMusicList`; no runtime execution | not `CLIENT_TESTED` |
 
@@ -229,15 +229,8 @@ runtime sound list; the reference collection remains unchanged.
 | `tmproject/client748/sound.txt` | `references/WYD_KR/sound.txt` | 45 | `a40923875dd04dc2ceca7790005b7cfb7f96f1ecbde708359b16cdde8ddccd3a` |
 
 Static validation checked the 17-column music path offset and resolved every
-root-list path. The runtime sound list now contains 332 nonblank entries, all
-pointing to existing files. The five missing declarations below were removed
-by explicit user authorization on 2026-10-03. It still repeats ID 220:
-`argosdie.wav` followed by
-`argosidle.wav`. The current indexed loader assigns the later entry over the
-earlier one. This duplicate is inherited byte-for-byte from KR; it was not
-renumbered or corrected without evidence for the intended mapping. These checks
-establish file identity and path resolution, not decoder/playback validation or
-native behavioral parity.
+root-list path. The table below records the 2026-10-03 cleanup. The
+[current audio audit](#audio-audit-2026-11-09) supersedes its runtime status.
 
 Removed runtime declarations (the files exist neither in the runtime nor in
 the KR collection; the original KR list still retains these dangling entries):
@@ -256,19 +249,30 @@ comparison against the KR list filtered to exclude IDs 55, 95, 96, 103, and 363
 confirmed the exact scope. The deleted lines remain recoverable from
 `references/WYD_KR/sound/soundlist.txt`.
 
-The manager initializes undeclared slots with an empty path and a null sound
-pointer. Its indexed loader leaves these slots undeclared rather than shifting
-other IDs. No direct `GetSoundData` call for the removed IDs was found in client
-source; dynamic/data-derived requests are not proven absent. Such requests
-still cannot play these sounds and can log a failed load, as before the cleanup.
-This closes A08's dangling declarations by explicit configuration policy, not
-by recovering audio or proving the IDs unused. Pending: the ID 220 mapping and
-runtime loader/playback validation; no native-parity claim is made.
-
-Runtime list SHA-256 after cleanup:
+Runtime list SHA-256 after the 2026-10-03 cleanup:
 `b6d1ad277cb9400a295f81170aeb61b0b52236c470addb546d1a350dc2496a6d`.
 Unchanged reference list SHA-256:
 `e71226a4f0ffcc0d8ce196c77f49d98f090a975b3e34b35ab15e7c94f97f09c8`.
+
+#### Audio audit (2026-11-09)
+
+- The active list has 333 unique IDs. Every row resolves to a complete PCM
+  WAV. All 346 shared WAV paths match the stock Portuguese files by SHA-256.
+  The runtime includes the original guard attack sample again at ID 363.
+- All nonzero sound IDs read from the active animation table and all
+  literal numeric sound calls in active C++ resolve. Calculated IDs and
+  actual playback remain outside this scan.
+- Argos has class 30 and face mesh 3. Its animation uses the minotaur
+  attack, hit, and death IDs plus four. This confirms death at 220.
+  The idle file now uses the free ID 221, which fits the adjacent monster
+  sequences. This list correction is `MODERNIZACAO_COMPATIVEL`.
+- The waterfall stops after two missed proximity refresh periods (600 ms).
+  Rain, snow, and waterfall stop cached audio even at minimum volume.
+  Stopping an ambient sound does not load its file. This change is
+  `MODERNIZACAO_COMPATIVEL`.
+- New ground drops use the native audio flag, including Lac powder from
+  the Corrupted Crystal. Existing drops stay silent on visibility refresh.
+  See the [ground drop trace](../../.agents/research/client748/flows/ui/ground-item-create-contract.md#ground-drop-audio).
 
 ### Available in the newer KR reference client
 

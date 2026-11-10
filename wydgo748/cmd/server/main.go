@@ -93,6 +93,7 @@ func main() {
 	questZonesPath := flag.String("quest_zones", cfg.QuestZonesPath, "area reset zones (quest_zones.json)")
 	initItemsPath := flag.String("init_items", cfg.InitItemsPath, "persistent world objects (init_items.csv)")
 	bossPath := flag.String("boss", cfg.BossPath, "boss directory (data/content/boss/*.lua)")
+	crystalPath := flag.String("corrupted_crystal", "data/content/corrupted_crystal.json", "public crystal encounter configuration (empty disables it)")
 	itemPath := flag.String("items", cfg.ItemPath, "authoritative itemlist.csv")
 	itemNamePath := flag.String("itemnames", cfg.ItemNamePath, "authoritative Itemname.csv")
 	itemEffectPath := flag.String("itemeffects", cfg.ItemEffectPath, "authoritative ItemEffect.h")
@@ -265,6 +266,10 @@ func main() {
 		log.Fatalf("load bosses: %v", err)
 	}
 	log.Printf("%d bosses loaded from %s", len(bosses.Bosses), *bossPath)
+	crystal, err := game.ReadCorruptedCrystal(*crystalPath)
+	if err != nil {
+		log.Fatalf("load corrupted crystal: %v", err)
+	}
 
 	initItems, err := data.LoadInitItems(*initItemsPath, catalog.Items)
 	if err != nil {
@@ -331,7 +336,7 @@ func main() {
 		game.WithOperationalConfig(operational),
 		game.WithMessages(messages), game.WithLanguage(channelLanguage),
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
-		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
+		game.WithBossCatalog(bosses), game.WithInitItems(initItems), game.WithCorruptedCrystal(crystal),
 		game.WithColosseum(cfg.Colosseum, colosseum),
 		game.WithLoadtestSpawn(cfg.LoadtestSpawn, cfg.LoadtestAccountPrefix),
 		// In-game staff commands use the panel's staff file, re-read per use.

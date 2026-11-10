@@ -9,9 +9,55 @@ For the dated live release, schema, client patch and outstanding gates, consult
 in [public launch](public-launch.md); they are not interchangeable with the
 current working tree.
 
+## BM learned summons (2026-11-08)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Casting any learned BM summon skill
+(56-63) creates one creature for each learned summon type, up to eight types.
+Mastery changes creature attributes, not quantity. Existing living creatures
+retain their HP, affects, and attributes; recasting brings them beside the owner.
+Only missing types are created. Recasting also removes duplicate BM creatures
+of the same type and owner, retaining the creature with the lowest entity ID.
+
+The selected skill retains its MP cost and cooldown. One cast pays once for
+the group. No new creature means MP is restored; the cooldown still applies.
+Partial creation retains the MP charge. A later cast can create missing types.
+Other owners, mounts, contract summons, and Thorn Wall remain unchanged.
+Summons keep the owner's RuntimeID and stay outside parties.
+
+This change reuses existing skill and entity packets. It does not establish
+native 7.48 parity. The supplied 7.59 `GenerateSummon` evidence is a separate
+contract (`TMSRVIN.c`, `sub_512F60`, under the local server decompilation).
+Release `20261108T172846Z` introduced the change on both channels. Readiness and running
+executable hashes passed verification. Actual game acceptance remains pending.
+See the [activation receipt](../../.agents/research/release-bm-summoner-20261108.json).
+
+### BM attack profiles (2026-11-09, local)
+
+The BM attack profile uses each summon face's 7.48 catalog range.
+The near or far split uses native grid distance 3. The spell roll can replace
+either attack. All attacks use one target.
+
+| Summon | Range | Far attack | Spell chance per attack |
+| --- | ---: | --- | --- |
+| Condor | 2 | Physical | — |
+| Boar | 2 | Physical | — |
+| Wolf | 1 | Physical | — |
+| Bear | 2 | Physical | — |
+| Tiger | 4 | Breath | Poison Stab 15% |
+| Gorilla | 4 | Rock | Ice Spear 15% |
+| Black Dragon | 6 | Beam | Heaven's Dust 15% |
+| Succubus | 3 | Beam | Meteor Strike 50%, Ice Spear 35% |
+
+Poison Stab applies poison. Ice Spear applies slow. The server uses the 7.48
+skill catalog for debuff duration and checks immunity before application.
+See the [combat evidence](../../.agents/research/client748/flows/combat/bm-summon-attacks.md).
+
 ## BM summon dismissal (2026-10-29, local)
 
-Use `/unsummon` or `/dispensar` to dismiss your BM summons before changing families.
+The former family restriction is superseded by
+[learned summons](#bm-learned-summons-2026-11-08).
+
+Use `/unsummon` or `/dispensar` to dismiss your BM summons.
 The existing chat packet carries both aliases (`EXTENSAO_COORDENADA`).
 The server removes only summons with the player's owner ID and BM summon kind.
 It sends removal to current viewers and clears world and summon indexes.
@@ -189,13 +235,16 @@ The server has these systems. The server has authority on each system.
 - **Progression** — The server uses the native Mortal experience table. You can
   configure the experience floor and rate. The server does the level-up. It
   controls the statistic, mastery, and skill-point budgets. It applies the
-  equipment requirements and the item bonuses.
+  equipment requirements and the item bonuses. The class baseline migration
+  preserves allocated points. If the allocation exceeds the new budget, the
+  server removes the excess starting with the largest allocation.
 - **Skills** — The server has code paths for the 104-skill catalog. The four
   classes are TK, Foema, BeastMaster, and Huntress. The catalog includes
   multi-target magic, healing, buffs, transformations, BeastMaster summons, and
-  the five Sephira skills. Arch, Celestial, and SubCelestial may buy a skill
-  regardless of its level requirement; class, skill points, mastery,
-  prerequisite chains, and gold remain server-authoritative.
+  the five Sephira skills. Celestial and SubCelestial skip book level and
+  mastery requirements. The server checks both requirements for Mortal and
+  Arch. It checks class, skill points, prerequisite chains, and gold for all
+  forms.
 - **Party** — A party can have a maximum of 13 players. The party has a chat
   channel. Each near member gets the full experience and a configurable bonus
   for each member.
@@ -356,18 +405,24 @@ The server has these systems. The server has authority on each system.
   stays. The Arch gets more attribute points if the Mortal has a higher level,
   and the server calculates this again at each login. An Arch stops at level
   355 and at level 370: it receives no experience until Lindy lifts the limit
-  with the retail recipe. The level 370 unlock also costs one fame point. The
-  four elemental oaths of Kefra cost 100 million experience each, and you must
-  take them in order.
+  with the configured recipe. The level 370 unlock also costs one fame point. The
+  four elemental oaths of Kefra start at level 355 and require at least
+  1.95 billion experience per attempt. Each costs 100 million experience.
+  Take the oaths in order.
 - **Celestial and SubCelestial** — An eligible Arch becomes Celestial in the
   same character slot through the native Ideal Stone chain. Celestial and
   SubCelestial have separate class, experience, attributes, masteries, learned
   skills, skill bar, and affects, while they share identity, inventory,
   equipment, kingdom, fame, quests, Soul configuration, and the native
-  cross-form status-point bonus. The server implements the 7.54 level-200
-  table, level 40/90 locks, cumulative late-level combat EXP reductions,
-  Cythera milestones, Soul of Limits, Fury/Arcana, city-only form switching,
-  and the native Spirit's Seal capsule/extraction flow.
+  cross-form status-point bonus. Create the SubCelestial at level 120 or
+  higher. It inherits the current form's special learned skills once.
+  Both forms share the level 40 and 90 unlock flags. The server uses the
+  native 7.59 EXP milestones through level 200. The existing combat EXP
+  reductions, Cythera milestones, Soul of Limits, city-only form switching,
+  and Spirit's Seal capsule and extraction also apply.
+  Remove the equipped helmet before using the Ideal Stone as an Arch.
+  The level 90 Fury attempt succeeds 60% of the time. The Arcana attempt
+  succeeds 30% of the time.
   Creating an Arch or Celestial returns the player to character selection and
   refreshes all four slots after persistence, ensuring the 7.48 client reloads
   the evolved body, score, and skills. A Celestial creation is announced to
@@ -382,6 +437,23 @@ The server has these systems. The server has authority on each system.
   `data/content/boss/`. The file sets the assets, the statistics, the position, the
   respawn time, the skills, the adds, the HP phases, and the drops. The Lua
   file selects a behavior; it cannot make a new rule.
+- **Corrupted Crystal** (`EXTENSAO_COORDENADA`) — Each channel runs one public
+  encounter at `(1104, 1711)`. The large, medium, and small crystals have
+  100,000,000, 10,000,000, and 1,000,000 HP, respectively. Each stays in place,
+  shows cracks at 75%, 50%, and 25% HP, and shatters on death. New observers see
+  the current crack stage. The large crystal uses a purple Thunderbolt pulse
+  against living attackers within four tiles every eight seconds. Summon hits
+  count for their owner. Base pulse power is 510 before damage reduction.
+  When the large crystal breaks, five medium crystals spawn around it. When
+  all five break, four small crystals spawn around each medium's former tile.
+  Large, medium, and small crystals drop 20, four, and one Laktorerium Powder
+  units, respectively. The 60 units appear as separate ground items. Blocked
+  drops retry until nearby tiles and ground item IDs become available.
+  Each wave has a ten-minute deadline. A new large crystal can spawn 30 minutes
+  after completion or expiry, once its tile is clear and pending drops land.
+  Live encounter state belongs to the channel and resets on server restart. Edit
+  [`corrupted_crystal.json`](../../wydgo748/data/content/corrupted_crystal.json)
+  to tune the encounter. Pass `-corrupted_crystal=` to disable it.
 - **Communication** — The protocol carries local, party, guild, and global chat.
   It carries whisper, death letters, and server announcements. A message needs
   the other player online. If that player is offline, the server tells you.

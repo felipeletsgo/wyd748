@@ -247,6 +247,160 @@
     "6018": "Cristal_Teste_Magia_320"
   },
   "item_help": {
+    "3900": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +16%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3901": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Taxa de drop de itens: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3902": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +16%.",
+      "FFFFFFFF Taxa de drop de itens: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3903": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +16%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3904": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Taxa de drop de itens: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3905": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +16%.",
+      "FFFFFFFF Taxa de drop de itens: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3906": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +16%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3907": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Taxa de drop de itens: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3908": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +16%.",
+      "FFFFFFFF Taxa de drop de itens: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3911": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3912": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3913": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +32%.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "3914": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +16%.",
+      "FFFFFFFF Taxa de drop de itens: +32%.",
+      "FFFFFFFF Shift + clique direito para vender.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar.",
+      "FFFFFFFF "
+    ],
+    "3915": [
+      "FFFF00FF Familiar premium",
+      "FFFFFFFF ",
+      "FFFFFFFF Bônus enquanto equipado.",
+      "FFFFFFFF Experiência obtida: +18%.",
+      "FFFFFFFF Taxa de drop de itens: +50%.",
+      "FFFFFFFF Shift + clique direito para vender.",
+      "FFFFFFFF Agrupa itens empilháveis ao coletar.",
+      "FFFFFFFF ",
+      "FFFF0000 O tempo pausa ao desequipar."
+    ],
     "1725": [
       "FFFF00FF Material de composição",
       "FFFFFFFF ",
@@ -1127,17 +1281,6 @@
       "FFFFFFFF ",
       "FFFFFFFF "
     ],
-    "3903": [
-      "FFFFFFFF Item especial",
-      "FFFFFFFF ",
-      "FFFFFFFF Equipe no espaço de equipamento",
-      "FFFFFFFF para aumentar a experiência",
-      "FFFFFFFF obtida em 32%.",
-      "FFFFFFFF ",
-      "FFFFFFFF O tempo não diminui enquanto",
-      "FFFFFFFF o item estiver desequipado.",
-      "FFFFFFFF "
-    ],
     "3909": [
       "FFFFFFFF Item especial",
       "FFFFFFFF ",
@@ -1519,17 +1662,17 @@
     ]
   },
   "files": {
-    "UI/UIString.txt": "1\tConectar\n2\tFechar\n3\tServidor\n4\tCanal\n5\tEntrar\n6\tFechar\n7\tNova_Conta\n8\tConta\n9\tSenha\n10\tSelecionar_Personagem\n11\tCriar\n12\tCancelar\n13\tExcluir\n14\tEsc\n15\tConectar\n16\tDados_do_Personagem\n17\tAtributos\n18\tHabilidades\n19\tReino\n20\tNenhum\n21\tNome\n22\tClasse\n23\tNível\n24\tGuild\n25\tGold\n26\tExp\n27\tLocalização\n28\tFor\n29\tInt\n30\tDes\n31\tCon\n32\tAprendizagem_de_Arma\n33\tConfiança\n34\tTrans\n35\tEspada_Mágica\n36\tNenhum\n37\tArmia\n38\tDigite_o_Novo_Nome\n39\tCriar\n40\tCancelar\n41\tCriar\n42\tClasse\n43\tAtributos_Básicos\n44\tDados_do_Personagem\n45\tNome_do_Personagem\n46\tFor\n47\tInt\n48\tDes\n49\tCon\n50\tConfirmar\n51\tCancelar\n52\tDigite_a_Senha\n53\tTrocar_Servidor\n54\tTrocar_Personagem\n55\tSair_do_Jogo\n56\tCancelar\n57\tMenu_do_Sistema\n58\tQuest\n59\tGrupo\n60\tGuild\n61\tTroca\n62\tMenu\n63\tDesafiar\n64\t1_:_1\n65\t5_:_5\n66\t10_:_10\n67\tTodos:Todos\n68\tExpulsar\n69\tDeclarar_Guerra\n70\tAliado\n71\tConvidar_para_a_Guild\n72\tMenu\n73\tMembro_da_Guild\n74\tLíder\n75\tLíder\n76\tLíder\n77\tDigite_a_Quantidade_de_Gold\n78\tServidores_Combinados\n79\tAvisos\n80\tFechar\n81\tQuest\n82\tQuest_350\n83\tQuest_de_Evento\n84\tQuest_Arch\n85\tQuest\n86\tNova_Quest\n87\tAjuda\n88\tBotão_de_Ajuda\n89\tPágina_Anterior\n90\tPróxima_Página\n91\tComando\n92\tOutros\n93\tMensagem\n94\tConversa_WYD\n95\tMensagem_Recebida\n96\tSolicitar_Invocação\n97\tMural_da_Guild\n98\tEntrar\n99\tConfirmar\n100\tTítulo\n101\tResponder\n102\tEditor\n103\tApagar\n104\tVerificar_Contas\n105\tSalvar_Aviso\n106\tLimpar_Conteúdo\n107\tSalvar\n108\tCancelar\n109\tSorriso\n110\tCoração\n111\tEstrela\n112\t?\n113\t!\n114\tNome_do_Personagem\n115\tMenu_Principal\n116\tPersonagem(C)\n117\tInventário(I)\n118\tHabilidades(S)\n119\tQuest(X)\n120\tLoja_Automática\n121\tAjuda(H)\n122\tSistema(ESC)\n123\tGrupo(P,D)\n124\tNormal\n125\tGrupo\n126\tSussurro\n127\tGuild\n128\tPersonagem\n129\tMeus_Dados\n130\tMeus_Dados\n131\tReino\n132\tResist.\n133\tHabilidades\n134\tNome\n135\tNome\n136\tGuild\n137\tClasse\n138\tExp\n139\tNível\n140\tFor\n141\tPontos\n142\tVida\n143\tMana\n144\tAtaque\n145\tAtq._Mág.\n146\tVel._Mov.\n147\tDefesa\n148\tVel._Atq.\n149\tCrítico\n150\tSagrado\n151\tRaio\n152\tFogo\n153\tGelo\n154\tAprendizagem_de_Arma\n155\tConfiança\n156\tTrans\n157\tEspada_Mágica\n158\tPontos_Esp.\n159\tSair_do_Grupo\n160\tNúmero_do_Jogo\n161\tSelecionar\n162\tComprar\n163\tTempo_de_Jogo\n164\tLoja\n165\tBaú\n166\tCompor\n167\tCompor\n168\tCusto_50,000,000\n169\tCompor\n170\tLoja_Automática\n171\tAbrir_Loja\n172\tFechar_Loja\n173\tTítulo_da_Loja\n174\tTítulo_da_Loja\n175\tNome\n176\tNome\n177\tLoja_de\n178\tOponente\n179\tVocê\n180\tVendido_por_5000_Gold\n181\tVendido_por_5000_Gold\n182\tSeleção_Automática\n183\tComprar\n184\tCancelar\n185\tFechar\n186\tAprender_Habilidades\n187\tConfiança\n188\tTrans\n189\tEspada_Mágica\n190\tHabilidade\n191\tConfiança\n192\tHabilidade_\n193\tEspada_Mágica\n194\tSephira\n195\tPts._Hab.\n196\tEquipamento\n197\tComposição_de_Arma_Arch\n198\tComposição\n199\tCusto_100000000\n200\tSistema_de_Restauração\n201\tRestaurar\n202\tTaxa_da_União_0\n203\tSelecionar_Canal\n204\tSelecionar_Servidor\n205\t[NONE,NONE]_Local_de_Teleporte\n206\t[Nome_da_Área]\n207\tLocal_da_Área\n208\tCoordenada_de_Teleporte\n209\tConfirmar\n210\tCancelar\n211\t9000000\n212\t6000000\n213\t5000000\n214\t7000000\n215\tPRÊMIO\n216\tINICIAR\n217\t-10000\n218\t-1000\n219\t+10000\n220\t+1000\n221\tCRÉDITO\n222\tAPOSTA\n223\t1000\n224\t_NENHUM\n225\tCopyright_2002~2007_JoyImpact,_Todos_os_Direitos_Reservados.\n226\tModo_C.C(MC)\n227\tModo_C.C(SC)\n228\tNv\n",
+    "UI/UIString.txt": "1\tConectar\n2\tFechar\n3\tServidor\n4\tCanal\n5\tEntrar\n6\tFechar\n7\tNova_Conta\n8\tConta\n9\tSenha\n10\tSelecionar_Personagem\n11\tCriar\n12\tCancelar\n13\tExcluir\n14\tEsc\n15\tConectar\n16\tDados_do_Personagem\n17\tAtributos\n18\tHabilidades\n19\tReino\n20\tNenhum\n21\tNome\n22\tClasse\n23\tNível\n24\tGuild\n25\tGold\n26\tExp\n27\tLocalização\n28\tFor\n29\tInt\n30\tDes\n31\tCon\n32\tAprendizagem_de_Arma\n33\tConfiança\n34\tTrans\n35\tEspada_Mágica\n36\tNenhum\n37\tArmia\n38\tDigite_o_Novo_Nome\n39\tCriar\n40\tCancelar\n41\tCriar\n42\tClasse\n43\tAtributos_Básicos\n44\tDados_do_Personagem\n45\tNome_do_Personagem\n46\tFor\n47\tInt\n48\tDes\n49\tCon\n50\tConfirmar\n51\tCancelar\n52\tDigite_a_Senha\n53\tTrocar_Servidor\n54\tTrocar_Personagem\n55\tSair_do_Jogo\n56\tCancelar\n57\tMenu_do_Sistema\n58\tQuest\n59\tGrupo\n60\tGuild\n61\tTroca\n62\tMenu\n63\tDesafiar\n64\t1_:_1\n65\t5_:_5\n66\t10_:_10\n67\tTodos:Todos\n68\tExpulsar\n69\tDeclarar_Guerra\n70\tAliado\n71\tConvidar_para_a_Guild\n72\tMenu\n73\tMembro_da_Guild\n74\tLíder\n75\tLíder\n76\tLíder\n77\tDigite_a_Quantidade_de_Gold\n78\tServidores_Combinados\n79\tAvisos\n80\tFechar\n81\tQuest\n82\tQuest_350\n83\tQuest_de_Evento\n84\tQuest_Arch\n85\tQuest\n86\tNova_Quest\n87\tAjuda\n88\tBotão_de_Ajuda\n89\tPágina_Anterior\n90\tPróxima_Página\n91\tComando\n92\tOutros\n93\tMensagem\n94\tConversa_WYD\n95\tMensagem_Recebida\n96\tSolicitar_Invocação\n97\tMural_da_Guild\n98\tEntrar\n99\tConfirmar\n100\tTítulo\n101\tResponder\n102\tEditor\n103\tApagar\n104\tVerificar_Contas\n105\tSalvar_Aviso\n106\tLimpar_Conteúdo\n107\tSalvar\n108\tCancelar\n109\tSorriso\n110\tCoração\n111\tEstrela\n112\t?\n113\t!\n114\tNome_do_Personagem\n115\tMenu_Principal\n116\tPersonagem(C)\n117\tInventário(I)\n118\tHabilidades(S)\n119\tQuest(X)\n120\tLoja_Automática\n121\tAjuda(H)\n122\tSistema(ESC)\n123\tGrupo(P)\n124\tNormal\n125\tGrupo\n126\tSussurro\n127\tGuild\n128\tPersonagem\n129\tMeus_Dados\n130\tMeus_Dados\n131\tReino\n132\tResist.\n133\tHabilidades\n134\tNome\n135\tNome\n136\tGuild\n137\tClasse\n138\tExp\n139\tNível\n140\tFor\n141\tPontos\n142\tVida\n143\tMana\n144\tAtaque\n145\tAtq._Mág.\n146\tVel._Mov.\n147\tDefesa\n148\tVel._Atq.\n149\tCrítico\n150\tSagrado\n151\tRaio\n152\tFogo\n153\tGelo\n154\tAprendizagem_de_Arma\n155\tConfiança\n156\tTrans\n157\tEspada_Mágica\n158\tPontos_Esp.\n159\tSair_do_Grupo\n160\tNúmero_do_Jogo\n161\tSelecionar\n162\tComprar\n163\tTempo_de_Jogo\n164\tLoja\n165\tBaú\n166\tCompor\n167\tCompor\n168\tCusto_50,000,000\n169\tCompor\n170\tLoja_Automática\n171\tAbrir_Loja\n172\tFechar_Loja\n173\tTítulo_da_Loja\n174\tTítulo_da_Loja\n175\tNome\n176\tNome\n177\tLoja_de\n178\tOponente\n179\tVocê\n180\tVendido_por_5000_Gold\n181\tVendido_por_5000_Gold\n182\tSeleção_Automática\n183\tComprar\n184\tCancelar\n185\tFechar\n186\tAprender_Habilidades\n187\tConfiança\n188\tTrans\n189\tEspada_Mágica\n190\tHabilidade\n191\tConfiança\n192\tHabilidade_\n193\tEspada_Mágica\n194\tSephira\n195\tPts._Hab.\n196\tEquipamento\n197\tComposição_de_Arma_Arch\n198\tComposição\n199\tCusto_100000000\n200\tSistema_de_Restauração\n201\tRestaurar\n202\tTaxa_da_União_0\n203\tSelecionar_Canal\n204\tSelecionar_Servidor\n205\t[NONE,NONE]_Local_de_Teleporte\n206\t[Nome_da_Área]\n207\tLocal_da_Área\n208\tCoordenada_de_Teleporte\n209\tConfirmar\n210\tCancelar\n211\t9000000\n212\t6000000\n213\t5000000\n214\t7000000\n215\tPRÊMIO\n216\tINICIAR\n217\t-10000\n218\t-1000\n219\t+10000\n220\t+1000\n221\tCRÉDITO\n222\tAPOSTA\n223\t1000\n224\t_NENHUM\n225\tCopyright_2002~2007_JoyImpact,_Todos_os_Direitos_Reservados.\n226\tModo_C.C(MC)\n227\tModo_C.C(SC)\n228\tNv\n240\tAbates\n241\tDigite a quantidade para dividir.\n242\tUsar este ingresso para entrar?\n229\tDesligado\n230\tAuxiliar\n232\tFixo\n233\tLivre\n234\tCiclo\n235\tControle de combate\n236\tCombate\n237\tPoção HP/MP: clique para ajustar a porcentagem\n238\tRação: clique para ajustar ou desligar\n239\tMovimento\n243\tExibir EXP: LIGADO\n244\tExibir EXP: DESLIGADO\n245\tFPS e ping visíveis abaixo do minimapa.\n246\tFPS e ping ocultos.\n247\tMonstro\n248\tErro crítico nos dados.\n249\tArquivo de dados não encontrado.\n250\tArquivo ausente\n251\tC.C. - configurar combate automático\n252\tCorpo a corpo\n253\tMagia\n254 Use pelo menos 4 letras.\n255 Use no máximo 13 letras.\n256 Use apenas letras A-Z ou a-z.\n257\t%s  (10 segundos)\n258\tPartida %d\n259\tTime A\n260\tTime B\n261\tRestam %d\n262\tItem %d\n263\tNell: compra concluída. O item está no inventário.\n264\tNell: compra não realizada. Abra a loja novamente.\n265\tNell: aguardando a confirmação da compra pelo servidor.\n266\tNell: interface web indisponível. A loja padrão será utilizada.\n267\tLista de drops (D)\n268\tMonstros\n269\tItens\n270\tPesquisar\n271\tItem\n272\tMonstro\n273\tChance base\n274\tCom bônus\n275\tAnterior\n276\tPróxima\n277\tFechar\n278\tCarregando...\n279\tSem resultados. Tente outro nome ou aba.\n280\tPesquise novamente em instantes.\n281\tServidor não respondeu. Pesquise novamente.\n282\tChance por abate elegível; combina rolagens independentes.\n283\tSeu bônus altera taxas normais; recompensas fixas não mudam.\n284\t* Eventos/bosses têm regras; áreas só de EXP não têm drops.\n285\tBusque monstros pelo nome.\n286\tBusque itens pelo nome ou ID.\n287\tBônus de drop:\n288\tBônus de drop: carregando\n289\tBônus de drop indisponível.\n290\tReduza a escala da interface para abrir a lista de drops.\n",
     "UI/EffectString.txt": "Lentidão\nAcelerar\nRed.Reg\nPoder\nEvasão(-)\nEvasão(+)\nVel.Ataque(-)\nVelocidade(+)\nDano(+)\nDano(-)\nEscudo.Mágico\nDefesa(-)\nAssalto\nCrescimento\nSkill(+)\nMutação\nReg.Vida\nControle.Mana\nImunidade\nVeneno\nCorpo.a.Corpo\nRelâmpago\nElemental\nExplosão\nProteção\nEvasão(+)\nCongelar\nEsconder\nLimite.da.Alma\nCoragem\nArmadura.Ouro\nBloq.Poção\njb\nComida\nMaior\nArmadura.Crítica\nOutra.Alma\nTroca.Espírito\nExp\n",
-    "UI/interface.txt": "FFFFFF Atalhos do teclado\nFFFFAA Modo do teclado (KEYTYPE)\nAAFFAA Modo 0: use as teclas listadas abaixo.\nAAFFAA Modo 1: adicione Ctrl às letras e aos números.\nAAFFAA Modo 1: atribua skills com Ctrl+Shift+1-0.\nAAFFAA Modo 1: use Alt com +, -, ] e apóstrofo.\nAAFFAA Ctrl com pontuação também funciona no modo 1.\nAAFFAA F11, Tab, PageUp/Down e cliques em itens permanecem iguais.\nFFFFAA 1-0 / Shift+1-0\nAAFFAA Selecione uma skill / atribua a skill sob o cursor.\nAAFFAA Abra Skills antes de atribuir uma skill sob o cursor.\nAAFFAA Use a fileira numérica, não F1-F10.\nFFFFAA Z\nAAFFAA Alterne entre as duas barras de atalhos de skills.\nFFFFAA Q / W / E\nAAFFAA Use uma poção de vida / mana / Kapa.\nFFFFAA V / F11\nAAFFAA Alimente a montaria / use um Pergaminho de Retorno.\nFFFFAA F\nAAFFAA Use um consumível de medalha compatível.\nAAFFAA Requer a medalha correspondente equipada.\nFFFFAA T / -\nAAFFAA Ative o Auto Ataque / ajuste o uso de combos de skills.\nFFFFAA ]\nAAFFAA Ative a Corrida Automática na direção da câmera.\nAAFFAA Gire a câmera para mudar a direção; pressione de novo para parar.\nAAFFAA Indisponível em mapas restritos ou sem poder se mover.\nFFFFAA R\nAAFFAA Alterne entre correr e andar com a montaria.\nFFFFAA K\nAAFFAA Alterne o modo PK, conforme as restrições do servidor.\nFFFFAA Apóstrofo (')\nAAFFAA Exiba ou oculte a afiliação pública à guilda.\nAAFFAA Isso não sai da guilda nem altera o modo PK.\nFFFFAA C / I ou G / S\nAAFFAA Abra Personagem / Inventário / Skills.\nFFFFAA P / M / X / H\nAAFFAA Abra Grupo / Minimapa / Quests / Ajuda.\nFFFFAA A / D (modo 0)\nAAFFAA Selecione o modo C.C. 1 / modo 2.\nFFFFAA N / Tab\nAAFFAA Exiba os nomes dos personagens / mude a câmera.\nFFFFAA Enter / +\nAAFFAA Abra o chat / redimensione a janela do chat.\nFFFFAA PageUp / PageDown\nAAFFAA Role a lista visível de mensagens ou do chat.\nFFFFAA Seta para cima / Seta para baixo\nAAFFAA Percorra as mensagens digitadas anteriormente.\nFFFFAA Ctrl / Print Screen\nAAFFAA Exiba nomes dos itens no chão / salve uma captura de tela.\nFFFFAA Ctrl+clique direito em um item\nAAFFAA Equipe do inventário ou desequipe para o inventário.\nAAFFAA Requer espaço e os requisitos válidos do equipamento.\nFFFFAA Shift+clique direito em um item\nAAFFAA Transfira entre o inventário e o armazém aberto.\nAAFFAA Usa o primeiro espaço livre no destino.\nFFFFAA Ctrl+clique esquerdo em um item\nAAFFAA Atalho alternativo para transferências do armazém.\nFFFFAA Shift+clique esquerdo em uma pilha\nAAFFAA Abra a janela para dividir a pilha.\nAAFFAA Ctrl tem prioridade quando Ctrl e Shift estão pressionados.\nAAFFAA Transferências e trocas de equipamento exigem aprovação do servidor.\n",
+    "UI/interface.txt": "FFFFFF Atalhos do teclado\nFFFFAA Modo do teclado (KEYTYPE)\nAAFFAA Modo 0: use as teclas listadas abaixo.\nAAFFAA Modo 1: adicione Ctrl às letras e aos números.\nAAFFAA Modo 1: atribua skills com Ctrl+Shift+1-0.\nAAFFAA Modo 1: use Alt com +, -, ] e apóstrofo.\nAAFFAA Ctrl com pontuação também funciona no modo 1.\nAAFFAA F11, Tab, PageUp/Down e cliques em itens permanecem iguais.\nFFFFAA 1-0 / Shift+1-0\nAAFFAA Selecione uma skill / atribua a skill sob o cursor.\nAAFFAA Abra Skills antes de atribuir uma skill sob o cursor.\nAAFFAA Use a fileira numérica, não F1-F10.\nFFFFAA Z\nAAFFAA Alterne entre as duas barras de atalhos de skills.\nFFFFAA Q / W / E\nAAFFAA Use uma poção de vida / mana / Kapa.\nFFFFAA V / F11\nAAFFAA Alimente a montaria / use um Pergaminho de Retorno.\nFFFFAA F\nAAFFAA Use um consumível de medalha compatível.\nAAFFAA Requer a medalha correspondente equipada.\nFFFFAA T / -\nAAFFAA Ative o Auto Ataque / ajuste o uso de combos de skills.\nFFFFAA ]\nAAFFAA Ative a Corrida Automática na direção da câmera.\nAAFFAA Gire a câmera para mudar a direção; pressione de novo para parar.\nAAFFAA Indisponível em mapas restritos ou sem poder se mover.\nFFFFAA R\nAAFFAA Alterne entre correr e andar com a montaria.\nFFFFAA K\nAAFFAA Alterne o modo PK, conforme as restrições do servidor.\nFFFFAA Apóstrofo (')\nAAFFAA Exiba ou oculte a afiliação pública à guilda.\nAAFFAA Isso não sai da guilda nem altera o modo PK.\nFFFFAA C / I ou G / S\nAAFFAA Abra Personagem / Inventário / Skills.\nFFFFAA P / M / X / H\nAAFFAA Abra Grupo / Minimapa / Quests / Ajuda.\nFFFFAA A (modo 0) / D\nAAFFAA Ative o C.C. / Abra a lista de drops.\nFFFFAA N / Tab\nAAFFAA Exiba os nomes dos personagens / mude a câmera.\nFFFFAA Enter / +\nAAFFAA Abra o chat / redimensione a janela do chat.\nFFFFAA PageUp / PageDown\nAAFFAA Role a lista visível de mensagens ou do chat.\nFFFFAA Seta para cima / Seta para baixo\nAAFFAA Percorra as mensagens digitadas anteriormente.\nFFFFAA Ctrl / Print Screen\nAAFFAA Exiba nomes dos itens no chão / salve uma captura de tela.\nFFFFAA Ctrl+clique direito em um item\nAAFFAA Equipe do inventário ou desequipe para o inventário.\nAAFFAA Requer espaço e os requisitos válidos do equipamento.\nFFFFAA Shift+clique direito em um item\nAAFFAA Transfira entre o inventário e o armazém aberto.\nAAFFAA Usa o primeiro espaço livre no destino.\nFFFFAA Ctrl+clique esquerdo em um item\nAAFFAA Atalho alternativo para transferências do armazém.\nFFFFAA Shift+clique esquerdo em uma pilha\nAAFFAA Abra a janela para dividir a pilha.\nAAFFAA Ctrl tem prioridade quando Ctrl e Shift estão pressionados.\nAAFFAA Transferências e trocas de equipamento exigem aprovação do servidor.\n",
     "UI/etc.txt": "FFFFFF Atalhos de skills\nAAFFAA Abra Skills com S e aponte para uma skill disponível.\nAAFFAA Pressione Shift+1-0 para atribuí-la à barra ativa.\nAAFFAA Pressione 1-0 para selecionar a skill; Z muda a barra.\nAAFFAA No modo de teclado 1, adicione Ctrl às combinações.\nAAFFAA F1-F10 não selecionam nem atribuem skills.\nFFFFFF Auto Ataque\nAAFFAA T alterna o Auto Ataque. A tecla - ajusta o uso das skills.\nAAFFAA No modo 1, use Ctrl+T e Alt+-.\nAAFFAA Os requisitos de alvo, skill e recursos continuam válidos.\nFFFFFF Corrida Automática\nAAFFAA Pressione ] para iniciar ou parar; no modo 1 use Alt+].\nAAFFAA O movimento segue a câmera. Gire-a para mudar a direção.\nAAFFAA Obstáculos e regras de movimento do servidor continuam válidos.\nAAFFAA Corrida Automática indisponível em mapas restritos.\nFFFFFF Equipamento\nAAFFAA Ctrl+clique direito equipa ou desequipa um item.\nAAFFAA Um item desequipado precisa de espaço livre no inventário.\nAAFFAA O servidor valida os requisitos de classe, nível e espaço.\nFFFFFF Transferências do armazém\nAAFFAA Abra o armazém antes de usar um atalho de transferência.\nAAFFAA Shift+clique direito move um item em qualquer direção.\nAAFFAA Ctrl+clique esquerdo é um atalho alternativo.\nAAFFAA O destino precisa ter espaço suficiente para o item.\nAAFFAA Shift+clique esquerdo mantém a janela de divisão de pilha.\nAAFFAA Ctrl tem prioridade se ambos os modificadores estiverem pressionados.\nAAFFAA O inventário muda após a aprovação do servidor.\nFFFFFF Afiliação à guilda\nAAFFAA Apóstrofo alterna a afiliação pública à guilda.\nAAFFAA No modo 1, use Alt+apóstrofo.\nAAFFAA Isso não sai da guilda nem alterna o modo PK.\nAAFFAA O botão segue o estado confirmado pelo servidor.\nFFFFFF Chat e Ajuda\nAAFFAA Enter abre o chat. Cima/Baixo percorrem as mensagens anteriores.\nAAFFAA PageUp/Down rolam a lista visível de mensagens ou do chat.\nAAFFAA H abre a Ajuda; use Ctrl+H no modo de teclado 1.\nAAFFAA A página de teclado contém o guia atual de atalhos.\n",
     "UI/interface1.txt": "FFFFFF Selecionar skill: 1-0 (não F1-F10)\nFFFFFF Atribuir skill sob o cursor: Shift+1-0\nFFFFFF Ajustar o uso de skills no Auto Ataque\nFFFFFF Usar uma poção de vida\nFFFFFF Usar uma poção de mana\nFFFFFF Usar uma poção de Kapa\nFFFFFF Alimentar a montaria\nFFFFFF Usar um Pergaminho de Retorno\nFFFFFF Exibir nomes dos itens no chão\nFFFFFF Salvar uma captura de tela na pasta do cliente\n",
     "UI/interface2.txt": "FFFFFF Abrir Personagem\nFFFFFF Abrir Inventário\nFFFFFF Abrir Skills\nFFFFFF Abrir Grupo\nFFFFFF Abrir Minimapa\nFFFFFF Alternar entre correr e andar com a montaria\nFFFFFF Ativar/desativar o modo PK\nFFFFFF Ativar/desativar o Auto Ataque\nFFFFFF Exibir/ocultar nomes dos personagens\nFFFFFF Mudar a câmera\n",
     "UI/interface3.txt": "FFFFFF Ajustar o tamanho do chat (4 tamanhos disponíveis)\nFFFFFF Rolar o conteúdo do chat\nFFFFFF Consultar mensagens anteriores (modo de chat)\nFFFFFF Abrir o chat da guilda\nFFFFFF Abrir Ajuda e a janela de mensagens\nFFFFFF Alternar entre as skills (2 barras)\nFFFFFF Ativar/desativar a Corrida Automática\nFFFFFF Abrir Quests\nFFFFFF Modo de chat\nFFFFFF Exibir/ocultar afiliação à guilda\n",
-    "UI/command.txt": "FFFFFF \nFFFFFF Comandos de guilda\n33FFFF guild\nAAFFAA Consultar aliados e inimigos dos membros da guilda conectados\n33FFFF guildtax [taxa]\nAAFFAA Ajustar os impostos da guilda (de 0% a 20%)\nAAFFAA Usado pelo líder da guilda para definir os impostos da cidade conquistada\n33FFFF /summonguildmembers\nAAFFAA Reunir os membros da guilda conectados\nAAFFAA O líder pode reunir todos, incluindo os vice-líderes\nAAFFAA O vice-líder pode invocar os membros da sua subguilda\n33FFFF /expel [nome do membro]\nAAFFAA Expulsar um membro da guilda\n33FFFF /tele [nome do membro]\nAAFFAA Mover-se até um membro da guilda\nAAFFAA Exclusivo do líder e de quem usa a medalha do reino\n33FFFF /Endwar\nAAFFAA Encerrar a inimizade com outra guilda\nAAFFAA Exclusivo do líder da guilda\n33FFFF /Endallies\nAAFFAA Encerrar todas as alianças com outras guildas\nAAFFAA Exclusivo do líder da guilda\nFFFFFF \nFFFFFF Comandos de chat\n33FFFF /nome do jogador [mensagem]\nAAFFAA Enviar mensagem privada\n33FFFF /r [mensagem]\nAAFFAA Responder à mensagem privada\n33FFFF = [mensagem]\nAAFFAA Chat de grupo, visível apenas para seus membros\n33FFFF - [mensagem]\nAAFFAA Chat de guilda, visível apenas para seus membros\n33FFFF -- [mensagem]\nAAFFAA Chat global, visível para todos os jogadores conectados ao servidor\n33FFFF * [mensagem]\nAAFFAA Exibir mensagem sobre a cabeça do personagem por 10 segundos\n33FFFF /nome do jogador ! [mensagem]\nAAFFAA Enviar mensagem curta, que desaparece após ser recebida\nFFFFFF \nFFFFFF Comandos de reino\n33FFFF /Town ou /Kingdom\nAAFFAA Enviar o personagem ao seu reino\nAAFFAA Exclusivo de personagens que entraram em um reino\n33FFFF /king\nAAFFAA Teleportar para perto do rei\nAAFFAA Para personagens que desejam entrar em um reino\nFFFFFF Evocações de BeastMaster\n33FFFF /dispensar ou /unsummon\nAAFFAA Dispense suas evocações para invocar outra família.\n",
+    "UI/command.txt": "FFFFFF\nFFFFFF Comandos de jogador\nAAFFAA Digite no chat. <...> indica um valor obrigatório.\nAAFFAA Aliases separados por | têm a mesma função.\nFFFFFF\nFFFFFF Saldos e personagem\n33FFFF /balance | /saldo\nAAFFAA Consultar seus saldos de Donate, Fama, Honra, Pass e Kefra.\n33FFFF /medals | /medalhas\nAAFFAA Consultar suas medalhas douradas, vermelhas e azuis.\n33FFFF /cp | /chaos\nAAFFAA Consultar seus pontos de Chaos/PK (-75 a +75).\n33FFFF /fame\nAAFFAA Consultar a Fama do personagem, separada da Fama da guilda.\n33FFFF /time\nAAFFAA Consultar a data e a hora do servidor.\n33FFFF /parry <nome>\nAAFFAA Consultar sua precisão e esquiva contra um jogador online.\n33FFFF /srv <canal>\nAAFFAA Trocar para um canal disponível quando seu estado permitir.\nFFFFFF\nFFFFFF Evocações de BeastMaster e inventário\n33FFFF /unsummon | /dispensar\nAAFFAA Dispensar todas as suas evocações de BeastMaster.\nAAFFAA Use uma evocação aprendida para chamar uma de cada tipo aprendido.\n33FFFF /clearinv | /limparinv\nAAFFAA ATENÇÃO: apagar permanentemente todos os itens do inventário!\nFFFFFF\nFFFFFF Gerenciamento de guilda\n33FFFF /create <guilda> | /criar <guilda>\nAAFFAA Criar uma guilda com o nome indicado.\n33FFFF /invite <nome> | /convidar <nome>\nAAFFAA Líder da guilda: convidar um jogador online.\n33FFFF /accept | /aceitar\nAAFFAA Aceitar seu convite pendente de guilda.\n33FFFF /leave | /sair\nAAFFAA Sair da guilda; a saída do líder segue as regras de sucessão.\n33FFFF /expel <nome> | /expulsar <nome>\nAAFFAA Líder da guilda: expulsar um membro.\n33FFFF /createsub <nome> | /subcreate <nome> | /criarsub <nome>\nAAFFAA Líder: promover um membro para uma vaga de sublíder.\n33FFFF guildoff | guildon\nAAFFAA Ocultar ou mostrar sua identificação de guilda (sem barra).\nFFFFFF\nFFFFFF Guerras de guilda\n33FFFF /guildfame | /famaguild\nAAFFAA Consultar a Fama da sua guilda.\n33FFFF /citywar\nAAFFAA Consultar donos, desafiantes, lances e vitórias das cidades.\n33FFFF /citywar <1..4> <lance total>\nAAFFAA Líder: registrar um lance por uma cidade usando Fama da guilda.\nAAFFAA Só o aumento do lance é cobrado; valem as regras de inscrição.\n33FFFF /tower\nAAFFAA Entrar na guerra de torre ativa em Erion, com guilda de reino.\nFFFFFF\nFFFFFF Viagens de reino\n33FFFF /kingdom | /reino\nAAFFAA Viajar para a área do seu reino ou para a área neutra.\n33FFFF /king | /rei\nAAFFAA Visitar o rei do reino que você escolheu.\nFFFFFF\nFFFFFF Identificação e anúncios\n33FFFF /tab <texto>\nAAFFAA Definir texto sobre o nome; use /tab sem texto para apagar.\nAAFFAA Cores: /tab2, /tab3, /tab4, /tab5, /tab6, /tab7, /tab8, /tab9.\nAAFFAA Limite: 25 caracteres. Mortais precisam de nível 70 para definir.\n33FFFF /snd <texto>\nAAFFAA Definir status consultado por /nome. Use /snd para apagar.\n33FFFF /spk <mensagem> | /gritar <mensagem>\nAAFFAA Anunciar uma mensagem; consome uma Trombeta Mágica (Shout).\nFFFFFF\nFFFFFF Chat\n33FFFF /nome <mensagem>\nAAFFAA Enviar mensagem privada a um jogador online.\n33FFFF /nome\nAAFFAA Consultar informações e status de um jogador online.\n33FFFF /nome ! <mensagem>\nAAFFAA Enviar uma carta à aba Mensagem do HELP do jogador.\n33FFFF = <mensagem>\nAAFFAA Chat de grupo.\n33FFFF - <mensagem>\nAAFFAA Chat de guilda.\n33FFFF -- <mensagem>\nAAFFAA Chat global entre canais.\n33FFFF @ <mensagem>\nAAFFAA Chat do seu canal atual.\n33FFFF @@ <mensagem>\nAAFFAA Chat de cidadania entre canais.\n33FFFF * <mensagem>\nAAFFAA Mostrar mensagem local sobre a cabeça por dez segundos.\nFFFFFF\nFFFFFF Comandos locais do cliente\nAAFFAA Digite sem barra os comandos abaixo que não começam com /.\n33FFFF /help\nAAFFAA Abrir ou fechar o HELP (igual ao H).\n33FFFF /fps\nAAFFAA Mostrar ou ocultar FPS e ping sob o minimapa.\n33FFFF fps\nAAFFAA Alternar o contador original de FPS.\n33FFFF effects\nAAFFAA Mostrar ou ocultar efeitos visuais de skills e buffs.\n33FFFF effects2\nAAFFAA Alternar a opção adicional de efeitos visuais.\n33FFFF effectold\nAAFFAA Mostrar ou ocultar efeitos visuais de buffs.\n33FFFF exp\nAAFFAA Mostrar ou ocultar mensagens de EXP recebida.\n33FFFF /guildaforum\nAAFFAA Cancelar a entrada atual do chat.\nFFFFFF\nFFFFFF Sincronização automática\n33FFFF /day\nAAFFAA Atualizar o calendário do cliente; enviado automaticamente.\n33FFFF /nig\nAAFFAA Atualizar o relógio de Pesadelo; enviado automaticamente.\n",
     "UI/hellStoredesc.txt": "AAFFAA Loja do Portão do Inferno\nAAFFAA Compre armas, armaduras e amuletos.\nAAFFAA Escolha uma categoria para comprar.\nAAFFAA Regras de compra:\nAAFFAA O item é selecionado aleatoriamente.\nAAFFAA Seus adicionais são aleatórios.\nAAFFAA Deixe espaço livre suficiente\nAAFFAA no inventário antes de comprar.\nAAFFAA Não há limite de quantidade de compras.\nAAFFAA Os itens comprados não possuem nível\nAAFFAA de refinação aplicado.\nAAFFAA O servidor valida cada compra.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Armas]\nAAFFAA Armas base aleatórias dos graus 9-10.\nAAFFAA A seleção inclui variantes de Gram e\nAAFFAA Espada Vorpal.\nAAFFAA Não é possível escolher o item.\nAAFFAA O item e os adicionais são aleatórios.\nAAFFAA Armas ancestrais não estão incluídas.\nAAFFAA Deixe espaço livre suficiente\nAAFFAA para a arma selecionada.\nAAFFAA \nAAFFAA Preço: 9,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Armaduras]\nAAFFAA Armaduras base aleatórias dos graus 7-8.\nAAFFAA A seleção inclui variantes da\nAAFFAA Armadura de Placas dos Anões.\nAAFFAA Não é possível escolher o item.\nAAFFAA O item e os adicionais são aleatórios.\nAAFFAA \nAAFFAA Deixe espaço livre suficiente\nAAFFAA para a armadura selecionada.\nAAFFAA \nAAFFAA Preço: 6,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Amuletos]\nAAFFAA Amuletos aleatórios dos graus 1-3.\nAAFFAA Variantes Prata, Ouro e Místico.\nAAFFAA Não é possível escolher o item.\nAAFFAA O item e os adicionais são aleatórios.\nAAFFAA Nenhum nível de refinação é aplicado.\nAAFFAA \nAAFFAA Deixe espaço livre suficiente\nAAFFAA para o amuleto selecionado.\nAAFFAA \nAAFFAA Preço: 5,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Aleatório]\nAAFFAA Arma, armadura ou amuleto aleatório.\nAAFFAA O item comprado recebe adicionais\nAAFFAA aleatórios.\nAAFFAA Não é possível escolher o item\nAAFFAA nem a categoria desta compra.\nAAFFAA Nenhum nível de refinação é aplicado.\nAAFFAA Deixe espaço livre suficiente\nAAFFAA para o item selecionado.\nAAFFAA \nAAFFAA Preço: 7,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \n"
   },
-  "canonical_itemhelp_sha256": "555f19b63bf6badceb8da8596336b6e63ea44b49a17935f1d3de2f357bfd6e67",
+  "canonical_itemhelp_sha256": "eb3077998d2258fb1759de86f147490e38862984e3d2dccbd764b2571c9468f6",
   "repliction": {
     "EN": [
       "Repliction {grade}",
@@ -2486,14 +2629,14 @@
   },
   "canonical_text_sha256": {
     "skillhelp.dat": "f7e1cfe4a96f4bdfec422ce9848080ce10dce82af44485a4778d659b138b448b",
-    "UI/UIString.txt": "166d8f97e8bf7fb93a23601f4d5a952d0117a8042e54b58111bb8f46c5670d8d",
+    "UI/UIString.txt": "7018b5786fadebd10c9b56e82db711574a37d127ca5e166f0ef197ccc4841a72",
     "UI/EffectString.txt": "f49c1101dbba1679bbe3b437f4bb11d552f821247d3e089bd3c6ec4d54fdf244",
-    "UI/interface.txt": "a0e6ce6c5f181d88e136939ebb305b8f462509c6cb65b9106a0de0d952c6a7d5",
+    "UI/interface.txt": "0ef7b3b4d84d34d3dd316b4582c365082025c964d449f2ad07bad34788ff91c8",
     "UI/etc.txt": "e6c6801e8958112d047302a99fafb9f715449e96f9170f0b19adea6db7d6f0b1",
     "UI/interface1.txt": "566cc0358e82e99992eedbe8cb48bcbfd9214adb65caa1fa92de4cf3edd6b549",
     "UI/interface2.txt": "65d1e3bfcb24a65674a9da88022781875c40372d9d3f058d113051365940327d",
     "UI/interface3.txt": "f32455ff273fe23177151f89e197e554124e95495442ae5dec7d835f6a19aaf3",
-    "UI/command.txt": "78404ba7a675d3c9c9a063292bb589cca4d14a3d90d7c9d55bdfa96d04189e41",
+    "UI/command.txt": "bdfb1c3deff6b76e18eda3a3b03903669f9a3c6b6f2a88cf397abbb3af7fdaa9",
     "UI/hellStoredesc.txt": "85e7abe0d4a55fed9ed2589eece822ed0ee611f26d3d8fc7ad159f1f7cfd5487",
     "UI/QuestSubjects.txt": "0501c40a3abface9f7d1e40b910e0388e533ae165ee7b92a1d57add400c6899c",
     "UI/QuestSubjects2.txt": "d67f3b6cdf484b91653ec5a80f7c27f83f4c0254d005469a645f373de0e1eb49",
@@ -2510,7 +2653,7 @@
     "UI/mix4desc.txt": "936fe8dca727f5af0814ce5fc6093a395ca7119560019c766c66f4c05563e580",
     "UI/mix6desc.txt": "5566b73b3e90d1137443a89d28f8463baae245545608764b9d1c8c76a12a8512",
     "UI/PotalPos.txt": "d7507ecbea2eab433ba188a94f11341599e10cf879b0fbc4eaa7cb2f95f21885",
-    "UI/strdef.bin": "2fd8fd69be4a92e21fb981954ec0fe9983d2eaf9b23150e4a8df9d22eecd3eb9"
+    "UI/strdef.bin": "c832b2997fa227e945895dfb636daa51d3cce3ab1ea9aed5a5e01594d048255f"
   },
   "canonical_itemname_sha256": "eadd22c7ce1f166ec9aaaa656c04b9f17f159f9c022c3cb21ddad2bda50fdbdf",
   "english_item_names": {
@@ -2523,11 +2666,36 @@
     "6017": "Test_Damage_Crystal_320",
     "6018": "Test_Magic_Crystal_320"
   },
-  "canonical_itemlist_sha256": "334e1023448d3c34630496b6e67ac8ec7bebee9058dc6d5305df299bfe2482e2",
+  "canonical_itemlist_sha256": "91aed5b24cb3e595f70e68e54214b3ff61ebb317c5560004df1be446f0335c39",
   "messages": {
-    "291": {"EN": "%d day(s)", "PT": "%d dia(s)"},
-    "292": {"EN": "%d hour(s)", "PT": "%d hora(s)"},
-    "293": {"EN": "%d min", "PT": "%d min"},
+    "291": {
+      "EN": "%d day(s)",
+      "PT": "%d dia(s)"
+    },
+    "292": {
+      "EN": "%d hour(s)",
+      "PT": "%d hora(s)"
+    },
+    "293": {
+      "EN": "%d min",
+      "PT": "%d min"
+    },
+    "435": {
+      "EN": "PvP Attack : %d.%d%%",
+      "PT": "Ataque PvP : %d.%d%%"
+    },
+    "436": {
+      "EN": "PvP Defense : %d.%d%%",
+      "PT": "Defesa PvP : %d.%d%%"
+    },
+    "438": {
+      "EN": "Critical Damage : %d%%",
+      "PT": "Dano crítico : %d%%"
+    },
+    "439": {
+      "EN": "Weapon Piercing Damage : %d",
+      "PT": "Dano perfurante da arma : %d"
+    },
     "440": {
       "EN": "Mystic Land: defeat Basilisk or Dracorich monsters until your quest is ready.",
       "PT": "Terra Mística: derrote monstros Basilisk ou Dracorich até liberar a recompensa."
@@ -2761,7 +2929,9 @@
       "CC9900FF Poison duration: 32 seconds.",
       "CC9900FF Damage every 8 seconds; total: 4 ticks.",
       "CC9900FF Damage per tick: 10 + (Special Magic/2).",
-      "FFFFFFFF ", "FFFFFFFF ", "FFFFFFFF "
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
     ],
     "5075": [
       "CC9900FF Hides the character from nearby enemies.",

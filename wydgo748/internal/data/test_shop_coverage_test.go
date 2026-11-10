@@ -241,6 +241,15 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
 	stock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
 	unavailable := map[uint16]struct{}{4211: {}, 4235: {}}
+	type riderBonus struct{ attack, magic, evasion, resist int }
+	nativeTimedBonus := map[uint16]riderBonus{
+		6003: {910, 135, 5, 25}, 6004: {910, 135, 5, 25},
+		6005: {910, 135, 5, 25}, 6006: {950, 145, 60, 25},
+		6007: {910, 135, 5, 25}, 6008: {950, 145, 60, 20},
+		6009: {950, 145, 60, 20}, 6010: {580, 85, 5, 25},
+		6011: {580, 85, 5, 25}, 6012: {580, 85, 5, 25},
+		6013: {580, 85, 5, 25}, 6014: {910, 135, 5, 25},
+	}
 	available := 0
 	for _, item := range manifest.Items {
 		if item.Available != nil && !*item.Available {
@@ -271,10 +280,14 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 		for _, effect := range def.StaticEffects {
 			effects[effect.Name] = effect.Value
 		}
+		wantBonus, hasNativeBonus := nativeTimedBonus[item.Item]
+		if !hasNativeBonus {
+			wantBonus = riderBonus{attack: 520, magic: 65}
+		}
+		gotBonus := riderBonus{effects["EF_DAMAGE"], effects["EF_MAGIC"], effects["EF_PARRY"], effects["EF_RESISTALL"]}
 		if effects["EF_CLASS"] != 255 || effects["EF_RANGE"] != 2 ||
 			effects["EF_NOTRADE"] != 1 || effects["EF_WDAY"] != 30 ||
-			effects["EF_RUNSPEED"] != 6 || effects["EF_DAMAGE"] != 520 ||
-			effects["EF_MAGIC"] != 65 {
+			effects["EF_RUNSPEED"] != 6 || gotBonus != wantBonus {
 			t.Errorf("KR mount %d differs from the premium contract: %+v", item.Item, effects)
 		}
 		if _, ok := stock[item.Item]; !ok {

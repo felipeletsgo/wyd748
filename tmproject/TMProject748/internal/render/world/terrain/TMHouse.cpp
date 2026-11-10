@@ -524,7 +524,7 @@ int TMHouse::FrameMove(unsigned int dwServerTime)
     {
         if (m_dwObjType == 1665)
             return 1;
-        if ((m_dwObjType == 1526 || m_dwObjType == 2005) && dwServerTime - m_dwLastParticle < 300)
+        if ((m_dwObjType == 1526 || m_dwObjType == 2005) && dwServerTime - m_dwLastParticle < WaterfallRefreshMs)
             return 1;
         if (dwServerTime - m_dwLastParticle < 100)
             return 1;
@@ -569,9 +569,9 @@ int TMHouse::FrameMove(unsigned int dwServerTime)
                 auto pSoundManager = g_pSoundManager;
                 if (pSoundManager)
                 {
-                    auto pSoundData = pSoundManager->GetSoundData(6);
+                    auto pSoundData = pSoundManager->GetSoundData(WaterfallSound);
                     if (pSoundData && !pSoundData->IsSoundPlaying())
-                        pSoundData->Play(0, 1);
+                        pSoundData->Play(0, DSBPLAY_LOOPING);
                 }               
             }
         }

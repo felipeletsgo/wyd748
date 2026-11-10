@@ -58,11 +58,17 @@ int CMesh::Render(int nBright)
     for (std::size_t i = 0; i < m_numPalette; ++i)
         if (!m_pBoneOffset[i]) return 0;
 
-    LPDIRECT3DTEXTURE9 pTex = g_pTextureManager->GetModelTexture(m_nTextureIndex, 10000);
+    int textureIndex = m_nTextureIndex;
+    if (m_pParentSkin->m_nBoneAniIndex == corrupted_crystal::SkinType)
+    {
+        if (const auto* owner = m_pParentSkin->HumanOwner())
+            textureIndex = g_pTextureManager->GetCrystalTextureIndex(owner->m_nCrystalCrackStage, textureIndex);
+    }
+    LPDIRECT3DTEXTURE9 pTex = g_pTextureManager->GetModelTexture(textureIndex, 10000);
  
     char cAlpha = 'A';
-    if (m_nTextureIndex >= 0)
-        cAlpha = g_pTextureManager->m_stModelTextureList[m_nTextureIndex].cAlpha;
+    if (textureIndex >= 0)
+        cAlpha = g_pTextureManager->m_stModelTextureList[textureIndex].cAlpha;
 
     g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_ALPHATESTENABLE, 1);
 

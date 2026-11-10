@@ -15,16 +15,15 @@ TMSkillThunderBolt::TMSkillThunderBolt(TMVector3 vecPosition, int nType)
 	m_dwStartTime = g_pTimerManager->GetServerTime();
 	m_dwLifeTime = 2000;
 
-	const static unsigned int dwCol[3][3] = 
+	const static unsigned int dwCol[4][3] =
 	{
 		{0xFF77AAAA, 0xFF7777AA, 0xFF7777FF},
 		{0xFFFFAA00, 0xFFFFAA00, 0xFFFFAA00},
-		{0xFF00FF77, 0xFF00FFAA, 0xFF00FFAA}
+		{0xFF00FF77, 0xFF00FFAA, 0xFF00FFAA},
+		{0xFF9D37F1, 0xFFE3ABFF, 0xFF9F41FA}
 	};
-	// The Khepra death effect passes type 5. Rows exist only for types 0-2,
-	// so other types use row 0 instead of reading past the table. The Khepra
-	// color itself waits for native evidence or an owner decision.
-	const int nRow = effect_bounds::RowOr(m_nType, 3, 0);
+	// Keep the Khepra death effect (type 5) on its established fallback.
+	const int nRow = effect_bounds::RowOr(m_nType, _countof(dwCol), 0);
 
 	auto pThunder = new TMEffectBillBoard(45, m_dwLifeTime, 0.55f, 10.0f, 1.55f, 0.0f, 6, 80);
 	pThunder->m_vecStartPos = pThunder->m_vecPosition = TMVector3(m_vecPosition.x, m_vecPosition.y - 1.0f, m_vecPosition.z);

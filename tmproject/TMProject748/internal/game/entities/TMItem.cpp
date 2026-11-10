@@ -1002,6 +1002,18 @@ int TMItem::FrameMove(unsigned int dwServerTime)
 
 void TMItem::LabelPosition()
 {
+    auto pFieldScene = g_pCurrentScene &&
+        g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD
+        ? static_cast<TMFieldScene*>(g_pCurrentScene) : nullptr;
+    if (pFieldScene && pFieldScene->IsDropSearchVisible())
+    {
+        if (m_pNameLabel)
+            m_pNameLabel->SetVisible(0);
+        if (m_stGuildMark.pGuildMark)
+            m_stGuildMark.pGuildMark->SetVisible(0);
+        return;
+    }
+
     // Guildmark_DeleteIdleGuildmark can reuse a slot for another guild; show
     // the mark only while the slot still belongs to this item's guild.
     const bool ownsMark = m_stGuildMark.pGuildMark && m_stGuildMark.nGuild != -1 &&

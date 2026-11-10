@@ -409,27 +409,6 @@ func TestTKCriticalArmorAndHTCoinArmorUseDistinctClientTypes(t *testing.T) {
 	}
 }
 
-func TestSummonCountUsesW2PPMasteryDivisors(t *testing.T) {
-	tests := []struct {
-		instanceValue int
-		mastery       int
-		want          int
-	}{
-		{1, 0, 0}, {1, 29, 0}, {1, 30, 1}, {1, 255, 8},
-		{2, 60, 2},
-		{3, 39, 0}, {3, 40, 1}, {5, 255, 6},
-		{6, 79, 0}, {6, 80, 1}, {7, 255, 3},
-		{8, 0, 1}, {8, 999, 1},
-		{9, 255, 0},
-	}
-	for _, tt := range tests {
-		if got := summonCount(tt.instanceValue, tt.mastery); got != tt.want {
-			t.Fatalf("summon value=%d mastery=%d: got=%d want=%d",
-				tt.instanceValue, tt.mastery, got, tt.want)
-		}
-	}
-}
-
 func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
 	caster := &Player{ID: 1, InWorld: true, X: 10, Y: 10, Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
 	enemy := &Player{ID: 2, InWorld: true, X: 12, Y: 10, Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}

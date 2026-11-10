@@ -39,6 +39,7 @@ func TestNPCDefinitionUpdateIsolatesChannelsWithEqualEntityIDs(t *testing.T) {
 				versions: map[string]uint32{"Aylin": 1},
 			},
 		}
+		w.dropListIndex = []dropListRelation{{monster: "cached"}}
 		w.mobsByID = map[uint16]*Mob{1300: {ID: 1300, Def: &w.npcs[0], X: 2468, Y: 1996, HP: w.npcs[0].Score.MaxHP, InstanceID: "local-instance"}}
 		worlds[i] = w
 	}
@@ -55,6 +56,9 @@ func TestNPCDefinitionUpdateIsolatesChannelsWithEqualEntityIDs(t *testing.T) {
 		w.installNPCDefinitionChanges([]store.NPCDefinitionRecord{entry})
 	}
 	first, second := worlds[0].mobsByID[1300], worlds[1].mobsByID[1300]
+	if worlds[0].dropListIndex != nil || len(worlds[1].dropListIndex) != 1 {
+		t.Fatal("drop cache invalidation crossed a channel or retained stale data")
+	}
 	if first.Def != &worlds[0].npcs[0] || first.X != 2468 || first.Y != 1996 || first.InstanceID != "local-instance" ||
 		first.HP != changed.Score.MaxHP || first.Def.ExpReward != changed.ExpReward {
 		t.Fatalf("live entity was replaced or not updated: %+v", first)
@@ -72,6 +76,22 @@ func TestNPCDefinitionUpdateIsolatesChannelsWithEqualEntityIDs(t *testing.T) {
 	worlds[0].installNPCDefinitionChanges([]store.NPCDefinitionRecord{entry})
 	if first.Def.Name != "Aylin" || first.Def.ExpReward != source[0].ExpReward+1 || worlds[0].npcDefinitionState.versions["Aylin"] != 2 {
 		t.Fatal("stale or identity-changing revision replaced the live definition")
+	}
+}
+
+func TestDropSpawnIndexIgnoresDisabledColosseum(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		t.Run(fmt.Sprintf("enabled_%t", enabled), func(t *testing.T) {
+			generator := model.NPCGener{Index: 0, Label: 1, Enabled: true, Leader: "ArenaMob", Follower: "ArenaMob"}
+			w := &World{npcs: []model.NPCDef{{Name: "ArenaMob"}}, colosseum: &colosseumRuntime{config: model.ColosseumConfig{Enabled: enabled}}}
+			w.colosseum.generators[model.ColosseumTierN] = map[int]*generState{1: {def: generator}}
+			if err := w.loadNPCDefinitionsAtBoot(nil); err != nil {
+				t.Fatal(err)
+			}
+			if got := w.npcDefinitionState.spawned["ArenaMob"]; got != enabled {
+				t.Fatalf("spawn index enabled=%t, want %t", got, enabled)
+			}
+		})
 	}
 }
 

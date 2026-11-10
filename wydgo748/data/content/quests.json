@@ -8,8 +8,10 @@
       "requires": {
         "minLevel": 39,
         "maxLevel": 115,
-        "mortalOnly": true
+        "mortalOnly": true,
+        "items": [{ "index": 4038, "amount": 1 }]
       },
+      "consumes": [{ "index": 4038, "amount": 1 }],
       "rewards": {
         "teleport": {
           "x": 2398,
@@ -54,8 +56,10 @@
       "requires": {
         "minLevel": 115,
         "maxLevel": 189,
-        "mortalOnly": true
+        "mortalOnly": true,
+        "items": [{ "index": 4039, "amount": 1 }]
       },
+      "consumes": [{ "index": 4039, "amount": 1 }],
       "rewards": {
         "teleport": {
           "x": 2234,
@@ -80,8 +84,10 @@
       "requires": {
         "minLevel": 190,
         "maxLevel": 264,
-        "mortalOnly": true
+        "mortalOnly": true,
+        "items": [{ "index": 4040, "amount": 1 }]
       },
+      "consumes": [{ "index": 4040, "amount": 1 }],
       "rewards": {
         "teleport": {
           "x": 464,
@@ -106,8 +112,10 @@
       "requires": {
         "minLevel": 265,
         "maxLevel": 319,
-        "mortalOnly": true
+        "mortalOnly": true,
+        "items": [{ "index": 4041, "amount": 1 }]
       },
+      "consumes": [{ "index": 4041, "amount": 1 }],
       "rewards": {
         "teleport": {
           "x": 668,
@@ -132,8 +140,10 @@
       "requires": {
         "minLevel": 319,
         "maxLevel": 349,
-        "mortalOnly": true
+        "mortalOnly": true,
+        "items": [{ "index": 4042, "amount": 1 }]
       },
+      "consumes": [{ "index": 4042, "amount": 1 }],
       "rewards": {
         "teleport": {
           "x": 1322,

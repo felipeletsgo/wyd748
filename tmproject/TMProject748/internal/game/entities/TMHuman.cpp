@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../wire/CorruptedCrystalAppearance.h"
 #include "../../platform/diagnostics/PerfTrace.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
@@ -93,7 +94,7 @@ TMVector2 TMHuman::m_vecPickSize[100] = {
   { 0.40000001f, 2.0f },
   { 0.40000001f, 2.0f },
   { 0.40000001f, 2.0f },
-  { 0.40000001f, 1.0f },
+  { 1.35f, 3.45f }, // Corrupted crystal
   { 1.0f, 1.0f },
   { 1.0f, 1.0f },
   { 1.0f, 1.0f },
@@ -399,6 +400,7 @@ TMHuman::~TMHuman()
     SAFE_DELETE(m_pTitleProgressBar);
     SAFE_DELETE(m_pSkinMesh);
     SAFE_DELETE(m_pMantua);
+    ClearMountFlames();
     SAFE_DELETE(m_pMount);
 }
 
@@ -1590,7 +1592,9 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
     TMScene* pScene = g_pCurrentScene;
     float fDieHeight = 0.0f;
     unsigned int dwWillDieTime = 10000;
-    if (m_nClass == 56 && !m_stLookInfo.FaceMesh)
+    if (m_nSkinMeshType == corrupted_crystal::SkinType)
+        dwWillDieTime = corrupted_crystal::CorpseLifetimeMs;
+    else if (m_nClass == 56 && !m_stLookInfo.FaceMesh)
         dwWillDieTime = 600000;
     if (m_dwDeadTime && human_timer::Elapsed(dwServerTime, m_dwDeadTime, dwWillDieTime) && (m_nWillDie == 1 || m_nWillDie == 2))
     {
@@ -1599,7 +1603,8 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
         return 1;
     }
 
-    if (m_dwDeadTime && (m_nWillDie == 1 || m_nWillDie == 2) && m_cDie == 1)
+    if (m_dwDeadTime && (m_nWillDie == 1 || m_nWillDie == 2) && m_cDie == 1 &&
+        m_nSkinMeshType != corrupted_crystal::SkinType)
     {
         float fRatio = 1.0f;
         if (m_nClass == 44)
@@ -3111,6 +3116,7 @@ void TMHuman::DelayDelete()
         return;
 
     m_dwDelayDel = g_pTimerManager->GetServerTime();
+    ClearMountFlames();
     g_pObjectManager->DisconnectEffectFromMob(this);
 
     auto pScene = static_cast<TMFieldScene*>(m_pParentScene);

@@ -80,7 +80,7 @@ func TestApplyBonusConsumesExtendedPointsAndRaisesWideAttribute(t *testing.T) {
 		t.Fatal("bonus STR wide recusado")
 	}
 	(&World{}).recalcPlayer(ch)
-	if ch.Score.Str != 108 || ch.Score.Attack != 0 ||
+	if ch.Score.Str != 112 || ch.Score.Attack != 0 ||
 		ch.Score.StatusPts != 3_272 || playerAttack(ch) == 0 {
 		t.Fatalf("bonus wide incorreto: STR=%d ATK=%d pontos=%d",
 			ch.Score.Str, ch.Score.Attack, ch.Score.StatusPts)
@@ -99,7 +99,7 @@ func TestExtendedAttributesUpdateDerivedResources(t *testing.T) {
 	}
 	w := &World{}
 	w.recalcPlayer(ch)
-	if playerInt(ch) != 108 || playerMagicAttack(ch) != 298 || playerMaxMP(ch) != 1_465 {
+	if playerInt(ch) != 115 || playerMagicAttack(ch) != 301 || playerMaxMP(ch) != 1_465 {
 		t.Fatalf("INT nao seguiu formula 7.59/MP wide: stats=%+v runtime=%+v",
 			*ch.Score, *ch.RuntimeScore)
 	}
@@ -107,7 +107,7 @@ func TestExtendedAttributesUpdateDerivedResources(t *testing.T) {
 		t.Fatal("bonus CON wide recusado")
 	}
 	w.recalcPlayer(ch)
-	if playerCon(ch) != 105 || playerMaxHP(ch) != 660 {
+	if playerCon(ch) != 111 || playerMaxHP(ch) != 660 {
 		t.Fatalf("CON nao atualizou HP por recálculo: %+v", *ch.RuntimeScore)
 	}
 }

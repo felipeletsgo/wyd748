@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "../../wire/CorruptedCrystalAppearance.h"
+#include "CameraZoom.h"
 #include "../../application/BoundedText.h"
 #include "../../application/AttackTargetState.h"
 #include "../../application/ChatListRows.h"
@@ -389,16 +391,18 @@ int TMHuman::OnPacketIllusion(MSG_STANDARD* pStd)
 
         if (bDestIsDungeon == 1 && !bNowIsDungeon)//camera
         {
-            pCamera->m_fMaxCamLen = 20.0f;
-            if (pCamera->m_fSightLength > 20.0f)
-                pCamera->m_fSightLength = 20.0f;
+            pCamera->m_fMaxCamLen = camera_zoom::FieldMaximumDistance;
+            if (pCamera->m_fSightLength > pCamera->m_fMaxCamLen)
+                pCamera->m_fSightLength = pCamera->m_fMaxCamLen;
+            pCamera->m_fWantLength = pCamera->m_fSightLength;
         }
         else if (bNowIsDungeon == 1 && !bDestIsDungeon)//camera
         {
-            pCamera->m_fMaxCamLen = 20.0f;
+            pCamera->m_fMaxCamLen = camera_zoom::FieldMaximumDistance;
             pCamera->m_fSightLength = pCamera->m_fSightLength + 4.0f;
-            if (pCamera->m_fSightLength > 20.0f)
-                pCamera->m_fSightLength = 20.0f;
+            if (pCamera->m_fSightLength > pCamera->m_fMaxCamLen)
+                pCamera->m_fSightLength = pCamera->m_fMaxCamLen;
+            pCamera->m_fWantLength = pCamera->m_fSightLength;
         }
         if (pScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
         {
@@ -1573,6 +1577,9 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         m_stScore.CurHP = m_stScore.MaxHP;
     if (m_stScore.CurMP >= m_stScore.MaxMP)
         m_stScore.CurMP = m_stScore.MaxMP;
+
+    if (m_nSkinMeshType == corrupted_crystal::SkinType && !m_cDie)
+        m_nCrystalCrackStage = corrupted_crystal::CrackStage(m_stScore.CurHP, m_stScore.MaxHP);
 
     attack_target::SyncActivePool(m_stScore.CurHP, m_stScore.MaxHP, m_BigHp, m_MaxBigHp);
     attack_target::SyncActivePool(m_stScore.CurMP, m_stScore.MaxMP, m_BigMp, m_MaxBigMp);

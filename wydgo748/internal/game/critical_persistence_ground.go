@@ -27,7 +27,8 @@ func (w *World) queueGroundPickup(p *Player, g *GroundItem, requestedSlot int, g
 	proposed := accountStateSnapshot(p.Account)
 	character := &proposed.Chars[p.CharSlot]
 	beforeGold, slot, item := p.Char.Gold, -1, g.Item
-	var beforeItem model.Item
+	beforeInv := p.Char.Inv
+	var changed []int
 	if gold != 0 {
 		if beforeGold > maxCharacterGold || gold > maxCharacterGold-beforeGold {
 			return errors.New("critical pickup: currency overflow")
@@ -37,22 +38,13 @@ func (w *World) queueGroundPickup(p *Player, g *GroundItem, requestedSlot int, g
 		if requestedSlot < 0 || requestedSlot >= model.PlayerCarrySlots {
 			return errors.New("critical pickup: invalid inventory slot")
 		}
-		slot = requestedSlot
-		if p.Char.Inv[slot].Index != 0 {
-			slot = firstFreeVisibleInventorySlot(p.Char)
-			if slot < 0 {
-				return errors.New("critical pickup: inventory full")
-			}
-			// Preserve addToInv's fallback materialization, exactly once, before
-			// admission. No completion generates a new item identity.
-			var err error
-			item, err = materializeItem(item)
-			if err != nil {
-				return err
-			}
+		var ok bool
+		changed, ok = w.receiveLoot(character, item, requestedSlot)
+		if !ok || len(changed) == 0 {
+			return errors.New("critical pickup: inventory full")
 		}
-		beforeItem = p.Char.Inv[slot]
-		character.Inv[slot] = item
+		slot = changed[0]
+		item = character.Inv[slot]
 	}
 	context := *g
 	var operation uint64
@@ -66,7 +58,7 @@ func (w *World) queueGroundPickup(p *Player, g *GroundItem, requestedSlot int, g
 			current.InstanceID = context.InstanceID
 		}
 		if w.groundItems[context.ID] != g || g.criticalPickup != operation || current != context ||
-			(gold != 0 && p.Char.Gold != beforeGold) || (gold == 0 && p.Char.Inv[slot] != beforeItem) {
+			(gold != 0 && p.Char.Gold != beforeGold) || (gold == 0 && p.Char.Inv != beforeInv) {
 			return errors.New("critical pickup: reserved object or economic source changed")
 		}
 		return nil
@@ -79,7 +71,7 @@ func (w *World) queueGroundPickup(p *Player, g *GroundItem, requestedSlot int, g
 			if gold != 0 {
 				p.Char.Gold = beforeGold + gold
 			} else {
-				p.Char.Inv[slot] = item
+				p.Char.Inv = character.Inv
 			}
 			// No actor command can interleave removal with persistence acknowledgement.
 			g.criticalPickup = 0
@@ -90,7 +82,9 @@ func (w *World) queueGroundPickup(p *Player, g *GroundItem, requestedSlot int, g
 					p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 				} else {
 					p.Session.Send(wire.CNFGetItem(uint32(placeInv), uint32(slot)))
-					p.Session.Send(wire.SendItem(p.ID, placeInv, byte(slot), item))
+					for _, pos := range changed {
+						p.Session.Send(wire.SendItem(p.ID, placeInv, byte(pos), p.Char.Inv[pos]))
+					}
 				}
 			}
 			log.Printf("[#%d] committed ground pickup object=%d item=%d slot=%d gold=+%d",
@@ -106,7 +100,9 @@ func (w *World) queueGroundPickup(p *Player, g *GroundItem, requestedSlot int, g
 				if gold != 0 {
 					p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 				} else {
-					p.Session.Send(wire.SendItem(p.ID, placeInv, byte(slot), beforeItem))
+					for _, pos := range changed {
+						p.Session.Send(wire.SendItem(p.ID, placeInv, byte(pos), beforeInv[pos]))
+					}
 				}
 				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Save_Failed_Item_Was_Not_Picked")))
 			}

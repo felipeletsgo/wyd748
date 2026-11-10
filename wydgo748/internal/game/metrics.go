@@ -326,6 +326,7 @@ var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpBuyItem:                 "0x379",
 	wire.OpSellItem:                "0x37A",
 	wire.OpQuotedSellItem:          "0x7F40",
+	wire.OpDropListQuery:           "0x7F41",
 	wire.OpApplyBonus:              "0x277",
 	wire.OpPartyRequest:            "0x37F",
 	wire.OpPartyAccept:             "0x3AB",

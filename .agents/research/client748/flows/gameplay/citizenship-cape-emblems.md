@@ -4,7 +4,7 @@ title: Citizenship metadata and cape emblems
 subsystem: appearance
 status: CONTRACT
 native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
-updated: 2026-10-30
+updated: 2026-11-09
 ---
 
 # Citizenship metadata and cape emblems
@@ -332,3 +332,64 @@ previously erased those inputs. Classification: `MODERNIZACAO_COMPATIVEL`
 for both review corrections. Tests cover all item IDs for mesh selection,
 production constructor wiring, light levels, and the frozen blue material.
 Actual visual acceptance remains pending.
+
+### Published cape icon audit — 2026-11-09
+
+Decode the 140-byte item rows with XOR `0x5A` and select position
+`0x8000` at offset `0x86`. The 36 cape rows have identical mesh and
+texture fields in the active base, PT, EN, and stock Portuguese catalogs.
+Trace the UI path through `SGridControlItem`, `RenderGeomControl`, and
+`TMMesh::RenderForUI`. The first material of `mantua.msa` and `mant.msa`
+starts at model texture 943. The grid adds its icon offset to that index.
+
+The archived public patch 48106 matches the [release receipt](../../../release-748106-20261109.json).
+Its `WYD.exe` matches the local runtime executable by SHA-256. Disassembly
+at `0x496349` and the jump table at `0x4967A4` confirm Elite and Master
+offsets 25/26/27, the Master mesh 27 override, and Apprentice offset 17.
+The mapped Elite and Master textures are blue, red, and white in that order.
+
+| Item | Published UI texture | Native 7.48 evidence |
+| --- | --- | --- |
+| 549, Adventurer | `mt010109.wys`, blue | `FUN_0040D13E` maps offset 7 to 6, which selects white `mt010108.wys`. |
+| 3194, Hero Hekalotia | `mt010130.wys`, white | Offset 27 maps to 25, which selects blue `mt010128.wys`. |
+| 3195, Hero Akelonia | Empty model slot 971 | Offset 28 maps to 26, which selects red `mt010129.wys`. |
+| 3196, Hero Adventurer | Empty model slot 972 | Offset 29 maps to 27, which selects white `mt010130.wys`. |
+| 4008, Master Of Commander | Empty model slot 964 | Offset 21 maps to 17, which selects `mt010120.wys`. |
+| 4015, Bersec Cape | Model slot 440 selects character texture `ch010205.wys`. | The MSA resolves `destiny.wys` in the effect table at 417. The grid requests the mesh in model mode. Effect slot 440 is also empty in stock 7.48. Intended icon remains unresolved. |
+
+The published offsets also differ from the native grid for 548, 550, 572,
+574, 1766, 1768, 1769, 1771, and 4009. Some differences select a similarly
+colored cape with different artwork. For 4009, the native adjusted offset
+18 has no model texture. A blanket native remap could replace working icons
+with empty or unrelated materials.
+
+STATICALLY VERIFIED through catalog and texture-table decoding, texture color
+inspection, and published executable disassembly. Client rendering in
+inventory, equipment, and shops still needs verification. No product change.
+
+### Cape icon correction for the local 7.48.107 candidate
+
+This correction supersedes the published findings above for the local
+candidate. The grid restores the native offsets for the affected Wanderer,
+Adventurer, Monster White, Champion, and Hero variants. Hero now uses the
+blue, red, and white assets at model slots 968, 969, and 970. Existing Elite,
+Master Celestial, and Apprentice icon choices still apply.
+
+Both Commander variants use their corresponding worn artwork. `CreateMantua`
+passes the catalog skins 21/22 to bone group 85. `TMSkinMesh` resolves these to
+`mt010122.wys` and `mt010123.wys`. The grid uses slots 962/963 to show those
+two distinct designs. The native grid offsets show Apprentice artwork for
+4008 and have no registered texture for 4009.
+
+Bersec uses skin 23. Bone group 85 selects `mt010124.msh` and
+`mt010124.wys` for that skin. Grid mesh 2830, `mesh/dmantua.msa`, embeds
+the same `mt010124` material. The active model table registers it at slot
+1368. Use offset zero with that mesh. The stock and active texture and mesh
+files match by SHA-256. The previous grid mesh is a projectile used by
+`TMArrow` and `TMSkillMeteorStorm`.
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Only the grid chooses different
+meshes or offsets. The same grid constructor supplies inventory, equipment,
+and shop icons. No catalog, texture, world appearance, or wire fields change.
+`GridInsertionTests` checks all 36 cape mappings and preserves the defaults
+for unrelated items. Live rendering remains pending.

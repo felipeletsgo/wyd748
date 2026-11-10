@@ -5,13 +5,11 @@ import (
 	"time"
 
 	"wydgo/internal/model"
-	"wydgo/internal/wire"
 )
 
 type summonTemplate struct {
 	name                    string
 	face                    uint16
-	maxSummons              int
 	baseDefense, baseAttack int
 	baseHP                  int
 	minDamage, maxDamage    int
@@ -20,31 +18,17 @@ type summonTemplate struct {
 }
 
 var summonTemplates = [...]summonTemplate{
-	{"Condor", 206, 7, 15, 70, 60, 40, 150, 50, 75, 100, 400},
-	{"Boar", 225, 6, 20, 70, 100, 40, 125, 50, 150, 125, 400},
-	{"Wolf", 226, 6, 40, 80, 7000, 40, 200, 50, 125, 125, 400},
-	{"Bear", 227, 5, 60, 100, 7000, 40, 200, 50, 200, 150, 400},
-	{"Tiger", 244, 5, 30, 150, 100, 40, 250, 50, 175, 150, 400},
-	{"Gorilla", 245, 4, 45, 100, 200, 40, 225, 50, 250, 175, 400},
-	{"Black Dragon", 307, 3, 80, 100, 350, 50, 250, 50, 250, 174, 400},
-	{"Succubus", 396, 2, 30, 250, 200, 70, 250, 60, 200, 180, 250},
+	{"Condor", 206, 15, 70, 60, 40, 150, 50, 75, 100, 400},
+	{"Boar", 225, 20, 70, 100, 40, 125, 50, 150, 125, 400},
+	{"Wolf", 226, 40, 80, 7000, 40, 200, 50, 125, 125, 400},
+	{"Bear", 227, 60, 100, 7000, 40, 200, 50, 200, 150, 400},
+	{"Tiger", 244, 30, 150, 100, 40, 250, 50, 175, 150, 400},
+	{"Gorilla", 245, 45, 100, 200, 40, 225, 50, 250, 175, 400},
+	{"Black Dragon", 307, 80, 100, 350, 50, 250, 50, 250, 174, 400},
+	{"Succubus", 396, 30, 250, 200, 70, 250, 60, 200, 180, 250},
 }
 
-func summonCount(instanceValue, mastery int) int {
-	mastery = maxInt(0, mastery)
-	switch instanceValue {
-	case 1, 2:
-		return mastery / 30
-	case 3, 4, 5:
-		return mastery / 40
-	case 6, 7:
-		return mastery / 80
-	case 8:
-		return 1
-	default:
-		return 0
-	}
-}
+const firstBMSummonSkill = 56
 
 // removePlayerSummons despawns every summon belonging to a departing owner.
 // Runtime player IDs are reused, so leaving orphaned summons would transfer
@@ -159,48 +143,63 @@ func (w *World) commitContractSummon(plan *contractSummonPlan) {
 }
 
 func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) bool {
-	idx := skill.InstanceValue - 1
-	if owner == nil || owner.Char == nil || w.criticalPlayerReserved(owner) || idx < 0 || idx >= len(summonTemplates) {
+	idx := skill.Index - firstBMSummonSkill
+	if owner == nil || owner.Char == nil || owner.Char.Class != 2 || w.criticalPlayerReserved(owner) ||
+		idx < 0 || idx >= len(summonTemplates) || skill.InstanceValue != idx+1 ||
+		owner.Char.LearnedSkill&(uint32(1)<<(8+idx)) == 0 {
 		return false
 	}
-	// GenerateSummon checks for a free mob slot before other gameplay rules,
-	// including when Num == 0.
-	if w.allocMobID() == 0 {
-		return false
-	}
-	template := summonTemplates[idx]
+	// MODERNIZACAO_COMPATIVEL: any learned BM summon skill creates one of
+	// each learned type. Mastery changes attributes, not the creature count.
+	mastery = maxInt(0, mastery)
 	space := w.playerRuntimeInstanceID(owner.ID)
-	// Party players do not occupy summon slots in the Go contract.
-	wanted := minInt(summonCount(skill.InstanceValue, mastery), maxPartyMembers-1)
-	current := 0
+	var existing [len(summonTemplates)]*Mob
+	var duplicates []*Mob
 	for _, m := range w.summons {
-		if m == nil || m.SummonerID != owner.ID || m.Dead || m.SummonKind == summonKindContract || m.SummonKind == summonKindMount {
+		if m == nil || m.SummonerID != owner.ID || m.Dead || m.HP == 0 ||
+			m.SummonKind != summonKindBM || m.Def == nil || m.Def.Score == nil {
 			continue
 		}
-		if m.Def == nil {
-			continue
-		}
-		if m.Def.Equip.Rosto.Index != template.face {
-			// Preserve W2PP's rejection of another family. The Go contract
-			// keeps summons outside the party and owned only by the caster.
-			return false
-		}
-		w.rebindSummonGameplaySpace(m, space)
-		oldX, oldY := m.X, m.Y
-		m.X, m.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, summonFollowDistance)
-		w.publishMobMove(m, oldX, oldY, uint32(m.Def.Score.AttackRun&0x0f))
-		current++
-		if current >= wanted {
-			return false
+		for i, template := range summonTemplates {
+			if m.Def.Equip.Rosto.Index != template.face {
+				continue
+			}
+			if previous := existing[i]; previous == nil {
+				existing[i] = m
+			} else if m.ID < previous.ID {
+				duplicates = append(duplicates, previous)
+				existing[i] = m
+			} else {
+				duplicates = append(duplicates, m)
+			}
+			break
 		}
 	}
-	// GenerateSummon succeeds when Num == 0 and no conflict was found.
-	// Preserve the source MP cost even when no creature materializes.
-	if wanted == 0 {
-		return true
+	for _, m := range duplicates {
+		for _, viewer := range w.players {
+			w.hideMob(viewer, m, 0)
+		}
+		m.Dead = true
+		w.removeMobInstance(m)
 	}
 	spawned := 0
-	for current < wanted {
+	for i, template := range summonTemplates {
+		if owner.Char.LearnedSkill&(uint32(1)<<(8+i)) == 0 {
+			continue
+		}
+		if m := existing[i]; m != nil {
+			w.rebindSummonGameplaySpace(m, space)
+			oldX, oldY := m.X, m.Y
+			m.X, m.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, summonFollowDistance)
+			w.publishMobMove(m, oldX, oldY, uint32(m.Def.Score.AttackRun&0x0f))
+			continue
+		}
+		mobID := w.allocMobID()
+		if mobID == 0 {
+			log.Printf("[#%d] summon %q interrupted: mob ID range exhausted", owner.Session.ID, template.name)
+			// Keep the MP charge when part of the group already exists.
+			return spawned > 0
+		}
 		x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, summonFollowDistance)
 		base := playerInt(owner.Char) + playerCon(owner.Char)
 		attack := template.baseAttack + base*template.minDamage/60 + mastery*template.maxDamage/60
@@ -222,23 +221,16 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 			},
 		}
 		def.Score.CurHP, def.Score.CurMP = def.Score.MaxHP, def.Score.MaxMP
-		mobID := w.allocMobID()
-		if mobID == 0 {
-			log.Printf("[#%d] summon %q interrupted: mob ID range exhausted", owner.Session.ID, template.name)
-			// Partial creation already produced authoritative entities. Do
-			// not refund MP and allow free summons after a subsequent failure.
-			return spawned > 0
-		}
+		attackRange := max(mobAttackRange, itemAbility(def.Equip.Rosto, w.items[template.face], "EF_RANGE"))
 		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
 			InstanceID: space,
-			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID, SummonKind: summonKindBM, SummonRange: mobAttackRange}
+			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID, SummonKind: summonKindBM, SummonRange: attackRange}
 		w.appendMobInstance(m)
 		w.publishMobSpawn(m)
-		current++
 		spawned++
 	}
-	w.gameplayLogf("skill", "[#%d] summoned %q count=%d/%d", owner.Session.ID, template.name, current, wanted)
-	return true
+	w.gameplayLogf("skill", "[#%d] summoned learned BM types count=%d", owner.Session.ID, spawned)
+	return spawned > 0
 }
 
 type summonCombatTarget struct {
@@ -398,8 +390,15 @@ func (w *World) tickSummonCombat(now time.Time) {
 		if attackRange <= 0 {
 			attackRange = mobAttackRange
 		}
-		if chebyshev(summon.X, summon.Y, target.x, target.y) > attackRange {
-			w.moveSummonToward(summon, target.x, target.y, attackRange, now)
+		distanceBetween := chebyshev
+		if summon.SummonKind == summonKindBM {
+			distanceBetween = nativeSummonDistance
+		}
+		distance := distanceBetween(summon.X, summon.Y, target.x, target.y)
+		if distance > attackRange {
+			if !now.Before(summon.NextMove) {
+				w.moveMobTowardWithin(summon, target.x, target.y, attackRange, distanceBetween, now)
+			}
 			continue
 		}
 		if !w.combatLineOfSight(summon.X, summon.Y, target.x, target.y) {
@@ -418,42 +417,58 @@ func (w *World) tickSummonCombat(now time.Time) {
 			continue
 		}
 		summon.NextAttack = now.Add(mobAttackInterval)
+		visual := w.summonAttackVisual(summon, distance)
+		spell, castsSpell := w.skills[int(visual.skill)]
+		castsSpell = castsSpell && visual.skill >= 0 && visual.skill < 96
 		if target.mob != nil {
 			chance := combatAccuracyPercent(int(target.mob.Def.Score.Dex),
 				int(summon.Def.Score.Accuracy), int(target.mob.Def.Score.Evasion), false)
 			if !combatRollHits(chance, w.intn) {
 				w.sendToMobView(summon, func() []byte {
-					return wire.AttackHitWideResult(summon.ID, target.mob.ID, summon.X, summon.Y,
-						target.mob.X, target.mob.Y, 0, target.mob.Def.Score.MaxHP, 0,
-						summon.Def.Score.MaxMP, 0, true)
+					return visual.packet(summon, target, 0, target.mob.Def.Score.MaxHP, true)
 				})
 				continue
 			}
-			damage := mobPhysicalHitMobAt(summon, target.mob, w.intn, now)
+			var damage uint32
+			if castsSpell {
+				damage = historicalMonsterSkillDamage(summon, effectiveMobDefenseAt(target.mob, now),
+					model.ElementalResists{}, spell, w.intn, now)
+			} else {
+				damage = mobPhysicalHitMobAt(summon, target.mob, w.intn, now)
+			}
 			if isCombatSummon(target.mob) {
 				damage = summonPvPDamage(damage)
 			}
 			oldHP := target.mob.HP
+			w.recordCrystalAttack(target.mob, owner, minU32(damage, oldHP))
 			if damage >= target.mob.HP {
 				target.mob.HP = 0
 			} else {
 				target.mob.HP -= damage
 			}
 			w.sendToMobView(summon, func() []byte {
-				return wire.AttackHitWide(summon.ID, target.mob.ID, summon.X, summon.Y, target.mob.X, target.mob.Y,
-					damage, target.mob.Def.Score.MaxHP, 0, summon.Def.Score.MaxMP)
+				return visual.packet(summon, target, damage, target.mob.Def.Score.MaxHP, false)
 			})
 			if target.mob.HP == 0 {
 				w.killMobState(owner, target.mob, damage, minU32(damage, oldHP))
+			} else if castsSpell && damage > 0 && activeMobAffectAt(target.mob, 19, now) == nil {
+				w.applySkillMobEffects(owner, target.mob, spell, bmSummonSpellMastery(summon, spell))
 			}
 			continue
 		}
-		hit := mobPhysicalHitPlayerAt(summon, target.user.Char, w.intn, now)
+		var hit physicalHitResult
+		if castsSpell {
+			hit.Hit = combatRollHits(mobVersusPlayerAccuracy(summon.Def, target.user.Char), w.intn)
+			if hit.Hit {
+				hit.Damage = historicalMonsterSkillDamage(summon, playerDefense(target.user.Char),
+					playerElementalResists(target.user.Char), spell, w.intn, now)
+			}
+		} else {
+			hit = mobPhysicalHitPlayerAt(summon, target.user.Char, w.intn, now)
+		}
 		if !hit.Hit {
 			w.sendToPlayerView(target.user, func() []byte {
-				return wire.AttackHitWideResult(summon.ID, target.user.ID, summon.X, summon.Y,
-					target.user.X, target.user.Y, 0, playerMaxHP(target.user.Char), 0,
-					summon.Def.Score.MaxMP, 0, true)
+				return visual.packet(summon, target, 0, playerMaxHP(target.user.Char), true)
 			})
 			continue
 		}
@@ -473,9 +488,11 @@ func (w *World) tickSummonCombat(now time.Time) {
 		}
 		target.user.LastAttackerID = owner.ID
 		w.sendToPlayerView(target.user, func() []byte {
-			return wire.AttackHitWide(summon.ID, target.user.ID, summon.X, summon.Y, target.user.X, target.user.Y,
-				damage, playerMaxHP(target.user.Char), 0, summon.Def.Score.MaxMP)
+			return visual.packet(summon, target, damage, playerMaxHP(target.user.Char), false)
 		})
+		if castsSpell && damage > 0 && playerCurHP(target.user.Char) > 0 {
+			w.applyBMSummonPlayerSpell(owner, summon, target.user, spell, now)
+		}
 		w.syncPlayerVitals(target.user)
 		w.updatePartyMember(target.user)
 		if playerCurHP(target.user.Char) == 0 {

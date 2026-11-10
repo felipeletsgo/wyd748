@@ -196,6 +196,8 @@ func inboundPacketSizeAllowed(opcode uint16, size int) (bool, string) {
 // becoming a packet-smuggling channel or exploiting a future parser.
 func exactInboundPacketSize(opcode uint16) (int, bool) {
 	switch opcode {
+	case wire.OpDropListQuery:
+		return wire.DropListQuerySize, true
 	case wire.OpQuizAnswer:
 		return wire.QuizAnswerSize, true
 	case wire.OpPremiumBuy:

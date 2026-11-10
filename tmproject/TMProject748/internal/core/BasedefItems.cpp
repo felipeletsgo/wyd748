@@ -272,7 +272,7 @@ int BASE_GetItemAbility(STRUCT_ITEM* item, char Type)
         }
 
         if (Type == EF_HWORDGUILD || Type == EF_LWORDGUILD)
-            value = value;
+            value = static_cast<unsigned char>(value);
 
         if (Type == EF_REGENMP || Type == EF_REGENHP)
             value *= sanc;

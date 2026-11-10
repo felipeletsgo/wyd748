@@ -322,7 +322,7 @@ func TestCriticalSkillShutdownWaitsForCommittedSnapshot(t *testing.T) {
 	}
 }
 
-func TestCriticalSkillAdvancedEvolutionPreservesRequirements(t *testing.T) {
+func TestCriticalSkillCelestialFormsSkipLevelAndMasteryRequirements(t *testing.T) {
 	for _, evolution := range []string{"", archEvolution, "celestial", "subcelestial"} {
 		for _, masteryRequired := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/mastery-%t", evolution, masteryRequired), func(t *testing.T) {
@@ -336,9 +336,9 @@ func TestCriticalSkillAdvancedEvolutionPreservesRequirements(t *testing.T) {
 				w.items[5000] = def
 				before := accountStateSnapshot(p.Account)
 				w.handle(command{s: p.Session, pkt: criticalSkillRequest("bonus", p.ID, master.ID, 0)})
-				if evolution == "" || masteryRequired {
+				if evolution == "" || evolution == archEvolution {
 					if len(queue.pending) != 0 || len(backend.entered) != 0 || fallback.saves != 0 || !reflect.DeepEqual(accountStateSnapshot(p.Account), before) {
-						t.Fatal("level bypass ignored another requirement or mutated on rejection")
+						t.Fatal("rejected skill purchase changed character state")
 					}
 					return
 				}

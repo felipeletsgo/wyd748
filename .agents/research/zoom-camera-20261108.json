@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-08",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "scope": "Moderate field camera distance increase with terrain and ground cursor coverage",
+  "sourceHead": "8795de490d88f41a53b59fda53428cbf67d0ddd4",
+  "workingTree": "Existing unrelated changes were preserved; this is an uncommitted local candidate.",
+  "candidateRevision": 104,
+  "publishedClientRevision": 103,
+  "installedClientReplaced": true,
+  "localInstallation": {
+    "installedAtUtc": "2026-11-08T20:32:24.1388946Z",
+    "directory": "tmproject/client748",
+    "backupDirectory": "tmproject/build/local-client-104-20261108T203224078Z",
+    "receipt": "tmproject/build/local-client-104-20261108T203224078Z/installation.json",
+    "files": ["WYD.exe", "WydCrashReporter.dll"],
+    "sha256Verified": true,
+    "reporterSha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6",
+    "gameLaunched": false
+  },
+  "published": false,
+  "serverActivated": false,
+  "clientTested": false,
+  "settings": {
+    "previousFieldDefault": 20,
+    "fieldDefault": 22,
+    "previousFieldMaximum": 20,
+    "fieldMaximum": 24,
+    "unmountedNearLimit": 1.2,
+    "mountedNearLimit": 2.5,
+    "maximumAdditionalTerrainTileRings": 2,
+    "serverVisibilityHalfWindow": [32, 32]
+  },
+  "behavior": [
+    "Field entry, its animation and the normal camera preset use distance 22.",
+    "The mouse wheel can reach distance 24 and return without locking.",
+    "Dungeon entry and exit retain maximum 24 and synchronize the camera target distance.",
+    "Fixed terrain render bounds and both ground cursor query bounds follow the expanded zoom.",
+    "Existing distance-based terrain and fog paths follow the camera distance.",
+    "Camera angles, alternate preset distances, wheel step and direction, near limits and server rules are unchanged."
+  ],
+  "artifact": {
+    "path": "tmproject/build/TMProject748/Release/WYD.exe",
+    "sha256": "2f3e5f8fdd806553c5572dae67ebfd57644e24cb4abd78c19d27acc935d64b07",
+    "includes": "Help commands, centering, /srv transport and field camera changes in candidate 104",
+    "supersedesBuildReceipt": ".agents/research/help-commands-20261108.json",
+    "installedSha256AtBuildValidation": "23b40806a698bb143051faf547fe9e68731372b2db2ab68d109f5c46f561a8fd"
+  },
+  "checks": {
+    "static": "Field initialization, normal preset, entry animation, dungeon transitions, terrain rendering and cursor query consumers verified.",
+    "clientBuild": "Release -NoDeploy PASS; process exit 0",
+    "architecture": "3202805 checks and static assertions PASS",
+    "socketReceive": "295 checks PASS",
+    "crashCapture": "148 checks, 0 failures",
+    "assetsAndShaders": "PASS; no unclassified missing source asset references",
+    "layoutAndLinks": "PASS; 222 documents indexed",
+    "diffWhitespace": "PASS",
+    "reused": "The Help-only receipt records locale, full Go suite and vet results. Their inputs did not change in this camera task."
+  },
+  "logs": ["tmproject/build/zoom-104-build.log"],
+  "changedFiles": [
+    "DOCS/client/port-748.md",
+    "DOCS/current-state.md",
+    ".agents/research/help-commands-20261108.json",
+    "tmproject/TMProject748/TMProject748.vcxproj",
+    "tmproject/TMProject748/TMProject748.vcxproj.filters",
+    "tmproject/TMProject748/internal/app/scenes/TMFieldSceneWorld.cpp",
+    "tmproject/TMProject748/internal/core/EventTranslator.cpp",
+    "tmproject/TMProject748/internal/game/entities/TMHumanPackets.cpp",
+    "tmproject/TMProject748/internal/render/world/terrain/TMGroundQueries.cpp",
+    "tmproject/TMProject748/internal/render/world/terrain/TMGroundRender.cpp",
+    "tmproject/TMProject748/tests/UiModeContractTests.cpp"
+  ],
+  "addedFiles": [
+    ".agents/research/zoom-camera-20261108.json",
+    "tmproject/TMProject748/internal/core/CameraZoom.h"
+  ],
+  "removedFiles": [],
+  "pending": [
+    "Real-client visual acceptance at supported aspect ratios",
+    "Field entry animation, wheel limits, camera preset cycling and mounted camera acceptance",
+    "Map and dungeon transitions, terrain seams, fog and ground clicks near viewport edges",
+    "Frame-time measurement with the larger view",
+    "Mandatory patch publication before any server revision 104 activation"
+  ]
+}

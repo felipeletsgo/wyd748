@@ -53,11 +53,7 @@ TMRain::~TMRain()
 void TMRain::StopAmbientSound()
 {
     if (g_pSoundManager)
-    {
-        auto sound = g_pSoundManager->GetSoundData(101);
-        if (sound && sound->IsSoundPlaying())
-            sound->Stop();
-    }
+        g_pSoundManager->StopSound(101);
 }
 
 void TMRain::SetActive(bool active)

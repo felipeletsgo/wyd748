@@ -86,6 +86,7 @@ func (w *World) killMobWithoutPlayer(m *Mob) {
 		w.scheduleGeneratorRespawn(g, m, w.now())
 	}
 	w.removeMobInstance(m)
+	w.onCrystalMobKilled(m, false, w.now())
 	w.respawnKefraGuard(m)
 }
 
@@ -175,7 +176,7 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	plan.bossState = w.bossSpawnStateForMob(m.ID)
 	// Leveling-instance kills are EXP-only, including events and boss loot.
 	// Skip planning entirely: planners can mutate inventory or reserve event drops.
-	if !expOnlyInstance(w.instanceForMob(m)) {
+	if m.crystalRole == crystalNone && !expOnlyInstance(w.instanceForMob(m)) {
 		plan.drops = append(plan.drops, w.planMobDrops(p, m)...)
 		plan.drops = append(plan.drops, w.planGlobalDrop(p, m)...)
 		plan.gold = w.rollMobGold(p, m)
@@ -403,6 +404,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 	w.onRuneTrackKill(p, m, w.now())
 	w.onItemInstanceMobKilled(m, w.now())
 	w.removeMobInstance(m)
+	w.onCrystalMobKilled(m, rewardCommitted, w.now())
 	if p != nil && p.Session != nil {
 		reward, levels := plan.killerReward, plan.killerLevels
 		if !rewardCommitted {

@@ -58,9 +58,9 @@ func TestRecalcExtendedUsesAllAttributes(t *testing.T) {
 	ch := testChar()
 	(&World{}).recalcPlayer(&ch)
 	e := effectiveScore(&ch)
-	// 7.59 score: 20 + STR 8/3 + DEX 7/8 + level 10; defense 10 + level 10.
-	if e.Attack != 32 {
-		t.Fatalf("attack=%d, want 32", e.Attack)
+	// 7.59 score: 20 + STR 12/3 + DEX 7/8 + level 10; defense 10 + level 10.
+	if e.Attack != 34 {
+		t.Fatalf("attack=%d, want 34", e.Attack)
 	}
 	if e.Defense != 20 || e.MaxHP != 130 || e.MaxMP != 60 {
 		t.Fatalf("incorrect derived values: %+v", e)
@@ -78,7 +78,7 @@ func TestApplyStatusConsumesPointAndDoesNotCompound(t *testing.T) {
 		t.Fatal("aplicacao recusada")
 	}
 	w.recalcPlayer(&ch)
-	if ch.Score.StatusPts != 49 || ch.Score.Con != 7 || playerMaxHP(&ch) != 132 {
+	if ch.Score.StatusPts != 49 || ch.Score.Con != 14 || playerMaxHP(&ch) != 132 {
 		t.Fatalf("incorrect CON/HP: pts=%d baseCON=%d maxHP=%d",
 			ch.Score.StatusPts, ch.Score.Con, playerMaxHP(&ch))
 	}
@@ -94,7 +94,7 @@ func TestBaseHPMPProgressionForAllMortalClasses(t *testing.T) {
 		stats := baseClassStats[class]
 		ch := model.Char{Class: byte(class), Score: &model.Score{
 			Version: model.ScoreVersion,
-			Level:   50, MaxHP: uint32(baseClassHPMP[class][0]), MaxMP: uint32(baseClassHPMP[class][1]),
+			Level:   50, NativeBaseStats: true, MaxHP: uint32(baseClassHPMP[class][0]), MaxMP: uint32(baseClassHPMP[class][1]),
 			Str: uint32(stats[0]), Int: uint32(stats[1]),
 			Dex: uint32(stats[2]), Con: uint32(stats[3]),
 		}}
@@ -130,7 +130,7 @@ func TestMasteryCapFollowsEighthAndSecondarySkills(t *testing.T) {
 		t.Fatalf("eighth skill limit=%d", got)
 	}
 	ch.SecondaryLearnedSkill = 1 << 4
-	if got := masteryPointLimit(ch, 1); got != 320 {
+	if got := masteryPointLimit(ch, 2); got != 320 {
 		t.Fatalf("limite secundaria=%d", got)
 	}
 }
@@ -203,14 +203,14 @@ func TestStatusBudgetRepairsLegacyOverspend(t *testing.T) {
 	ch.Score.Str += 40
 	ch.Score.Int += 30
 	syncStatusPoints(&ch)
-	spent := int(ch.Score.Str-8) + int(ch.Score.Int-4) +
-		int(ch.Score.Dex-7) + int(ch.Score.Con-6)
+	spent := int(ch.Score.Str-12) + int(ch.Score.Int-4) +
+		int(ch.Score.Dex-7) + int(ch.Score.Con-13)
 	if spent != 50 || ch.Score.StatusPts != 0 {
 		t.Fatalf("reparo deixou spent=%d available=%d stats=%+v",
 			spent, ch.Score.StatusPts, ch.Score)
 	}
-	if ch.Score.Str < 8 || ch.Score.Int < 4 ||
-		ch.Score.Dex < 7 || ch.Score.Con < 6 {
+	if ch.Score.Str < 12 || ch.Score.Int < 4 ||
+		ch.Score.Dex < 7 || ch.Score.Con < 13 {
 		t.Fatalf("reparo reduziu atributo natural: %+v", ch.Score)
 	}
 }

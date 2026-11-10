@@ -17,6 +17,7 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		size   int
 	}{
 		{wire.OpCharacterLogout, 12},
+		{wire.OpDropListQuery, wire.DropListQuerySize},
 		{wire.OpSwapItem, 20},
 		{wire.OpDeposit, 16},
 		{wire.OpWithdraw, 16},

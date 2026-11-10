@@ -102,20 +102,33 @@ int RunGridInsertionTests(int& checks)
     check(frame.find("WYD748_IsCenteredSingleCellGrid(m_eGridType)") != std::string::npos &&
         frame.find("m_pItemList[0]->FrameMoveAtCenter748(pDrawList, vecCenter, inParentLayer)") != std::string::npos,
         "mix slots use the shared centered sprite, mesh and label path");
-    check(grid_item_presentation::IconTexture(3191, 24) == 25,
-        "Elite Of Hekalotia uses the blue cape icon");
-    check(grid_item_presentation::IconTexture(3192, 25) == 26,
-        "Elite Of Akeronia uses the red cape icon");
-    check(grid_item_presentation::IconTexture(3193, 26) == 27,
-        "Elite Of Adventurer uses the white cape icon");
-    check(grid_item_presentation::IconTexture(3197, 31) == 25,
-        "Master Of Hekalotia reuses the blue elite cape icon");
-    check(grid_item_presentation::IconTexture(3198, 32) == 26,
-        "Master Of Akeronia reuses the red elite cape icon");
-    check(grid_item_presentation::IconTexture(3199, 33) == 27,
-        "Master Of Adventurer reuses the white elite cape icon");
-    check(grid_item_presentation::IconTexture(4006, 19) == 17,
-        "Apprentice Mantle uses the native mesh-27 grid texture offset");
+    constexpr struct {
+        int item, catalogMesh, catalogTexture, iconMesh, iconTexture;
+    } capes[] = {
+        {290, 27, 4, 27, 4},
+        {543, 27, 0, 27, 0}, {544, 27, 1, 27, 1},
+        {545, 27, 2, 27, 2}, {546, 27, 3, 27, 3},
+        {548, 27, 6, 27, 5}, {549, 27, 7, 27, 6}, {550, 27, 6, 27, 5},
+        {572, 27, 15, 27, 13}, {573, 2880, 36, 2880, 36}, {574, 27, 17, 27, 15},
+        {734, 27, 0, 27, 0}, {735, 27, 1, 27, 1}, {736, 27, 2, 27, 2},
+        {737, 27, 3, 27, 3}, {738, 27, 4, 27, 4}, {1720, 27, 4, 27, 4},
+        {1766, 27, 8, 27, 7}, {1767, 2880, 34, 2880, 34}, {1768, 27, 11, 27, 9},
+        {1769, 27, 12, 27, 10}, {1770, 2880, 35, 2880, 35}, {1771, 27, 14, 27, 12},
+        {3191, 27, 24, 27, 25}, {3192, 27, 25, 27, 26}, {3193, 27, 26, 27, 27},
+        {3194, 27, 27, 27, 25}, {3195, 27, 28, 27, 26}, {3196, 27, 29, 27, 27},
+        {3197, 2880, 31, 27, 25}, {3198, 2880, 32, 27, 26}, {3199, 2880, 33, 27, 27},
+        {4006, 27, 19, 27, 17}, {4008, 27, 21, 27, 19}, {4009, 27, 22, 27, 20},
+        {4015, 2840, 23, 2830, 0},
+    };
+    bool overridesCapeMesh[6500]{};
+    bool overridesCapeTexture[6500]{};
+    for (const auto& cape : capes) {
+        check(grid_item_presentation::IconMesh(cape.item, cape.catalogMesh) == cape.iconMesh &&
+            grid_item_presentation::IconTexture(cape.item, cape.catalogTexture) == cape.iconTexture,
+            "cape icon resolves its expected mesh and texture");
+        overridesCapeMesh[cape.item] = cape.catalogMesh != cape.iconMesh;
+        overridesCapeTexture[cape.item] = cape.catalogTexture != cape.iconTexture;
+    }
     check(grid_item_presentation::IconMesh(4148, 2875) ==
             grid_item_presentation::IconMesh(3022, 2874) &&
         grid_item_presentation::IconTexture(4148, 0) ==
@@ -125,13 +138,12 @@ int RunGridInsertionTests(int& checks)
         grid_item_presentation::IconTexture(5338, 0) == 0,
         "Ideal Stone retains its distinct catalog icon");
     for (int index = 0; index < 6500; ++index) {
-        check(grid_item_presentation::IconMesh(index, 2880) ==
-            (index == 4148 ? 2874 : index >= 3197 && index <= 3199 ? 27 : 2880),
-            "cape and stone icon overrides preserve all other meshes");
-        if ((index >= 3191 && index <= 3193) || (index >= 3197 && index <= 3199) ||
-            index == 4006 || index == 4148) continue;
-        check(grid_item_presentation::IconTexture(index, 17) == 17,
-            "all other item icons retain their catalog texture");
+        if (!overridesCapeMesh[index] && index != 4148)
+            check(grid_item_presentation::IconMesh(index, 2880) == 2880,
+                "all other item icons retain their catalog mesh");
+        if (!overridesCapeTexture[index] && index != 4148)
+            check(grid_item_presentation::IconTexture(index, 17) == 17,
+                "all other item icons retain their catalog texture");
     }
     for (const char* signature : {
         "int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)",

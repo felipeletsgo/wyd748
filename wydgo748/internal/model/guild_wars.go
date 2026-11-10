@@ -124,6 +124,7 @@ type TowerWarState struct {
 	Started          bool      `json:"started,omitempty"`
 	Notices          uint16    `json:"notices,omitempty"`
 	Day              string    `json:"day,omitempty"`
+	StartsAt         time.Time `json:"startsAt,omitzero"`
 	EndsAt           time.Time `json:"endsAt,omitempty"`
 	Owner            uint16    `json:"owner,omitempty"`
 	Finished         bool      `json:"finished,omitempty"`
@@ -294,6 +295,9 @@ func (s GuildWarState) Validate(r *GuildRegistry) error {
 	if s.Tower.Day != "" {
 		if _, err := time.Parse("2006-01-02", s.Tower.Day); err != nil || s.Tower.EndsAt.IsZero() {
 			return fmt.Errorf("invalid tower calendar")
+		}
+		if !s.Tower.StartsAt.IsZero() && !s.Tower.StartsAt.Before(s.Tower.EndsAt) {
+			return fmt.Errorf("invalid tower combat window")
 		}
 	}
 	c := s.Cities

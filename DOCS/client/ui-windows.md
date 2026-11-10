@@ -84,7 +84,55 @@ are recorded in [Aylin refinement presentation](../../.agents/research/client748
 Automated checks and an incremental Release build passed on 2026-10-14; this
 batch was not installed locally, published, or tested in the running client.
 
+## Help commands and centering — 2026-11-08
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The combined Help and camera candidate
+104 is published. Gameplay acceptance remains pending. See the
+[release receipt](../../.agents/research/release-748104-20261108.json).
+
+Help uses the same viewport-center calculation as Quest. The scene positions
+resource root 864 at initialization, H/menu reopening and tab changes. Its
+relative children retain the frame, title, tabs, pages, close button and
+scrollbars. The current `FieldScene2.bin` hierarchy confirms this ownership;
+moving individual children would apply the offset twice. The existing
+[scale and anchor evidence](../../.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md)
+still governs pixel dimensions. This change makes no new native-parity claim.
+
+The Command tab loads 115 reviewed lines in English and Brazilian Portuguese.
+Its capacity is 256 rows; the previous loader and resource stopped at 100.
+The guide covers every alias in `chatCommandAliases`, all nine `/tab` variants,
+`/snd`, bare guild-affiliation tokens, chat prefixes and active local commands.
+Automatic `/day` and `/nig` synchronization appears in a separate section.
+Staff `/goto` and unsupported historical commands are excluded. The inventory
+clear command explicitly states that it permanently deletes inventory items.
+
+Canonical `UI/command.txt` supplies English fallback. EN/PT copies, the PT
+override and the reviewed canonical hash agree. Paths, IDs and text encoding
+remain compatible with the existing locale resolver. `/srv <channel>` now sends
+the existing whisper packet to the authoritative transfer handler; the client
+previously discarded it before transmission.
+
+The Release `-NoDeploy` build passed 3,202,768 architecture checks, 295 socket
+checks and 148 crash checks. All 24 locale tests, `go test ./...`, `go vet ./...`,
+layout/link validation and `git diff --check` passed. Tahoma measurements fit
+within the 448-pixel text budget: EN 280 pixels; PT 326 pixels. See the
+[local validation receipt](../../.agents/research/help-commands-20261108.json).
+
+Automated checks cover command coverage, excluded staff/obsolete tokens,
+CP1252 rows, locale agreement, resource ownership, guide capacity, centering
+across viewport sizes and UI scales, and command transport. Real-client checks
+remain pending: H/menu/letter opening, every tab and mouse diagram, final-row
+scrolling, close/reopen, EN/PT readability, changed resolutions and `/srv`.
+
 ## Verification rule
+
+### Ground loot clicks — 2026-11-09
+
+Use left click on exposed loot. Use plain right click on loot beneath
+a player or monster. Right click checks the item before the selected skill.
+The server still validates and commits the existing pickup request.
+Real-client acceptance is pending.
+See the [mouse pickup record](../../.agents/research/client748/flows/ui/ground-pickup-mouse.md).
 
 ### Helper shortcut audit and corrections — 2026-10-18
 
@@ -105,7 +153,7 @@ C.C./consumable ownership.
 | Minus | `OnKeyDash` cycles automatic skill selection only while autoattack is enabled. |
 | Q/W/E; V; F11 | Potion, mount feed and recall-item handlers are bound. F11 searches the native 9x7 Carry grid for volatile effect 11. Actual inventory/server results are unverified. |
 | C/I/S; P; M | Character, inventory, skills, party and minimap handlers are present. |
-| A/D | These toggle current C.C. modes, rather than the Helper's alternate minimap/party actions. Preserve them pending evidence and an explicit conflict decision. |
+| A / D | Release 7.48.101 keeps A for C.C. and assigns D to the owner-requested [drop search](../protocol/drop-list.md). C.C. controls remain available in their panel. |
 | R; T; N; Tab | Run, autoattack, names and camera handlers are present; Toto focus can consume Tab first. |
 | Grave | No grave-character PK binding found; `OnKeyPK` currently accepts K/k. |
 | Plus | `OnKeyPlus` resizes chat. Its down-arrow scale correction is described in the [UI2 scrollbar record](port-748.md#ui2-vertical-scrollbar-2026-10-13). |
@@ -124,7 +172,7 @@ letters, numbers and numpad, Ctrl+Shift for assignment, and Alt for ASCII
 punctuation. The source retains its Ctrl-punctuation aliases in mode 1.
 Q/W/E and F dispatch were restored without changing their native alive gates.
 Native edit focus preserves cut/copy/paste and suppresses gameplay dispatch.
-Mode 0 retains unmodified character controls; A/D remain C.C. controls there.
+Mode 0 retains A for C.C.; D now opens the coordinated drop-search window.
 Native A/D/Home accelerator no-ops are not advertised or installed.
 
 The server now consumes exact lowercase `guildon`/`guildoff` tokens from
