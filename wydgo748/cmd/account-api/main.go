@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/netip"
@@ -41,17 +42,9 @@ func main() {
 		log.Fatalf("account-api: open PostgreSQL: %v", err)
 	}
 	defer st.Close()
-	trustedProxies := make([]netip.Prefix, 0)
-	for _, raw := range strings.Split(*trustedProxyList, ",") {
-		raw = strings.TrimSpace(raw)
-		if raw == "" {
-			continue
-		}
-		prefix, parseErr := netip.ParsePrefix(raw)
-		if parseErr != nil {
-			log.Fatalf("account-api: trusted proxy %q: %v", raw, parseErr)
-		}
-		trustedProxies = append(trustedProxies, prefix)
+	trustedProxies, err := parseTrustedProxies(*trustedProxyList)
+	if err != nil {
+		log.Fatalf("account-api: %v", err)
 	}
 	server := &http.Server{
 		Addr: *addr,
@@ -82,4 +75,20 @@ func main() {
 			log.Printf("account-api shutdown: %v", err)
 		}
 	}
+}
+
+func parseTrustedProxies(value string) ([]netip.Prefix, error) {
+	trustedProxies := make([]netip.Prefix, 0)
+	for _, raw := range strings.Split(value, ",") {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		prefix, parseErr := netip.ParsePrefix(raw)
+		if parseErr != nil {
+			return nil, fmt.Errorf("trusted proxy %q: %w", raw, parseErr)
+		}
+		trustedProxies = append(trustedProxies, prefix)
+	}
+	return trustedProxies, nil
 }

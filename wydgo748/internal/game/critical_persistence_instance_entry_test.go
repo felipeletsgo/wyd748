@@ -5,11 +5,35 @@ import (
 	"errors"
 	"maps"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
 )
+
+func TestExpiredCriticalInstanceEntryChecksEachDeadline(t *testing.T) {
+	now := time.Unix(500, 0)
+	tests := []struct {
+		name string
+		inst *ItemInstance
+		want bool
+	}{
+		{name: "no deadlines", inst: &ItemInstance{}, want: false},
+		{name: "combat deadline future", inst: &ItemInstance{CombatDeadline: now.Add(time.Second)}, want: false},
+		{name: "legacy deadline elapsed", inst: &ItemInstance{Deadline: now}, want: true},
+		{name: "hard deadline reached", inst: &ItemInstance{HardDeadline: now}, want: true},
+		{name: "schedule end reached", inst: &ItemInstance{ScheduleEnd: now}, want: true},
+		{name: "all deadlines future", inst: &ItemInstance{CombatDeadline: now.Add(time.Second), HardDeadline: now.Add(2 * time.Second), ScheduleEnd: now.Add(3 * time.Second)}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := expiredCriticalInstanceEntry(tt.inst, now); got != tt.want {
+				t.Fatalf("expiredCriticalInstanceEntry() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func criticalInstanceEntryFixture(t *testing.T, kind, outcome string) (*World, *Player, *Player,
 	*Player, *guildFlowStore, *criticalTestStore, *criticalPersistence, model.VolatileRule, func()) {
@@ -168,6 +192,69 @@ func TestCriticalInstanceEntryDetachedBatchAndSettlement(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestCriticalInstanceTicketPreflightFailuresReserveNoState(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		kind          string
+		expectedUID   string
+		prepare       func(*World, *Player, *Player, *model.VolatileRule)
+		wantErrorText string
+	}{
+		{name: "invalid player identity", wantErrorText: "participant identity changed"},
+		{name: "missing instance configuration", wantErrorText: "not configured"},
+		{name: "wrong action", wantErrorText: "not configured", prepare: func(_ *World, _ *Player, _ *Player, rule *model.VolatileRule) { rule.Action = "generic" }},
+		{name: "stale ticket identity", expectedUID: "stale-uid", wantErrorText: "participant identity changed"},
+		{name: "missing catalog item", wantErrorText: "not in the server catalog", prepare: func(w *World, _ *Player, _ *Player, _ *model.VolatileRule) { delete(w.items, 100) }},
+		{name: "exclusive group occupied", wantErrorText: "already active", prepare: func(w *World, _ *Player, _ *Player, rule *model.VolatileRule) {
+			rule.Instance.ExclusiveGroup = "magic-chamber"
+			w.itemInstances = map[string]*ItemInstance{"occupied": {Config: model.VolatileInstance{ExclusiveGroup: "magic-chamber"}}}
+		}},
+		{name: "outside configured entry area", wantErrorText: "cannot be used from here", prepare: func(_ *World, p *Player, _ *Player, rule *model.VolatileRule) {
+			rule.Instance.EntryAreas = []model.VolatileInstanceEntryArea{{
+				MinX: p.X + 1, MaxX: p.X + 2, MinY: p.Y + 1, MaxY: p.Y + 2,
+			}}
+		}},
+		{name: "closed shared schedule", kind: "shared-join", wantErrorText: "not open right now", prepare: func(w *World, _ *Player, _ *Player, rule *model.VolatileRule) {
+			w.itemInstances[rule.Instance.ID].ScheduleEnd = w.now().Add(-time.Second)
+		}},
+		{name: "invalid shared entry mode", kind: "shared-join", wantErrorText: "entry mode is not configured", prepare: func(_ *World, _ *Player, _ *Player, rule *model.VolatileRule) {
+			rule.PartyMode = "unsupported"
+		}},
+		{name: "nonleader party entry", wantErrorText: "eligible party leader", prepare: func(_ *World, p *Player, _ *Player, rule *model.VolatileRule) {
+			rule.PartyMode = "party"
+			p.Party = nil
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			kind := tc.kind
+			if kind == "" {
+				kind = "water"
+			}
+			w, leader, _, _, _, backend, queue, rule, _ := criticalInstanceEntryFixture(t, kind, "commit")
+			if tc.name == "invalid player identity" {
+				leader.InWorld = false
+			}
+			if tc.name == "missing instance configuration" {
+				rule.Instance = nil
+			}
+			if tc.prepare != nil {
+				tc.prepare(w, leader, nil, &rule)
+			}
+			before := accountStateSnapshot(leader.Account)
+			beforeItemInstances := maps.Clone(w.itemInstances)
+			err := w.queueCriticalInstanceTicket(leader, 0, rule, tc.expectedUID)
+			if err == nil || !strings.Contains(err.Error(), tc.wantErrorText) {
+				t.Fatalf("preflight error=%v, want text %q", err, tc.wantErrorText)
+			}
+			if !reflect.DeepEqual(accountStateSnapshot(leader.Account), before) ||
+				!reflect.DeepEqual(w.itemInstances, beforeItemInstances) || len(queue.pending) != 0 ||
+				len(backend.entered) != 0 || len(w.criticalTeleportTiles) != 0 || len(w.criticalSummonIDs) != 0 {
+				t.Fatal("rejected ticket preflight changed account, membership, reservations or persistence")
+			}
+		})
 	}
 }
 

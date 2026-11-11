@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 225.
+Markdown documents: 226.
 
 | Document | Type |
 | --- | --- |
@@ -34,6 +34,7 @@ Markdown documents: 225.
 | [.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md](<../.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/scene-transition.md](<../.agents/research/client748/flows/lifecycle/scene-transition.md>) | Research evidence |
 | [.agents/research/client748/flows/movement/deferred-route-intent.md](<../.agents/research/client748/flows/movement/deferred-route-intent.md>) | Research evidence |
+| [.agents/research/client748/flows/movement/ground-click-marker.md](<../.agents/research/client748/flows/movement/ground-click-marker.md>) | Research evidence |
 | [.agents/research/client748/flows/TEMPLATE.md](<../.agents/research/client748/flows/TEMPLATE.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/account-login-credential-bounds.md](<../.agents/research/client748/flows/transport/account-login-credential-bounds.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/action-frame-contract.md](<../.agents/research/client748/flows/transport/action-frame-contract.md>) | Research evidence |

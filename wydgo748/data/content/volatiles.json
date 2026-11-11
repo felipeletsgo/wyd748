@@ -707,6 +707,46 @@
     }
   },
   "items": {
+    "436": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Asder",
+        "face": 1,
+        "weapon": 907,
+        "shield": 907,
+        "armor": [100, 101, 102, 103, 104],
+        "refinement": 9,
+        "attack": 63,
+        "defense": 2000,
+        "hp": 15000,
+        "moveSpeed": 4,
+        "attackRange": 3,
+        "tank": true
+      },
+      "description": "Blue knight guard contract. Asder draws nearby monsters and takes their hits."
+    },
+    "438": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Sophia",
+        "face": 11,
+        "weapon": 901,
+        "shield": 1705,
+        "armor": [1260, 1272, 1284, 1296, 1308],
+        "refinement": 9,
+        "attack": 0,
+        "defense": 2000,
+        "hp": 15000,
+        "moveSpeed": 4,
+        "attackRange": 6,
+        "healer": true
+      },
+      "description": "Sophia guard letter. Sophia heals her owner and draws nearby monsters while her owner is dead."
+    },
     "3022": {
       "action": "refine",
       "consume": true,

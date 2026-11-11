@@ -342,7 +342,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
 
             if (pChild)
             {
-                pChild->SetColor(0xFF0055FF);
+                pChild->SetColor(0xFFFFFFFF);
                 pChild->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
                 pChild->m_nFade = 0;
 
@@ -526,7 +526,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
         }
 
         vecIn = D3DXVECTOR3(0.0f, 0.0f, m_fEffectLength);
-        D3DXVec3Transform(&vecStartOut, &vecStartIn, &m_matEffect);
+        D3DXVec3Transform(&vecStartOut, &vecIn, &m_matEffect);
 
         if (!m_pEnchant)
         {

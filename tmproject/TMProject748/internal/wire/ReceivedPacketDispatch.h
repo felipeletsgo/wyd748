@@ -95,7 +95,7 @@ namespace received_packet
         case MSG_UpdateScore_Opcode: return kUpdateScorePacketSize;
         case MSG_UpdateCarry_Opcode: return kCarrySnapshotPacketSize;
         case MSG_UpdateEquip_Opcode: return kUpdateEquipPacketSize;
-        case MSG_UpdateAffect_Opcode: return kUpdateAffectPacketSize;
+        case MSG_UpdateAffect_Opcode: return kUpdateAffectPacketSize; // Base size. CanDispatch also validates the guard tail.
         case MSG_CreateMob_Opcode: return kCreateMobPacketSize;
         case MSG_CreateMobTrade_Opcode: return kCreateMobTradePacketSize;
         case MSG_ShopList_Opcode: return kShopListPacketSize;
@@ -221,6 +221,13 @@ namespace received_packet
             return packet.opcode == header.Type &&
                 header.Size == packet.size &&
                 IsAttackPacketSize(header.Type, packet.size);
+        }
+
+        if (header.Type == MSG_UpdateAffect_Opcode || packet.opcode == MSG_UpdateAffect_Opcode)
+        {
+            GuardTimers timers{};
+            return packet.opcode == header.Type && header.Size == packet.size &&
+                ReadGuardTimers(packet.data, packet.size, timers);
         }
 
         const auto expected = ExpectedSize(header.Type);

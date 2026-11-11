@@ -38,9 +38,14 @@ func usarCristal(w *World, p *Player, s *net.Session, indice uint16) {
 func TestCristalCobraCemMilhoesERebaixaNivel(t *testing.T) {
 	const exp = uint32(2_600_000_000)
 	w, p, s := archComExp(exp, 0)
+	p.Char.Inv[0] = model.Item{Index: firstArchCrystal}
+	w.volatiles = model.VolatileCatalog{
+		Items:     map[uint16]model.VolatileRule{firstArchCrystal: {Action: "arch_crystal", Consume: true}},
+		ItemCodes: map[uint16]int{firstArchCrystal: 187},
+	}
 	nivelAntes := p.Char.Score.Level
 
-	usarCristal(w, p, s, firstArchCrystal)
+	w.onUseItem(s, useItemPacket(0, 0))
 
 	if p.Char.ArchCrystals != 1 {
 		t.Fatalf("cristais=%d, quer 1", p.Char.ArchCrystals)

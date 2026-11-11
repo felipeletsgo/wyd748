@@ -61,6 +61,26 @@ func enterRuneTrack(t *testing.T, w *World, p *Player, clock *fakeClock, room in
 	return inst
 }
 
+func TestMoveRuneIntruderKeepsCharacterAndWorldPositionsTogether(t *testing.T) {
+	w, leader, member, st, clock := runeTrackTestWorld(t)
+	inst := enterRuneTrack(t, w, leader, clock, 2)
+	leaderX, leaderY := leader.X, leader.Y
+	member.X, member.Y, member.Char.X, member.Char.Y = 3385, 1435, 3385, 1435
+	w.updatePlayerSpatial(member)
+	room := w.uxmal.Uxmal.RoomPositions[2][1]
+	saves := st.gameSaves
+	w.moveRuneIntruder(inst, member, room.X, room.Y)
+	if runeInside(member.X, member.Y, [4]uint16{3382, 1426, 3394, 1466}) ||
+		member.X != member.Char.X || member.Y != member.Char.Y {
+		t.Fatalf("intruder relocation desynchronized or left the boundary: world=(%d,%d) char=(%d,%d)",
+			member.X, member.Y, member.Char.X, member.Char.Y)
+	}
+	if leader.X != leaderX || leader.Y != leaderY || st.gameSaves != saves+1 ||
+		w.itemInstances[inst.RuntimeID] != inst {
+		t.Fatal("intruder relocation moved a peer, skipped persistence, or replaced its instance")
+	}
+}
+
 func runeMob(t *testing.T, w *World, inst *ItemInstance, label int) *Mob {
 	t.Helper()
 	for id, g := range inst.RuneTrack.Generators {

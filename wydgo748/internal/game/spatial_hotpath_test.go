@@ -202,6 +202,55 @@ func TestCrossCellPlayerMoveRecomputesOldAndNewMobNeighborhoods(t *testing.T) {
 	}
 }
 
+func TestNearbyPlayersInGameplaySpaceFiltersTargets(t *testing.T) {
+	w, current, _ := handlerTestWorld(t)
+	w.clock = realClock{}
+
+	newPlayer := func(id, x, y uint16) *Player {
+		p := &Player{ID: id, InWorld: true, X: x, Y: y,
+			Char: &model.Char{Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}}}
+		w.updatePlayerSpatial(p)
+		return p
+	}
+	nearby := newPlayer(2, current.X+1, current.Y)
+	hidden := newPlayer(3, current.X+1, current.Y+1)
+	hidden.Char.Affects[0] = model.Affect{Type: 28, ExpiresAt: time.Now().Add(time.Hour)}
+	dead := newPlayer(4, current.X, current.Y+1)
+	setPlayerCurHP(dead.Char, 0)
+	newPlayer(5, current.X+3, current.Y)
+
+	got := w.nearbyPlayersInGameplaySpace(current.X, current.Y, 2, " ")
+	if len(got) != 2 || !containsPlayer(got, current) || !containsPlayer(got, nearby) {
+		t.Fatalf("public target filter returned %v; want current and nearby player", got)
+	}
+	if got := w.nearbyPlayersInGameplaySpace(current.X, current.Y, 2, "private-runtime"); len(got) != 0 {
+		t.Fatalf("public players crossed into a private gameplay space: %v", got)
+	}
+	if got := w.nearbyPlayersInGameplaySpace(current.X, current.Y, -1, ""); len(got) != 0 {
+		t.Fatalf("negative radius returned targets: %v", got)
+	}
+}
+
+func containsPlayer(players []*Player, want *Player) bool {
+	for _, player := range players {
+		if player == want {
+			return true
+		}
+	}
+	return false
+}
+
+func TestPositionOccupiedUsesPublicCollisionRules(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	if !w.positionOccupied(p.X, p.Y, nil) {
+		t.Fatal("a live player did not reserve its tile")
+	}
+	p.InWorld = false
+	if w.positionOccupied(p.X, p.Y, nil) {
+		t.Fatal("an out-of-world player still reserved its tile")
+	}
+}
+
 func TestCrossCellPlayerMoveReusesActivationScratch(t *testing.T) {
 	w := &World{clock: realClock{}}
 	newPlayer := func(id, x uint16) *Player {

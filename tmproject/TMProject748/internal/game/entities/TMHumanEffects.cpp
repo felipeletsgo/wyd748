@@ -468,7 +468,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             {
                 m_pLightenStorm[i]->m_vecPosition = isCrystal
                     ? TMVector3{ m_vecPosition.x, m_fHeight + 1.9f, m_vecPosition.y }
-                    : TMVector3{ m_vecSkinPos.x, m_vecSkinPos.y + 1.3f, m_vecSkinPos.z + 0.1f };
+                    : TMVector3{ m_vecSkinPos.x, m_vecSkinPos.y + 1.2f, m_vecSkinPos.z };
             }
         }
     }
@@ -586,24 +586,23 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         if (m_pEleStream)
             m_pEleStream->StartVisible(dwServerTime);
     }
+    const TMVector3 groundBuffPosition{ m_vecPosition.x, m_fHeight + ground_buff_visual::Lift, m_vecPosition.y };
     if (m_cAurora == 1)
     {
-        if (m_pAurora)
-            m_pAurora->m_vecPosition = { m_vecPosition.x, m_fHeight + 0.30000001f, m_vecPosition.y };
-        else
+        if (!m_pAurora)
         {
             m_pAurora = new TMEffectBillBoard2(94, 0, 1.5f, 1.5f, 1.5f, 0.0, 3000);
             if (m_pAurora)
             {
                 m_pAurora->m_nFade = 2;
                 m_pAurora->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                m_pAurora->m_vecPosition = { m_vecPosition.x,
-                    m_fHeight + 0.30000001f,
-                    m_vecPosition.y };
                 m_pAurora->SetColor(0x33333333);
+                m_pAurora->m_bShow = !buffsHidden;
                 g_pCurrentScene->m_pEffectContainer->AddChild(m_pAurora);
             }
         }
+        if (m_pAurora)
+            m_pAurora->m_vecPosition = groundBuffPosition;
     }
     else if (m_pAurora)
     {
@@ -662,14 +661,11 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
     // FUN_00506f9d: affect 15 uses a 1.5-unit texture-93 plane on terrain, not
     // at head height. Native lifts it 0.4 units (0x005A4154), which reads as
     // shin height; the owner chose the 0.05 ground-decal lift at the feet.
-    constexpr float kSkillAmpGroundOffset = 0.05f;
     if (m_cSKillAmp == 1)
     {
         if (m_pSkillAmp)
         {
-            m_pSkillAmp->m_vecPosition = { m_vecPosition.x,
-                m_fHeight + kSkillAmpGroundOffset,
-                m_vecPosition.y };
+            m_pSkillAmp->m_vecPosition = groundBuffPosition;
         }
         else
         {
@@ -679,9 +675,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             {
                 m_pSkillAmp->m_nFade = 3;
                 m_pSkillAmp->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                m_pSkillAmp->m_vecPosition = { m_vecPosition.x,
-                    m_fHeight + kSkillAmpGroundOffset,
-                    m_vecPosition.y };
+                m_pSkillAmp->m_vecPosition = groundBuffPosition;
                 m_pSkillAmp->SetColor(0x88888800);
                 g_pCurrentScene->m_pEffectContainer->AddChild(m_pSkillAmp);
             }
@@ -697,14 +691,14 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
     {
         if (m_pShadow)
         {
-            m_pShadow->m_vecPosition = { m_vecPosition.x, m_fHeight + 0.5f, m_vecPosition.y };
+            m_pShadow->m_vecPosition = groundBuffPosition;
         }
         else
         {
             m_pShadow = new TMEffectBillBoard2(94, 0, 1.2f, 1.2f, 1.2f, 0.0f, 5000);
             m_pShadow->m_nFade = 4;
             m_pShadow->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-            m_pShadow->m_vecPosition = { m_vecPosition.x, m_fHeight + 0.5f, m_vecPosition.y };
+            m_pShadow->m_vecPosition = groundBuffPosition;
             m_pShadow->SetColor(0xAAAA0000);
             g_pCurrentScene->m_pEffectContainer->AddChild(m_pShadow);
         }

@@ -1,6 +1,8 @@
 #include "../internal/application/SceneSafetyPolicy.h"
 #include "../internal/application/ChatListRows.h"
 #include "../internal/ui/UIBinary.h"
+#include "../internal/wire/GamblePacket.h"
+#include "SourceMethod.h"
 
 #include <climits>
 #include <cstdio>
@@ -45,6 +47,16 @@ int RunFieldSceneSafetyTests(int& checks)
             std::fprintf(stderr, "FAIL: %s\n", name);
         }
     };
+    // The uptime can exceed the server clock's 32-bit range.
+    constexpr std::uint64_t guardReceivedAt = 0x100000000ull + 250;
+    check(guard_buff::SecondsRemaining(3600, guardReceivedAt, guardReceivedAt) == 3600 &&
+        guard_buff::SecondsRemaining(3600, guardReceivedAt, guardReceivedAt + 999) == 3600 &&
+        guard_buff::SecondsRemaining(3600, guardReceivedAt, guardReceivedAt + 1000) == 3599,
+        "guard HUD shows a full hour and counts down in whole seconds");
+    check(guard_buff::SecondsRemaining(3600, guardReceivedAt, guardReceivedAt + 3599999) == 1 &&
+        guard_buff::SecondsRemaining(3600, guardReceivedAt, guardReceivedAt + 3600000) == 0 &&
+        guard_buff::SecondsRemaining(0, guardReceivedAt, guardReceivedAt) == 0,
+        "guard HUD hides expired and cleared timers");
     // A02-11: short scene gates and countdowns retain their exact boundaries.
     check(!scene_countdown::IsPast(5000, 0, 5000) && scene_countdown::IsPast(5001, 0, 5000),
         "A02-11 the five-second deadline remains exclusive");
@@ -196,6 +208,32 @@ int RunFieldSceneSafetyTests(int& checks)
     check(packets.find("m_cCharacterSlot = -1", deleted) < packets.find("OnControlEvent(4616", deleted),
         "A07-05 deletion clears selection before the controls and models reload");
     const auto scene = Source("tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    const auto reelSource = Source("tmproject/TMProject748/internal/ui/controls/SReelPanel.cpp");
+    const auto setRoll = source_contract::Method(reelSource,
+        "void SReelPanel::SetRoll(bool bRoll, int StopPos1, int StopPos2, int StopPos3, unsigned int StopTime)");
+    const auto tickReel = source_contract::Method(reelSource,
+        "void SReelPanel::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)");
+    check(!setRoll.empty() && !tickReel.empty() &&
+        source_contract::Lacks(setRoll, "Jackpot") && source_contract::Lacks(tickReel, "Jackpot"),
+        "starting or animating a wager preserves the last confirmed jackpot digits");
+    const auto resultGamble = source_contract::Method(
+        Source("tmproject/TMProject748/internal/app/scenes/TMFieldSceneEvents.cpp"),
+        "int TMFieldScene::OnPacketRESULTGAMBLE(MSG_ResultGamble* pStd)");
+    check(source_contract::Before(resultGamble, "if (stop >= 22)", "m_pReelPanel->SetJackpot(pStd->Jackpot)") &&
+        source_contract::Before(resultGamble, "m_pReelPanel2->SetJackpot(pStd->Jackpot)", "pendingType != m_cGambleType"),
+        "only a valid server result updates both jackpot displays, including after panel close");
+    const auto placeSymbol = source_contract::Method(reelSource,
+        "void PlaceReelSymbol(SPanel* panel, float x, int y, float width, int height, bool visible)");
+    check(!placeSymbol.empty() && placeSymbol.find("SetPos(RenderDevice::UiPx(x), top * RenderDevice::m_fUIScaleY)") != std::string::npos &&
+        placeSymbol.find("SetSize(RenderDevice::UiPx(width), (bottom - top) * RenderDevice::m_fUIScaleY)") != std::string::npos &&
+        tickReel.find("PlaceReelSymbol(") != std::string::npos,
+        "rolling reel cells use the same screen scale as their native frame");
+    check(gamble_bet::IsValid(1'000'000) && !gamble_bet::IsValid(1'001'000) &&
+        !gamble_bet::IsValid(999'999) &&
+        gamble_bet::Adjust(901'000, gamble_bet::LargeStep, 1'001'000) == 1'000'000 &&
+        gamble_bet::Adjust(901'000, gamble_bet::LargeStep, 950'999) == 950'000 &&
+        gamble_bet::Adjust(1'000, -gamble_bet::LargeStep, 1000) == 1'000,
+        "gamble arrows and submit use the one-million limit and whole-thousand affordable stakes");
     const auto portal = scene.find("ExtractedFlow TMFieldScene::OnPortalButton");
     const auto nextMethod = scene.find("int TMFieldScene::OnCharEvent", portal);
     const auto portalBody = scene.substr(portal, nextMethod - portal);

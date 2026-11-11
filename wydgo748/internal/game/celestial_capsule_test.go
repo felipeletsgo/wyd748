@@ -223,6 +223,41 @@ func TestCapsuleInfoUses748Projection(t *testing.T) {
 	}
 }
 
+func TestCapsuleInfoHandlerRequiresOwnedSeal(t *testing.T) {
+	w, p, seal := celestialExtractionFixture(t)
+	request := func(id uint16) []byte {
+		pkt := make([]byte, 16)
+		binary.LittleEndian.PutUint16(pkt[4:6], wire.OpCapsuleInfo)
+		binary.LittleEndian.PutUint32(pkt[12:16], uint32(id))
+		return pkt
+	}
+	w.onCapsuleInfo(p.Session, request(1))
+	response := nextPacket(t, p)
+	if len(response) != 52 || wire.ParseHeader(response).Type != wire.OpCNFCapsuleInfo {
+		t.Fatalf("capsule info response has unexpected layout: length=%d header=%+v", len(response), wire.ParseHeader(response))
+	}
+	for name, prepare := range map[string]func(){
+		"unowned ID":       func() {},
+		"missing seal":     func() { p.Char.Inv[0] = model.Item{} },
+		"malformed packet": func() {},
+	} {
+		prepare()
+		pkt := request(1)
+		if name == "unowned ID" {
+			pkt = request(2)
+		}
+		if name == "malformed packet" {
+			pkt = pkt[:15]
+		}
+		w.onCapsuleInfo(p.Session, pkt)
+		if p.Session.QueuedPacketsForTest() != 0 {
+			t.Fatalf("%s received capsule data", name)
+		}
+		// Keep the ownership case independent from the seal removal case.
+		p.Char.Inv[0] = seal
+	}
+}
+
 func TestCelestialExtractionCancelsTradeBeforeChangingAggregate(t *testing.T) {
 	w, p, seal := celestialExtractionFixture(t)
 	p.Trade = &TradeState{OpponentID: 999}

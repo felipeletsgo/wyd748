@@ -1,6 +1,38 @@
 # WYD launcher and client patches
 
-## Active release 7.48.108 (2026-11-09)
+## Active release 7.48.111 (2026-11-11)
+
+Release `20261111T040102Z` requires revision 111 on both channels.
+The feed appends `48111 patch-48111.zip` and preserves the previous entries.
+The public ZIP contains only the verified `WYD.exe`. Revision 110 receives
+the update notice. Revision 111 reaches credential validation.
+See the [release receipt](../../.agents/research/release-748111-20261111.json).
+
+Client 7.48.111 uses HTTPS for guild mark downloads.
+This change is `MODERNIZACAO_COMPATIVEL`. Downloads require HTTP 200 and a complete,
+validated 630/632-byte BMP. Connection, send and receive timeouts are five seconds.
+Redirects are rejected. Windows validates TLS certificates. Failed requests retain
+the existing five-minute retry. Textures are created on the render thread.
+Signing requires a code-signing certificate. Defender and player acceptance remain pending.
+
+## Previous release 7.48.110 (2026-11-10)
+
+Release `20261110T155851Z` requires revision 110 on both game channels.
+The feed appends `48110 patch-48110.zip` and preserves all previous entries.
+The public ZIP contains the verified `WYD.exe` with the guard buff timer fix.
+Revision 109 receives the update notice. Revision 110 reaches credential validation.
+Visual acceptance remains pending. See the [release receipt](../../.agents/research/release-748110-20261110.json).
+
+## Previous release 7.48.109 (2026-11-10)
+
+Release `20261110T144127Z` requires revision 109 on both game channels.
+The feed appends `48109 patch-48109.zip` and preserves all previous entries.
+Both public ZIP entries match their recorded hashes. The portal advertises
+7.48.109. Revision 108 receives the update notice. Revision 109 reaches credential
+validation. Real-client launcher extraction and gameplay remain pending.
+See the [release receipt](../../.agents/research/release-748109-20261110.json).
+
+## Previous release 7.48.108 (2026-11-09)
 
 Release `20261109T231129Z` requires revision 108 on both game channels.
 The feed appends `48108 patch-48108.zip` and preserves all previous entries.
@@ -1130,12 +1162,14 @@ remain Korean; they are not Portuguese and appear only on MFC failures.
 The launcher cannot delete files, replace itself while running, or verify
 downloads beyond HTTP and ZIP CRCs. Patches travel over plain HTTP.
 
-The adapted game has a separate `SwapLauncher()` path in
-`TMSelectServerScene.cpp`. Server-selection initialization checks for
-`TMPWYDLauncher.exe`, copies it over `WYDLauncher.exe` and removes the temporary
-file only after a successful copy. This path does not authenticate the temporary
-file, retain a backup or retry after the old launcher exits. It has static source
-evidence only; no migration patch or runtime acceptance is recorded.
+Client 7.48.110 included `SwapLauncher()`. This legacy path
+can copy `TMPWYDLauncher.exe` over `WYDLauncher.exe` without authentication.
+No migration patch or runtime acceptance was recorded for this path.
+
+Client 7.48.111 removes this replacement and the startup call to
+`Change.exe`. Both account creation dialogs open the official HTTPS registration
+page. The message table supplies display text only for these dialogs.
+Classification: `MODERNIZACAO_COMPATIVEL`.
 
 Downloading the full client is not a technical requirement for launcher migration.
 A small migration can preserve installed assets and settings. Before publication,
@@ -1213,7 +1247,7 @@ The client now updates through that adapted launcher. Automatic VC++
 installation remains unavailable: the external full client includes the signed
 Microsoft installer for manual use, and clean-machine acceptance remains open.
 See [native HTTPS transport](#native-https-transport-distributed-externally-2026-11-02)
-and the [active release](#active-release-748105-2026-11-08).
+and the [current release record](../current-state.md).
 
 The earlier publication evidence remains in
 [release 748018](../../.agents/research/release-748018.json), marked superseded.

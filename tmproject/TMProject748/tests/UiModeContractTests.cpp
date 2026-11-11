@@ -402,12 +402,11 @@ int RunUiModeContractTests(int& checks)
         "Magic Weapon visual 9 does not set the Invisibility flag");
     const auto skillAmpContract = [&](const std::string& body) {
         const auto code = buffCode(body);
-        return code.find("kSkillAmpGroundOffset=0.05f;") != std::string::npos &&
-            code.find("newTMEffectBillBoard2(93,0,1.5f,1.5f,1.5f,0.0f,5000)") != std::string::npos &&
+        return code.find("newTMEffectBillBoard2(93,0,1.5f,1.5f,1.5f,0.0f,5000)") != std::string::npos &&
             code.find("m_pSkillAmp->m_nFade=3;") != std::string::npos &&
             code.find("m_pSkillAmp->SetColor(0x88888800);") != std::string::npos;
     };
-    check(skillAmpContract(frameEffect), "Skill Amp keeps the native plane scale, fade and color at the owner-selected foot height");
+    check(skillAmpContract(frameEffect), "Skill Amp keeps the native plane scale, fade and color");
     auto reducedAura = frameEffect;
     const auto nativeAura = reducedAura.find("93, 0, 1.5f, 1.5f, 1.5f");
     if (nativeAura != std::string::npos)
@@ -415,11 +414,22 @@ int RunUiModeContractTests(int& checks)
     check(nativeAura != std::string::npos && !skillAmpContract(reducedAura),
         "the Skill Amp contract rejects the one-third-size regression");
     const auto amp = buffCode(source_contract::Method(frameEffect, "if (m_cSKillAmp == 1)"));
-    const auto firstHeight = amp.find("m_fHeight+kSkillAmpGroundOffset");
-    check(firstHeight != std::string::npos &&
-        amp.find("m_fHeight+kSkillAmpGroundOffset", firstHeight + 1) != std::string::npos &&
-        amp.find("m_vecSkinPos") == std::string::npos,
-        "Skill Amp creation and subsequent frames both follow terrain, including mounts");
+    const auto aura = buffCode(source_contract::Method(frameEffect, "if (m_cAurora == 1)"));
+    const auto shadow = buffCode(source_contract::Method(frameEffect, "if (m_cShadow == 1 && g_pCurrentScene->m_pMyHuman == this)"));
+    const auto visuals = buffCode(ReadAppSource("internal/game/entities/HumanVisualPolicy.h"));
+    check(visuals.find("Lift=0.05f;") != std::string::npos &&
+        buffCode(frameEffect).find("groundBuffPosition{m_vecPosition.x,m_fHeight+ground_buff_visual::Lift,m_vecPosition.y}") != std::string::npos &&
+        source_contract::InOrder(amp.find("m_vecPosition=groundBuffPosition;"), amp.rfind("m_vecPosition=groundBuffPosition;")) &&
+        aura.find("m_pAurora->m_vecPosition=groundBuffPosition;") != std::string::npos &&
+        source_contract::InOrder(shadow.find("m_vecPosition=groundBuffPosition;"), shadow.rfind("m_vecPosition=groundBuffPosition;")),
+        "the three persistent ground planes follow the shared terrain anchor");
+    const auto humanPackets = ReadAppSource("internal/game/entities/TMHumanPackets.cpp");
+    const auto auraRecovery = buffCode(source_contract::Method(humanPackets, "int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)"));
+    check(auraRecovery.find("m_cAurora==1&&!m_cDie&&pSetHpDam->Hp>0&&pSetHpDam->Dam>=0") != std::string::npos &&
+        auraRecovery.find("m_fHeight+ground_buff_visual::Lift") != std::string::npos &&
+        source_contract::InOrder(auraRecovery.find("newTMEffectStart(position,2,nullptr)"),
+            auraRecovery.find("pSetHpDam->Dam==0&&pSetHpDam->Hp==m_stScore.CurHP")),
+        "Aura of Life plays the ground ring even when the recovery delta is zero");
     const auto ampRelease = buffCode(source_contract::Method(frameEffect, "else if (m_pSkillAmp)"));
     check(source_contract::InOrder(ampRelease.find("DeleteObject(m_pSkillAmp)"), ampRelease.find("m_pSkillAmp=nullptr;")),
         "removing Skill Amp releases its persistent plane before clearing the pointer");
@@ -427,9 +437,23 @@ int RunUiModeContractTests(int& checks)
     check(hidden.find("m_pSkillAmp->m_bShow=0;") != std::string::npos,
         "hidden humans do not leak the restored Skill Amp aura");
     const auto code = buffCode(frameEffect);
-    check(code.find("floatfScale=1.0f;") != std::string::npos &&
-        code.find("fScale=1.3f;") != std::string::npos,
-        "Lighten retains native foot and mounted scales");
+    const auto lighten = buffCode(source_contract::Method(frameEffect, "if (hasLighten && !g_bHideEffect)"));
+    check(lighten.find("floatfScale=1.0f;") != std::string::npos &&
+        lighten.find("fScale=1.3f;") != std::string::npos &&
+        lighten.find("TMVector3{m_vecSkinPos.x,m_vecSkinPos.y+1.2f,m_vecSkinPos.z}") != std::string::npos,
+        "Lighten retains native foot and mounted scales and follows the skin anchor");
+    const auto shield = ReadAppSource("internal/render/effects/skills/TMSkillMagicShield.cpp");
+    const auto shieldRender = buffCode(source_contract::Method(shield, "int TMSkillMagicShield::Render()"));
+    for (const auto* layer : {
+        "(m_vecPosition.y+0.1f)+(m_fVectorH*fScale),m_vecPosition.z,-m_fAngle-D3DXToRadian(45)",
+        "(m_vecPosition.y+0.2f)+(m_fVectorH*fScale),m_vecPosition.z,-m_fAngle-D3DXToRadian(90)"})
+    {
+        check(source_contract::InOrder(shieldRender.find(layer), shieldRender.rfind(layer)),
+            "both shield meshes lift their negative-angle layers");
+    }
+    check(shieldRender.find("D3DXToRadian(-30),D3DXToRadian(-30),D3DXToRadian(180)-m_fAngle") != std::string::npos &&
+        shieldRender.find("D3DXToRadian(-30),D3DXToRadian(30),D3DXToRadian(180)-m_fAngle") != std::string::npos,
+        "Cancellation renders the two opposing native inclinations");
     check(code.find("dwServerTime%1000)/1000.0f") != std::string::npos &&
         code.find("dwServerTime-m_dwElimental>500") != std::string::npos,
         "Immunity rotation and Elemental emission use native periods");
@@ -470,6 +494,10 @@ int RunUiModeContractTests(int& checks)
         source_contract::InOrder(slowSlash.find("color.r=fR;"), slowSlash.find("m_materials.Diffuse=color;")),
         "Slow Slash retains half-strength emission and full-strength diffuse red");
     const auto swings = ReadAppSource("internal/render/effects/core/TMEffectSWSwing.cpp");
+    const auto fire = buffCode(source_contract::Method(swings,
+        "for (unsigned int emission = (m_cFireEffect == 1 && !g_bHideEffect) ? emissions : 0; emission; --emission)"));
+    check(fire.find("pChild->SetColor(0xFFFFFFFF);") != std::string::npos,
+        "the deferred skill 17 weapon particles use the native white tint");
     const auto magic = buffCode(source_contract::Method(swings,
         "if (m_cMagicWeapon == 1 && !g_bHideEffect && m_emitters.TryEmit(swing_emitter::MagicWeapon, dwServerTime))"));
     check(magic.find("j<3;") != std::string::npos && magic.find("rand()%5") != std::string::npos &&
@@ -498,8 +526,9 @@ int RunUiModeContractTests(int& checks)
         "Armor Class secondary particles retain native spread");
     const auto enchant = buffCode(source_contract::Method(swings, "if (m_bEnchant)"));
     check(enchant.find("0.0001f,1,80") != std::string::npos &&
-        enchant.find("newTMEffectBillBoard(56,0,1.0f,1.0f,1.0f,0.0f,1,80)") != std::string::npos,
-        "Enchant retains native particle velocity and persistent plane size");
+        enchant.find("newTMEffectBillBoard(56,0,1.0f,1.0f,1.0f,0.0f,1,80)") != std::string::npos &&
+        enchant.find("vecIn=D3DXVECTOR3(0.0f,0.0f,m_fEffectLength);D3DXVec3Transform(&vecStartOut,&vecIn,&m_matEffect);") != std::string::npos,
+        "Enchant retains native particle velocity and anchors its full-size plane along the weapon");
     const auto appearance = ReadAppSource("internal/game/entities/TMHumanAppearance.cpp");
     const auto inventoryPackets = ReadAppSource("internal/app/scenes/TMFieldSceneInventoryPackets.cpp");
     const auto selectChar = ReadAppSource("internal/app/scenes/TMSelectCharScene.cpp");

@@ -16,7 +16,7 @@ Reopen a file only after a relevant edit, failure, or context compaction.
 | Task | Read | Skip |
 | --- | --- | --- |
 | Answer or inspection | Requested files | Skills and product builds |
-| Rules, docs, or skills | `repo-architecture`, changed references | Product code and runtime checks |
+| Rules, docs, or skills | `repo-architecture`, affected references | Product builds and runtime checks |
 | Go or integrated feature | `wydgo748-feature`, affected topic references | Full research corpus |
 | Legacy client contract | `wyd-client748-research`, required evidence references | Catalog when a valid seed exists |
 | Native census or root selection | `wyd-client748-catalog`, catalog strategy when needed | Full adaptation procedure |
@@ -39,7 +39,7 @@ Do not turn a one-off failure into a permanent procedure.
 
 ## Layout and ownership
 
-- Build the native server as an executable and run it from its wydgo748 working directory.
+- Build the Go server as an executable. Run it from `wydgo748/`.
 - Do not patch or deliver historical binaries.
 - Keep active source roots limited to `tmproject/` and `wydgo748/`.
 - Keep the adapted C++ client and runtime assets under `tmproject/`.
@@ -49,7 +49,7 @@ Do not turn a one-off failure into a permanent procedure.
 - Keep skills in `.agents/skills/`, evidence in `.agents/research/`, and handoffs in `.agents/handoffs/`.
 - For native server work, read `references/decompilacao server/dlls/rea-analysis/README.md` first.
 - Keep `references/` local-only and preserve original binaries and third-party sources.
-- Keep evidence scope under `references/`; separate static evidence, proven behavior, and client 7.48 compatibility.
+- Keep native inputs and raw native server REA under `references/`. Record decisions and proof limits in the owning evidence record.
 - Use Docker, Railway, or external deployment manifests only when requested.
 
 ## Compatibility and evidence
@@ -58,7 +58,7 @@ Do not turn a one-off failure into a permanent procedure.
 - Use native 7.48 evidence before claiming legacy parity; reuse valid records for unchanged contracts.
 - Do not require native equivalents for new coordinated contracts or internal compatible changes.
 - Keep catalog entries distinct from `CLIENT_TESTED` execution evidence.
-- Treat `RuntimeID` as a channel boundary for entities and instances.
+- Enforce channel ownership first. Within a channel, use `RuntimeID` to separate public and private gameplay spaces.
 - Keep client 7.48 and server 7.59 evidence separate.
 - Document account, guild, and persistence coordination as shared only where the contract defines it.
 - Distinguish static facts, runtime observations, automated tests, and client acceptance.
@@ -85,10 +85,12 @@ Do not turn a one-off failure into a permanent procedure.
 
 - Treat every published client patch as mandatory.
 - Raise `ClientBuildContract.h` revision and `client_build.go` minimum together.
-- Set both to the last published revision plus one in the client change commit.
+- Set both to the last published revision plus one in the first commit for the next patch.
+- Keep that revision across commits for the same unpublished patch.
 - Publish and verify the patch before activating a server release that requires it.
 - Require explicit restart or reload authority for activation.
-- Never lower or reuse a revision; reset only with an owner-requested full-client reset and new prefix.
+- Never lower or reuse a published revision.
+- Reset only with an owner-requested full-client reset and a new prefix.
 
 ## Files, outputs, and cleanup
 
@@ -133,5 +135,5 @@ Do not use `git reset --hard`, `git checkout --`, or broad deletion.
 When the user asks for a commit, commit the whole pending working tree on `main`.
 Do not limit a commit to the files of the current task.
 Never commit secrets, credentials, environment files, private runtime state, or prohibited generated outputs.
-Scan the staged diff for these files before each commit.
+Scan staged paths and contents for prohibited files and data before each commit.
 Use handoffs only for continuation or an independent blocker.

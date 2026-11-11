@@ -1016,6 +1016,10 @@ _WG_Cannot_Reach_Ancient_Necromancer_Right_Now	You cannot reach the Ancient Necr
 _WG_Ancient_Necromancer_Awaits_Beyond_Gate_Prepare	The Ancient Necromancer awaits beyond this gate. Prepare yourself.
 _WG_His_Servants_Rise_Faster_Than_Can	His servants rise faster than you can bury them. Keep moving.
 _WG_Strike_Master_Not_Dead_Dead_Never	Strike the master, not the dead. The dead never end.
+_WG_Entrance_Casino	Entrance to the Casino.
+_WG_Welcome_Casino	Welcome to the Casino!
+_WG_Casino_Guide_Dialogue	I can take you to the Casino.
+_WG_Casino_Guide_Free_Travel	The ride to the Casino is free.
 _WG_Black_Archmage_Summons_Ice_Storm	The Black Archmage summons an ice storm!
 _WG_Black_Archmage_Unleashes_His_Fury	The Black Archmage unleashes his fury!
 _WG_Black_Archmage_Rises_From_Shadows	The Black Archmage rises from the shadows!

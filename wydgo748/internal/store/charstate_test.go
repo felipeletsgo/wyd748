@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -123,5 +124,88 @@ func TestJSONStoreMigratesCharacterAndNamedCharStateToUID(t *testing.T) {
 	state, err := st.LoadCharState(uid)
 	if err != nil || state == nil || state.SpecialCoins["fame"] != 10 {
 		t.Fatalf("sidecar nao migrou para UID: state=%v err=%v", state, err)
+	}
+}
+
+func TestCharStateRejectsUnconfiguredPathsInvalidUIDsAndCorruptFiles(t *testing.T) {
+	unconfigured := &JSONStore{}
+	if err := unconfigured.SaveCharState("uid", nil); err == nil {
+		t.Fatal("synchronous save accepted an unset charstate directory")
+	}
+	if err := unconfigured.SaveCharStateAsync("uid", nil); err == nil {
+		t.Fatal("asynchronous save accepted an unset charstate directory")
+	}
+	if _, err := unconfigured.LoadCharState("uid"); err == nil {
+		t.Fatal("load accepted an unset charstate directory")
+	}
+	if err := unconfigured.migrateNamedCharStates(&model.Account{}); err != nil {
+		t.Fatalf("migration without a directory: %v", err)
+	}
+
+	stateDir := t.TempDir()
+	store := NewJSONStore(filepath.Join(t.TempDir(), "accounts"), WithCharStatePath(stateDir))
+	for _, uid := range []string{"", "../escape", `bad/name`} {
+		if err := store.SaveCharState(uid, nil); err == nil {
+			t.Errorf("synchronous save accepted invalid UID %q", uid)
+		}
+		if err := store.SaveCharStateAsync(uid, nil); err == nil {
+			t.Errorf("asynchronous save accepted invalid UID %q", uid)
+		}
+		if _, err := store.LoadCharState(uid); err == nil {
+			t.Errorf("load accepted invalid UID %q", uid)
+		}
+	}
+
+	cases := []struct {
+		name string
+		body string
+	}{
+		{name: "malformed JSON", body: `{"version":`},
+		{name: "unknown field", body: `{"version":1,"secret":true}`},
+		{name: "trailing JSON", body: `{"version":1}{"version":1}`},
+		{name: "wrong version", body: `{"version":999}`},
+	}
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			uid := fmt.Sprintf("bad-state-%d", i)
+			if err := os.WriteFile(filepath.Join(stateDir, uid+".json"), []byte(tc.body), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.LoadCharState(uid); err == nil {
+				t.Fatal("corrupt sidecar was accepted")
+			}
+		})
+	}
+}
+
+func TestCharStateMigrationKeepsExistingUIDAndSkipsUnsafeNames(t *testing.T) {
+	stateDir := t.TempDir()
+	store := &JSONStore{charStateDir: stateDir}
+	current := &model.CharState{Version: model.CharStateVersion, SpecialCoins: map[string]uint32{"fame": 20}}
+	legacy := &model.CharState{Version: model.CharStateVersion, SpecialCoins: map[string]uint32{"fame": 10}}
+	currentRaw, _ := json.Marshal(current)
+	legacyRaw, _ := json.Marshal(legacy)
+	if err := os.WriteFile(filepath.Join(stateDir, "uid-current.json"), currentRaw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	legacyPath := filepath.Join(stateDir, "Knight.json")
+	if err := os.WriteFile(legacyPath, legacyRaw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	account := &model.Account{Chars: []model.Char{
+		{Name: "Knight", UID: "uid-current"},
+		{Name: "../unsafe", UID: "uid-unsafe"},
+		{Name: "", UID: "uid-empty-name"},
+		{Name: "Knight", UID: "../unsafe-uid"},
+	}}
+	if err := store.migrateNamedCharStates(account); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(legacyPath); err != nil {
+		t.Fatalf("existing UID sidecar replaced or removed the legacy file: %v", err)
+	}
+	got, err := store.LoadCharState("uid-current")
+	if err != nil || got == nil || got.SpecialCoins["fame"] != 20 {
+		t.Fatalf("existing UID sidecar=%+v err=%v", got, err)
 	}
 }

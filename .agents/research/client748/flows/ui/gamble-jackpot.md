@@ -4,7 +4,7 @@ title: Aposta, rolagem e resultado Gamble/Jackpot
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-02
+updated: 2026-11-10
 ---
 
 # Aposta, rolagem e resultado Gamble/Jackpot
@@ -78,12 +78,12 @@ somente o reel solicitado e deixa a próxima tentativa partir do saldo real.
 
 | Evento/estado | Precondição | Função/call | Estado resultante | Side effects | Erro/saída |
 | --- | --- | --- | --- | --- | --- |
-| abrir Gamble | controles/recurso disponíveis | lifecycle da Field | painel visível e reels ociosos | mostra saldo/aposta | controle opcional ausente não derruba a cena |
+| abrir Gamble | controles/recurso disponíveis | lifecycle da Field | painel visível | mostra saldo, aposta e último jackpot recebido | uma aposta pendente continua bloqueando novo envio |
 | enviar aposta | painel ocioso e aposta válida | envio `0x2BE/20` | aguarda resultado | nenhum desconto local | rejeição preserva estado autoritativo |
 | expirar espera | dez segundos sem `0x1BF` | `UpdateGambleRequestTimeout` | intenção liberada e reel solicitado ocioso | nenhum resultado ou saldo é fabricado | permite nova tentativa após rejeição por `MessagePanel` |
-| receber resultado | `0x1BF/36` válido | `FUN_00492E7D` -> `FUN_00489882` | reels em rolagem | instala cinco classificações de linha, três paradas, prêmio e jackpot | packet curto não é aplicado |
+| receber resultado | `0x1BF/36` válido | `OnPacketRESULTGAMBLE` | intenção liberada | atualiza jackpot nos dois painéis e anima o reel ativo da aposta | packet inválido não é aplicado |
 | terminar rolagem | três reels chegaram ao stop | `FUN_0040ACD2` | resultado estável | mostra linhas premiadas, prêmio e jackpot | sem mutação server-side local |
-| fechar painel | painel visível | `SetVisibleGamble(0, 0)` | painel oculto e reels ociosos | limpa stops, tipo ativo e intenção pendente | resultado anterior não vira pedido pendente |
+| fechar painel | painel visível | `SetVisibleGamble(0, 0)` | painel oculto e reels ociosos | interrompe a animação e preserva a intenção pendente e o jackpot | resultado válido ainda atualiza o jackpot |
 | falha de persistência | servidor preparou mutação | rollback server-side | saldo/jackpot anteriores | mensagem apenas | não publica `0x1BF` nem saldo otimista |
 
 ### Vtables, vptrs e receptores
@@ -107,9 +107,9 @@ persistência falhar. Publicação acontece apenas após persistência.
 ### Cleanup e teardown
 
 Todos os caminhos conhecidos de fechamento passam por `SetVisibleGamble`.
-Ocultar Gamble interrompe a animação, zera os tempos de parada e os tipos ativo
-e pendente, zera o relógio da requisição e oculta os filhos mesmo se somente um
-reel estiver materializado.
+Ocultar Gamble interrompe a animação e oculta os filhos mesmo se somente um
+reel estiver materializado. A intenção continua pendente até resposta válida
+ou timeout, inclusive ao reabrir o painel.
 A abertura, por outro lado, exige ambos os reels. A destruição da Field destrói
 o ReelPanel pela árvore de controles. Não existe ownership de packet, thread
 ou callback externo que sobreviva à cena.
@@ -167,18 +167,25 @@ direita do centro. A source reaplica essa composição tanto ao materializar o
 root compatível quanto em cada abertura, impedindo que posição serializada ou
 residual de outra janela determine o layout final.
 
+`FUN_00435B13` cria a grade do modo 2 em `(21, 79)` dentro do root
+`227 × 421`. Cada célula mede `62 × 62` e há um pixel lógico entre colunas.
+`SControl` aplica a escala da UI ao construir os controles. A animação aplica
+a mesma escala às posições, dimensões e recortes visíveis dos símbolos. As
+coordenadas de textura preservam os 62 pixels do recurso.
+
 ## Mapeamento atual
 
 ### Source recompilável
 
 `MSG_ResultGamble` preserva os 36 bytes do wire com asserts de tamanho e
 offsets. `SReelPanel` implementa preparação, avanço, parada, linhas premiadas,
-prêmio e jackpot. Os inicializadores compatível e moderno criam os reels em
-caminhos mutuamente exclusivos. `TMFieldScene` envia `0x2BE/20`, bloqueia
+prêmio e jackpot. O inicializador compatível cria os dois painéis.
+`TMFieldScene` envia `0x2BE/20`, bloqueia
 intenção concorrente, valida integralmente `0x1BF`, aplica resultado somente ao
 reel ativo, reaplica a posição nativa do root `6400` na abertura e centraliza
-fechamento/teardown em `SetVisibleGamble`. O desconto visual otimista foi
-removido; saldo só muda pelos snapshots do servidor. Se uma rejeição chegar
+fechamento/teardown em `SetVisibleGamble`. O contador mantém o último jackpot
+recebido durante a rolagem e atualiza ambos os painéis ao validar a resposta.
+O saldo real só muda pelos snapshots do servidor. Se uma rejeição chegar
 somente por `MessagePanel`, o timeout interno de dez segundos interrompe o reel
 solicitado e libera a intenção sem modificar o wire.
 
@@ -189,6 +196,9 @@ os três stops, classifica cinco linhas, calcula prêmio e materializa overflow
 em barras. Jackpot e pool pertencem ao `World`, entram no snapshot persistente
 e são restaurados com limites. Gold, inventário e pools sofrem rollback
 integral em falha; `0x1BF` e snapshots só são publicados após persistência.
+O intervalo atual de apostas é de 1.000 a 1.000.000. Uma rodada sem prêmio
+soma 10% da aposta ao jackpot, até 2 bilhões. Um prêmio comum mantém o
+jackpot. O vencedor do jackpot recebe o acumulado e reinicia o contador.
 
 ## Referência de algoritmo 7.59
 
@@ -225,8 +235,10 @@ referência de compatibilidade 7.59, não prova nativa 7.48.
 | wire `0x2BE/0x1BF` | tamanhos/offsets confirmados | implementado com asserts e validação | compatível | implementado e testado byte a byte | `PARIDADE_NATIVA` |
 | animação/lifecycle | funções e destrutores confirmados | implementado com guards e fechamento central | estrutura semelhante | N/A | `PARIDADE_NATIVA` com guards |
 | layout do root `6400` | centro vertical e `+10` no eixo X em `FUN_00435B13` | reaplicado no bootstrap e em toda abertura | não utilizado como prova | N/A | `PARIDADE_NATIVA` |
-| RNG/pagamento | client não decide | não deve decidir | algoritmo recuperado | ausente | `MODERNIZACAO_COMPATIVEL` |
+| RNG/pagamento | client não decide | apresenta resultado validado | algoritmo recuperado | calculado e persistido pelo servidor | `MODERNIZACAO_COMPATIVEL` |
 | jackpot persistente | apenas apresenta | apenas apresenta | pool global | implementado no snapshot do `World` | autoridade Go persistente |
+| teto e contribuição | envia intenção | aceita até 1.000.000 e mostra jackpot confirmado | 100.000, contribuição `bet/1000` | 1.000.000, contribuição `bet/10` em perda | `MODERNIZACAO_COMPATIVEL` |
+| escala dos símbolos | usa dimensões lógicas da grade | aplica a escala da UI durante a animação | N/A | N/A | `MODERNIZACAO_COMPATIVEL` |
 | saldo | snapshots do servidor | sem desconto otimista | servidor paga | autoritativo, com rollback | manter snapshots autoritativos |
 
 ## Decisões
@@ -255,10 +267,17 @@ referência de compatibilidade 7.59, não prova nativa 7.48.
   shutdown e relogin foram fechados para o contrato do client 7.48.
 - Entrega: `IMPLEMENTED / STATICALLY VERIFIED`; client e servidor possuem um
   único contrato ativo, sem patch binário.
-- Build: `Build-Client.ps1` passou com 0 erros e 21 warnings existentes e
+- No build histórico, `Build-Client.ps1` passou com 0 erros e 21 warnings existentes e
   instalou `tmproject/client748/project.exe`, SHA-256
   `3EDB581805265E8CB23ED81B44483EF59F9CDB48A170178D5B7E272F1C364774`.
 - Automação: `go test -count=1 ./internal/game ./internal/wire`,
   `go test -count=1 ./...`, `validate_research.py` e `git diff --check`
   passaram em 2026-08-31.
-- Client real: não executado; `CLIENT_TESTED` não é alegado.
+- Em 2026-11-10, os testes com PostgreSQL e `-race` confirmaram o débito
+  de 1.000.000 e a contribuição de 100.000 na mesma transação.
+  Os testes também cobriram rejeição, rollback e apostas concorrentes.
+- Em 2026-11-10, o Release local passou com `Build-Client.ps1 -NoDeploy`,
+  3.202.839 verificações de arquitetura, 295 de socket e 148 de crash capture.
+  O executável gerado tem SHA-256
+  `44119E08934AA1CFB4E7468D4AA2E302B80E3C84723106900733045242956B0B`.
+- Validação visual em jogo permanece pendente.

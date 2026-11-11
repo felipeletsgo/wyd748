@@ -61,7 +61,7 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		} else {
 			nearbyTarget = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
 		}
-		if !nearbyTarget {
+		if !nearbyTarget && w.retainedContractTank(m, mobRetentionRange) == nil {
 			m.Awake = false
 			m.TargetID = 0
 			delete(w.activeMobs, m.ID)
@@ -89,6 +89,13 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		if guardian := w.retainedNightmareProtector(m, mobRetentionRange); guardian != nil {
 			if allowMovement && !now.Before(m.NextMove) && chebyshev(m.X, m.Y, guardian.X, guardian.Y) > mobAttackRange {
 				w.moveMobToward(m, guardian.X, guardian.Y, mobAttackRange, now)
+			}
+			continue
+		}
+		if tank := w.retainedContractTank(m, mobRetentionRange); tank != nil {
+			if !w.criticalPlayerReserved(w.playerByID(tank.SummonerID)) &&
+				allowMovement && !now.Before(m.NextMove) && chebyshev(m.X, m.Y, tank.X, tank.Y) > mobAttackRange {
+				w.moveMobToward(m, tank.X, tank.Y, mobAttackRange, now)
 			}
 			continue
 		}
@@ -185,6 +192,14 @@ func (w *World) tickActiveMobActions(now time.Time) {
 				if !w.hellGateCastAtProtector(m, guardian, now) {
 					w.mobAttackNightmareProtector(m, guardian, now)
 				}
+			}
+			continue
+		}
+		if tank := w.retainedContractTank(m, mobAttackRange); tank != nil {
+			if !w.criticalPlayerReserved(w.playerByID(tank.SummonerID)) &&
+				w.combatLineOfSight(m.X, m.Y, tank.X, tank.Y) {
+				m.NextAttack = now.Add(mobAttackInterval)
+				w.mobAttackContractTank(m, tank, now)
 			}
 			continue
 		}

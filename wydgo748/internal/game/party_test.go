@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"wydgo/internal/model"
+	gameNet "wydgo/internal/net"
 )
 
 func TestPartyRequestTarget748(t *testing.T) {
@@ -24,6 +25,110 @@ func TestPartyRequestTargetRejectsLaterLayout(t *testing.T) {
 	if ok || target != 0 {
 		t.Fatalf("later layout must not select either target: target=%d ok=%v", target, ok)
 	}
+}
+
+func TestPartyRequestRejectsInvalidTargetsAndPartyState(t *testing.T) {
+	tests := []struct {
+		name       string
+		targetID   uint32
+		edit       func(*World, *Player, *Player)
+		wantPacket int
+	}{
+		{name: "missing inviter session", targetID: 2, edit: func(w *World, inviter, _ *Player) {
+			delete(w.players, inviter.Session)
+		}},
+		{name: "inviter outside world", targetID: 2, edit: func(_ *World, inviter, _ *Player) { inviter.InWorld = false }},
+		{name: "inviter missing character", targetID: 2, edit: func(_ *World, inviter, _ *Player) { inviter.Char = nil }},
+		{name: "missing target", targetID: 99, wantPacket: 1},
+		{name: "self invite", targetID: 1, wantPacket: 1},
+		{name: "target outside view", targetID: 2, edit: func(_ *World, _ *Player, target *Player) { target.X += viewHalfX + 1 }, wantPacket: 1},
+		{name: "offline target", targetID: 2, edit: func(_ *World, _ *Player, target *Player) { target.InWorld = false }, wantPacket: 1},
+		{name: "target already in party", targetID: 2, edit: func(_ *World, _ *Player, target *Player) {
+			party := &Party{Members: []*Player{target}}
+			target.Party = party
+		}, wantPacket: 1},
+		{name: "reserved inviter", targetID: 2, edit: func(w *World, inviter, _ *Player) {
+			w.criticalDisconnects = map[*gameNet.Session]*criticalDisconnect{
+				inviter.Session: {player: inviter},
+			}
+		}},
+		{name: "reserved target", targetID: 2, edit: func(w *World, _, target *Player) {
+			w.criticalDisconnects = map[*gameNet.Session]*criticalDisconnect{
+				target.Session: {player: target},
+			}
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			inviter, inviterSession := networkedTestPlayer(1, "Leader", 2100, 2100)
+			target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
+			w := worldWithNetworkedPlayers(inviter, target)
+			if test.edit != nil {
+				test.edit(w, inviter, target)
+			}
+			request := make([]byte, 44)
+			binary.LittleEndian.PutUint32(request[40:44], test.targetID)
+			w.onPartyRequest(inviterSession, request)
+			if target.InviteFrom != 0 || !target.InviteUntil.IsZero() ||
+				inviterSession.QueuedPacketsForTest() != test.wantPacket {
+				t.Fatalf("invalid invitation changed state: invite=%d until=%v packets=%d",
+					target.InviteFrom, target.InviteUntil, inviterSession.QueuedPacketsForTest())
+			}
+		})
+	}
+
+	for _, targetID := range []uint32{0, 65536} {
+		inviter, inviterSession := networkedTestPlayer(1, "Leader", 2100, 2100)
+		target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
+		w := worldWithNetworkedPlayers(inviter, target)
+		request := make([]byte, 44)
+		binary.LittleEndian.PutUint32(request[40:44], targetID)
+		w.onPartyRequest(inviterSession, request)
+		if target.InviteFrom != 0 || inviterSession.QueuedPacketsForTest() != 0 {
+			t.Fatalf("invalid target ID %d reached a live player", targetID)
+		}
+	}
+}
+
+func TestPartyRequestRequiresLeaderAndAvailableCapacity(t *testing.T) {
+	t.Run("only leader invites", func(t *testing.T) {
+		captain, _ := networkedTestPlayer(3, "Captain", 2100, 2100)
+		inviter, inviterSession := networkedTestPlayer(1, "Member", 2100, 2100)
+		target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
+		w := worldWithNetworkedPlayers(captain, inviter, target)
+		party := &Party{Members: []*Player{captain, inviter}}
+		captain.Party, inviter.Party = party, party
+		request := make([]byte, 44)
+		binary.LittleEndian.PutUint32(request[40:44], uint32(target.ID))
+		w.onPartyRequest(inviterSession, request)
+		if target.InviteFrom != 0 || inviterSession.QueuedPacketsForTest() != 1 {
+			t.Fatal("nonleader invited a player", target.InviteFrom)
+		}
+	})
+
+	t.Run("full party cannot invite", func(t *testing.T) {
+		members := make([]*Player, 0, maxPartyMembers+1)
+		var inviterSession *gameNet.Session
+		for i := 0; i < maxPartyMembers+1; i++ {
+			player, session := networkedTestPlayer(uint16(i+1), "PartyMember", 2100, 2100)
+			members = append(members, player)
+			if i == 0 {
+				inviterSession = session
+			}
+		}
+		w := worldWithNetworkedPlayers(members...)
+		party := &Party{Members: append([]*Player(nil), members[:maxPartyMembers]...)}
+		for _, member := range party.Members {
+			member.Party = party
+		}
+		target := members[maxPartyMembers]
+		request := make([]byte, 44)
+		binary.LittleEndian.PutUint32(request[40:44], uint32(target.ID))
+		w.onPartyRequest(inviterSession, request)
+		if target.InviteFrom != 0 || inviterSession.QueuedPacketsForTest() != 1 {
+			t.Fatal("full party admitted another member", target.InviteFrom)
+		}
+	})
 }
 
 func partyTestPlayer(id uint16, x, y uint16) *Player {

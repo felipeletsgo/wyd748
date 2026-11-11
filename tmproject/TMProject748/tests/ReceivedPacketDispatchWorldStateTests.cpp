@@ -514,6 +514,22 @@ int RunReceivedPacketDispatchWorldStateTests(int& checks)
     updateAffect[lastAffect + kUpdateAffectLevelOffset] = 0x22;
     updateAffect[lastAffect + kUpdateAffectValueOffset] = 0x23;
     updateAffect[lastAffect + kUpdateAffectTimeOffset] = 0x24;
+    std::array<char, kGuardAffectPacketSize> guardAffect{};
+    std::copy_n(updateAffect.data(), kUpdateAffectPacketSize, guardAffect.data());
+    guardAffect[0] = static_cast<char>(kGuardAffectPacketSize);
+    guardAffect[kUpdateAffectPacketSize] = 0x10;
+    guardAffect[kUpdateAffectPacketSize + 1] = 0x0e;
+    guardAffect[kUpdateAffectPacketSize + 4] = 1;
+    const auto guardView = PacketView{MSG_UpdateAffect_Opcode, guardAffect.data(), guardAffect.size()};
+    GuardTimers timers{};
+    check(received_packet::CanDispatch(guardView) &&
+        ReadGuardTimers(guardAffect.data(), guardAffect.size(), timers) &&
+        timers == GuardTimers{3600, 1}, "UpdateAffect parses the two guard timers");
+    ++guardAffect[kUpdateAffectPacketSize];
+    check(!received_packet::CanDispatch(guardView), "UpdateAffect rejects timers over one hour");
+    check(ReadGuardTimers(updateAffect.data(), kUpdateAffectPacketSize, timers) &&
+        timers == GuardTimers{}, "legacy UpdateAffect clears both guard timers");
+
     const auto updateAffectBefore = updateAffect;
     int updateAffectCalls = 0;
     const auto receiveUpdateAffect = [&](const PacketView& view) {

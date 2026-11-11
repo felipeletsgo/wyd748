@@ -38,6 +38,7 @@
 #include "TMCannon.h"
 #include "TMSkillHolyTouch.h"
 #include "../../game/entities/DeathMotionPolicy.h"
+#include "../../game/entities/HumanVisualPolicy.h"
 #include "../../wire/AttackVisualDamage.h"
 #include "../../application/AttackAttackerState.h"
 #include "../../application/AttackTargetState.h"
@@ -1278,7 +1279,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 		{
 			TMVector3 vecPos{vecStart.x, vecStart.y - 0.5f, vecStart.z};
 
-			auto pHollyTouch = new TMSkillHolyTouch(vecPos, 0);
+			auto pHollyTouch = new TMSkillHolyTouch(vecPos, 0, vecStart.y - 1.0f);
 
 			m_pEffectContainer->AddChild(pHollyTouch);
 		}
@@ -1572,7 +1573,7 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 		if (pMagic && m_pEffectContainer)
 			m_pEffectContainer->AddChild(pMagic);
 	}
-	else if (pAttack->SkillIndex == 6) // Life Aura
+	else if (pAttack->SkillIndex == 6) // Attract
 	{
 		TMVector3 vecPos{ pAttacker->m_vecPosition.x, pAttacker->m_fHeight + 1.0f, pAttacker->m_vecPosition.y };
 
@@ -1585,19 +1586,19 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 		if (m_pEffectContainer)
 		{
 			const TMVector3 position{ pAttacker->m_vecPosition.x, pAttacker->m_fHeight + 0.5f, pAttacker->m_vecPosition.y };
-			m_pEffectContainer->AddChild(new TMSkillHolyTouch(position, 1));
+			m_pEffectContainer->AddChild(new TMSkillHolyTouch(position, 1, pAttacker->m_fHeight));
 		}
 	}
 	else if (pAttack->SkillIndex == 100) // Cancellation
 	{
 		GetSoundAndPlay(156, 0, 0);
 	}
-	else if (pAttack->SkillIndex == 5) // Fanaticism
+	else if (pAttack->SkillIndex == 5) // Aura of Life
 	{
 		if (pAttacker)
 		{
-			TMVector3 vecPos{ pAttacker->m_vecPosition.x, pAttacker->m_fHeight + 1.0f, pAttacker->m_vecPosition.y };
-			vecPos.y -= 0.5f;
+			const TMVector3 vecPos{ pAttacker->m_vecPosition.x,
+				pAttacker->m_fHeight + ground_buff_visual::Lift, pAttacker->m_vecPosition.y };
 
 			auto pEffect = new TMEffectStart(vecPos, 2, nullptr);
 			if (pEffect && m_pEffectContainer)

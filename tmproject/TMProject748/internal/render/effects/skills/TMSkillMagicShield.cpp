@@ -92,7 +92,7 @@ int TMSkillMagicShield::Render()
 			(m_fVectorH + 0.60000002f) * fScale + m_vecPosition.y,
 			m_vecPosition.z,
 			D3DXToRadian(-30),
-			D3DXToRadian(-30),
+			D3DXToRadian(30),
 			D3DXToRadian(180) - m_fAngle,
 			0,
 			0);
@@ -230,7 +230,7 @@ int TMSkillMagicShield::Render()
 
 		pMesh1->Render(
 			m_vecPosition.x,
-			(m_vecPosition.y - 0.1f) + (m_fVectorH * fScale),
+			(m_vecPosition.y + 0.1f) + (m_fVectorH * fScale),
 			m_vecPosition.z,
 			-m_fAngle - D3DXToRadian(45),
 			0,
@@ -239,7 +239,7 @@ int TMSkillMagicShield::Render()
 			0);
 		pMesh2->Render(
 			m_vecPosition.x,
-			(m_vecPosition.y - 0.1f) + (m_fVectorH * fScale),
+			(m_vecPosition.y + 0.1f) + (m_fVectorH * fScale),
 			m_vecPosition.z,
 			-m_fAngle - D3DXToRadian(45),
 			0,
@@ -252,7 +252,7 @@ int TMSkillMagicShield::Render()
 
 		pMesh1->Render(
 			m_vecPosition.x,
-			(m_vecPosition.y - 0.2f) + (m_fVectorH * fScale),
+			(m_vecPosition.y + 0.2f) + (m_fVectorH * fScale),
 			m_vecPosition.z,
 			-m_fAngle - D3DXToRadian(90),
 			0,
@@ -261,7 +261,7 @@ int TMSkillMagicShield::Render()
 			0);
 		pMesh2->Render(
 			m_vecPosition.x,
-			(m_vecPosition.y - 0.2f) + (m_fVectorH * fScale),
+			(m_vecPosition.y + 0.2f) + (m_fVectorH * fScale),
 			m_vecPosition.z,
 			-m_fAngle - D3DXToRadian(90),
 			0,

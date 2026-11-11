@@ -32,6 +32,7 @@ const (
 	OpCreateMobTrade     = 0x363  // S->C coordinated extension: entity + title (352B)
 	OpCreateMob          = 0x364  // S->C coordinated extension: entity/Score@140 (328B)
 	OpSetHpMp            = 0x181  // S->C coordinated extension: HP/MP uint32 (28B)
+	OpSetHpDam           = 0x18A  // S->C HP snapshot and signed delta (20B source-client form)
 	OpUpdateScore        = 0x336  // S->C coordinated extension: Score/affects (232B)
 	OpUpdateAffect       = 0x3B9  // S->C the owner's 16 full affects (140B)
 	OpUpdateEtc          = 0x337  // S->C Hold/exp/three WORD points/gold (native 36B; CP stays in CreateMob)

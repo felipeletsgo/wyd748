@@ -29,11 +29,9 @@
 #include <fileapi.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <iphlpapi.h>
 #include <chrono>
 using namespace std::chrono_literals;
 
-#pragma comment(lib, "IPHLPAPI.lib")
 #pragma comment(lib, "Strmiids.lib")
 
 // Tipos compartilhados com o servidor. Alterações de layout nesta fronteira

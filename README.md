@@ -63,11 +63,15 @@ $env:WYD_DATABASE_URL = 'postgres://wydgo:wydgo-local@127.0.0.1:5432/wydgo?sslmo
 
 pwsh -NoProfile -File .\tools\web-admin\Start-WYDAdmin.ps1 -NoBrowser
 
+$serverOutput = Join-Path (Get-Location).Path 'build/server'
+New-Item -ItemType Directory -Force $serverOutput | Out-Null
 Push-Location .\wydgo748
-New-Item -ItemType Directory -Force .\bin | Out-Null
-go build -o .\bin\tm.exe .\cmd\server
-go build -o .\bin\account-create.exe .\cmd\account-create
-Pop-Location
+try {
+    go build -o (Join-Path $serverOutput 'tm.exe') ./cmd/server
+    go build -o (Join-Path $serverOutput 'account-create.exe') ./cmd/account-create
+} finally {
+    Pop-Location
+}
 ```
 
 The web-panel script only prepares web files; it does not start or stop the
@@ -81,7 +85,11 @@ to that directory.
 
 ```powershell
 Push-Location .\wydgo748
-.\bin\tm.exe
+try {
+    & ..\build\server\tm.exe
+} finally {
+    Pop-Location
+}
 ```
 
 A successful boot reports authoritative PostgreSQL and finishes with the game
@@ -90,14 +98,11 @@ listener at `0.0.0.0:8281`. If the panel is enabled, open
 using the panel outside a local environment. The administrative account must
 also be authorized in `wydgo748/data/config/staff.json`.
 
-Do not forcibly terminate the process. Use `Ctrl+C` so the server can drain
-persistence and shut down. For subsequent starts, confirm PostgreSQL is
-running and start the server again:
+Use `Ctrl+C` so the server can drain persistence and shut down. Before a
+subsequent start, check PostgreSQL. Then repeat the server command above.
 
 ```powershell
-Get-Service -Name 'postgresql*' | Start-Service
-Push-Location .\wydgo748
-.\bin\tm.exe
+Get-Service -Name 'postgresql*'
 ```
 
 ### 4. Create an account
@@ -114,7 +119,7 @@ local utility in another PowerShell session from the repository root:
 ```powershell
 $env:WYD_DATABASE_URL = 'postgres://wydgo:wydgo-local@127.0.0.1:5432/wydgo?sslmode=disable'
 Push-Location .\wydgo748
-.\bin\account-create.exe
+& ..\build\server\account-create.exe
 Pop-Location
 ```
 

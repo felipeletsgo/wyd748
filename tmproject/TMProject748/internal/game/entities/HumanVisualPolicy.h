@@ -27,6 +27,12 @@ namespace effect_visibility
     }
 }
 
+namespace ground_buff_visual
+{
+    // Lift horizontal buff planes just enough to clear the terrain surface.
+    inline constexpr float Lift = 0.05f;
+}
+
 namespace afterimage_clip
 {
     constexpr int kHumanSkins = 6;      // MeshManager MAX_ANI_CLASS

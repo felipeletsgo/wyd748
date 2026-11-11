@@ -13,7 +13,7 @@ import (
 
 const (
 	gambleMinBet     = uint32(1_000)
-	gambleMaxBet     = uint32(100_000)
+	gambleMaxBet     = uint32(1_000_000)
 	gambleJackpotMax = uint32(2_000_000_000)
 	gamblePoolMax    = uint64(4_000_000_000)
 	gambleReelLength = 22
@@ -140,6 +140,16 @@ func (w *World) rollGambleWithJackpot(kind uint32, bet, jackpot uint32) gambleOu
 	return gambleOutcome{stops: stops, result: result, prize: uint32(prize)}
 }
 
+func gambleJackpotAfterSpin(jackpot, bet uint32, outcome gambleOutcome) uint32 {
+	if outcome.result[1] == 14 {
+		return 0
+	}
+	if outcome.prize != 0 {
+		return jackpot
+	}
+	return uint32(min(uint64(jackpot)+uint64(bet/10), uint64(gambleJackpotMax)))
+}
+
 func gamblePayoutItems(total uint64) (uint32, []uint16) {
 	if total < uint64(maxCharacterGold) {
 		return uint32(total), nil
@@ -220,10 +230,6 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	if p.Trade != nil {
 		w.cancelTrade(p, "Gamble bet")
 	}
-	w.gambleJackpot += bet / 1000
-	if w.gambleJackpot > gambleJackpotMax {
-		w.gambleJackpot = gambleJackpotMax
-	}
 	poolAdd := uint64((bet / 100) * 3)
 	if w.gamblePool >= gamblePoolMax || poolAdd >= gamblePoolMax-w.gamblePool {
 		w.gamblePool = gamblePoolMax
@@ -231,9 +237,7 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 		w.gamblePool += poolAdd
 	}
 	outcome := w.rollGamble(kind, bet)
-	if outcome.result[1] == 14 {
-		w.gambleJackpot = 0
-	}
+	w.gambleJackpot = gambleJackpotAfterSpin(w.gambleJackpot, bet, outcome)
 	poolDebit := uint64(outcome.prize / 1000)
 	if poolDebit > w.gamblePool {
 		w.gamblePool = 0

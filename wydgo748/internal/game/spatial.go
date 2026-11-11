@@ -203,6 +203,9 @@ func (w *World) recomputeMobActiveIn(m *Mob, neighborhood *activationNeighborhoo
 	} else if !awake {
 		awake = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
 	}
+	if !awake {
+		awake = w.retainedContractTank(m, mobRetentionRange) != nil
+	}
 	m.Awake = awake
 	if awake {
 		w.activeMobs[m.ID] = m

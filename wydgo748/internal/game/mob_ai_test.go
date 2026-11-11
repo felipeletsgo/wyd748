@@ -58,6 +58,49 @@ func TestRouteType2MovesAndReturns(t *testing.T) {
 	}
 }
 
+func TestNextSegmentCoversValidRoutesAndEndpointPolicies(t *testing.T) {
+	base := func(route, progress, direction int) *Mob {
+		mob := &Mob{RouteType: route, SegmentProgress: progress, SegmentDirection: direction}
+		mob.Segments[0] = model.GenerSegment{X: 10, Y: 10}
+		mob.Segments[2] = model.GenerSegment{X: 20, Y: 20}
+		mob.Segments[4] = model.GenerSegment{X: 30, Y: 30}
+		return mob
+	}
+	tests := []struct {
+		name          string
+		route         int
+		progress      int
+		direction     int
+		wantIndex     int
+		wantOK        bool
+		wantDirection int
+	}{
+		{name: "forward route", route: 1, progress: 0, wantIndex: 2, wantOK: true},
+		{name: "unknown progress starts at first segment", route: 1, progress: 99, wantIndex: 2, wantOK: true},
+		{name: "ordinary route ends", route: 1, progress: 4},
+		{name: "route four wraps", route: 4, progress: 4, wantIndex: 0, wantOK: true},
+		{name: "bounce starts forward", route: 2, progress: 0, wantIndex: 2, wantOK: true},
+		{name: "bounce reverses at end", route: 3, progress: 4, wantIndex: 2, wantOK: true, wantDirection: 1},
+		{name: "bounce returns while reversing", route: 2, progress: 2, direction: 1, wantIndex: 0, wantOK: true, wantDirection: 1},
+		{name: "bounce turns forward at start", route: 3, progress: 0, direction: 1, wantIndex: 2, wantOK: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mob := base(tt.route, tt.progress, tt.direction)
+			gotIndex, gotOK := nextSegment(mob)
+			if gotIndex != tt.wantIndex || gotOK != tt.wantOK || mob.SegmentDirection != tt.wantDirection {
+				t.Fatalf("nextSegment = (%d, %v), direction=%d; want (%d, %v), direction=%d",
+					gotIndex, gotOK, mob.SegmentDirection, tt.wantIndex, tt.wantOK, tt.wantDirection)
+			}
+		})
+	}
+	mob := &Mob{}
+	mob.Segments[0] = model.GenerSegment{X: 10, Y: 10}
+	if index, ok := nextSegment(mob); ok || index != 0 {
+		t.Fatalf("one valid point returned segment %d, ok=%v", index, ok)
+	}
+}
+
 func TestMobMoveDelayFollowsNativeSpeedRange(t *testing.T) {
 	if got := mobMoveDelay(1); got != time.Second {
 		t.Fatalf("speed 1 delay = %s", got)

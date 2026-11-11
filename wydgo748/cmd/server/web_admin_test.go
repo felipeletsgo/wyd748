@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"io"
 	"net"
@@ -21,6 +22,65 @@ type adminSourceFunc func(context.Context, control.Query) (control.Overview, err
 
 func (f adminSourceFunc) Overview(ctx context.Context, q control.Query) (control.Overview, error) {
 	return f(ctx, q)
+}
+
+type adminPresenceSource struct {
+	adminSourceFunc
+	presence func(context.Context, []string) (map[string]bool, error)
+}
+
+func (s adminPresenceSource) AccountPresence(ctx context.Context, accounts []string) (map[string]bool, error) {
+	return s.presence(ctx, accounts)
+}
+
+func TestLocalAdminControlAccountPresence(t *testing.T) {
+	base := adminSourceFunc(func(context.Context, control.Query) (control.Overview, error) {
+		return control.Overview{}, nil
+	})
+	if _, err := (localAdminControl{source: base}).AccountPresence(context.Background(), "operator", []string{"player"}); err == nil {
+		t.Fatal("unsupported account presence capability was accepted")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wantAccounts := []string{"player", "offline"}
+	presenceErr := errors.New("presence unavailable")
+	adapter := localAdminControl{source: adminPresenceSource{adminSourceFunc: base, presence: func(got context.Context, accounts []string) (map[string]bool, error) {
+		if got != ctx || len(accounts) != len(wantAccounts) || accounts[0] != wantAccounts[0] || accounts[1] != wantAccounts[1] {
+			t.Fatal("adapter changed account presence request")
+		}
+		return map[string]bool{"player": true}, presenceErr
+	}}}
+	got, err := adapter.AccountPresence(ctx, "operator", wantAccounts)
+	if !errors.Is(err, presenceErr) || !got["player"] {
+		t.Fatalf("presence result=%v err=%v", got, err)
+	}
+}
+
+func TestServerBuildIdentityIncludesExecutableHash(t *testing.T) {
+	attrs := serverBuildIdentity()
+	values := make(map[string]any, len(attrs)/2)
+	for i := 0; i+1 < len(attrs); i += 2 {
+		key, ok := attrs[i].(string)
+		if !ok {
+			t.Fatalf("identity key at index %d has type %T", i, attrs[i])
+		}
+		values[key] = attrs[i+1]
+	}
+	if pid, ok := values["pid"].(int); !ok || pid < 1 {
+		t.Fatalf("process ID missing from build identity: %v", values["pid"])
+	}
+	if version, ok := values["go_version"].(string); !ok || version == "" {
+		t.Fatalf("Go build version missing: %v", values["go_version"])
+	}
+	hash, ok := values["executable_sha256"].(string)
+	decoded, err := hex.DecodeString(hash)
+	if !ok || err != nil || len(decoded) != 32 {
+		t.Fatalf("invalid executable SHA-256 %q: %v", hash, err)
+	}
+}
+
+func TestServeDebugReturnsForInvalidAddress(t *testing.T) {
+	serveDebug("127.0.0.1:not-a-port")
 }
 
 func TestLocalAdminControlReturnsFrontendContract(t *testing.T) {
@@ -117,9 +177,42 @@ func TestStartWebAdminDisabledAndInvalid(t *testing.T) {
 	if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil || !strings.Contains(err.Error(), "admin panel build is missing") {
 		t.Fatalf("missing assets: %v", err)
 	}
+	cfg = adminTestConfig(t)
+	indexPath := filepath.Join(cfg.WebAdminStaticPath, "admin", "index.html")
+	if err := os.Remove(indexPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(indexPath, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil || !strings.Contains(err.Error(), "admin panel build is missing") {
+		t.Fatalf("non-file asset entry: %v", err)
+	}
 	cfg.AdminAccessPIN = ""
 	if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil {
 		t.Fatal("empty PIN accepted")
+	}
+}
+
+func TestStartWebAdminRejectsInvalidTrustStaffAndDatabaseConfig(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		edit func(*testing.T, *data.ServerConfig)
+		want string
+	}{
+		{name: "trusted proxy", edit: func(_ *testing.T, cfg *data.ServerConfig) { cfg.WebAdminTrustedProxies = "not-a-cidr" }, want: "web_admin_trusted_proxies"},
+		{name: "database driver", edit: func(_ *testing.T, cfg *data.ServerConfig) { cfg.DatabaseDriver = "sqlite" }, want: "database_driver=postgres"},
+		{name: "staff file", edit: func(_ *testing.T, cfg *data.ServerConfig) {
+			cfg.WebAdminStaffPath = filepath.Join(t.TempDir(), "missing-staff.json")
+		}, want: "web_admin_staff"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := adminTestConfig(t)
+			test.edit(t, &cfg)
+			if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("invalid %s config returned %v", test.name, err)
+			}
+		})
 	}
 }
 

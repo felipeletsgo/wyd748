@@ -3,6 +3,8 @@ package webadmin
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -11,7 +13,13 @@ import (
 	"wydgo/internal/logreader"
 )
 
-type testHistory struct{ pruned int }
+type testHistory struct {
+	pruned       int
+	pruneCounts  []int64
+	pruneErr     error
+	pruneCutoffs []time.Time
+	pruneLimits  []int
+}
 
 func (testHistory) ListAccountLogins(_ context.Context, account string, _ int) ([]control.AccountLogin, time.Time, error) {
 	return []control.AccountLogin{{At: time.Now(), ClientIP: "203.0.113.7", Channel: 1}}, time.Now(), nil
@@ -21,9 +29,19 @@ func (testHistory) ListStaffAuditForAccount(_ context.Context, account string, _
 	return []control.AuditEntry{{ID: 3, Action: "account.sanction", Result: "ok", Details: map[string]any{"target_account": account}}}, time.Now(), nil
 }
 
-func (h *testHistory) PruneAccountLogins(context.Context, time.Time, int) (int64, error) {
+func (h *testHistory) PruneAccountLogins(_ context.Context, cutoff time.Time, limit int) (int64, error) {
 	h.pruned++
-	return 0, nil
+	h.pruneCutoffs = append(h.pruneCutoffs, cutoff)
+	h.pruneLimits = append(h.pruneLimits, limit)
+	if h.pruneErr != nil {
+		return 0, h.pruneErr
+	}
+	if len(h.pruneCounts) == 0 {
+		return 0, nil
+	}
+	count := h.pruneCounts[0]
+	h.pruneCounts = h.pruneCounts[1:]
+	return count, nil
 }
 
 type testStorage struct{}
@@ -36,11 +54,21 @@ func (testStorage) ReadCharacterStorage(_ context.Context, account, uid string) 
 type testLogs struct {
 	request logreader.Request
 	reply   logreader.Response
+	err     error
+}
+
+func TestHistoryErrorHidesBackendDetails(t *testing.T) {
+	response := httptest.NewRecorder()
+	historyError(response, errors.New("private database detail"))
+	if response.Code != 503 || !strings.Contains(response.Body.String(), "history_unavailable") ||
+		strings.Contains(response.Body.String(), "private database detail") {
+		t.Fatalf("history error response=%d %q", response.Code, response.Body.String())
+	}
 }
 
 func (l *testLogs) Do(_ context.Context, r logreader.Request) (logreader.Response, error) {
 	l.request = r
-	return l.reply, nil
+	return l.reply, l.err
 }
 
 func TestAccountPageEndpoints(t *testing.T) {
@@ -56,6 +84,9 @@ func TestAccountPageEndpoints(t *testing.T) {
 	}
 	if r := request(h, "GET", "/api/v1/staff/accounts/fixture/actions", "", cookie, ""); r.Code != 403 {
 		t.Fatal("staff actions need staff.audit.read", r.Code)
+	}
+	if r := request(h, "GET", "/api/v1/staff/accounts/bad%20name/logins", "", cookie, ""); r.Code != 400 || !strings.Contains(r.Body.String(), "invalid_account") {
+		t.Fatal("invalid account path accepted", r.Code, r.Body.String())
 	}
 	r = request(h, "GET", "/api/v1/staff/players/fixture-1/storage?account=Fixture", "", cookie, "")
 	if r.Code != 200 || !strings.Contains(r.Body.String(), `"name":"Sword of Test"`) || !strings.Contains(r.Body.String(), `"account":"fixture"`) {
@@ -109,13 +140,45 @@ func TestServerLogsAndBackupsUseOnlyTheHelper(t *testing.T) {
 		!strings.Contains(r.Body.String(), "wydgo-x.dump") || !strings.Contains(r.Body.String(), `"restoreTest":null`) {
 		t.Fatal(r.Code, r.Body.String())
 	}
+	logs.reply = logreader.Response{}
+	logs.err = errors.New("private helper detail")
+	if r := request(h, "GET", "/api/v1/staff/backups", "", cookie, ""); r.Code != 503 || strings.Contains(r.Body.String(), "private helper detail") {
+		t.Fatal("backup helper failure leaked details", r.Code, r.Body.String())
+	}
+	logs.err = nil
+	logs.reply = logreader.Response{Error: "busy"}
+	if r := request(h, "GET", "/api/v1/staff/backups", "", cookie, ""); r.Code != 429 || r.Header().Get("Retry-After") != "2" {
+		t.Fatal("busy backup helper was not rate-limited", r.Code, r.Header())
+	}
 }
 
 func TestLoginRetentionRunsWithAuditRetention(t *testing.T) {
-	h, _, _, _ := newTestHandler(t)
-	history := &testHistory{}
+	h, _, _, audit := newTestHandler(t)
+	if deleted, more := h.pruneLogins(); deleted != 0 || more {
+		t.Fatal("missing history store should be a no-op", deleted, more)
+	}
+	now := time.Date(2026, 10, 22, 4, 0, 0, 0, time.UTC)
+	h.now = func() time.Time { return now }
+	counts := make([]int64, auditPruneBatches)
+	for i := range counts {
+		counts[i] = auditPruneBatch
+	}
+	counts = append(counts, 7)
+	history := &testHistory{pruneCounts: counts}
 	h.cfg.AccountHistory = history
-	if _, more := h.pruneLogins(); more || history.pruned != 1 {
-		t.Fatal(history.pruned)
+	deleted, more := h.pruneLogins()
+	if deleted != auditPruneBatch*auditPruneBatches || !more || history.pruned != auditPruneBatches {
+		t.Fatal("login prune exceeded its batch bound", deleted, more, history.pruned)
+	}
+	if len(history.pruneCutoffs) != auditPruneBatches || !history.pruneCutoffs[0].Equal(now.Add(-control.LoginHistoryRetention)) ||
+		history.pruneLimits[0] != auditPruneBatch {
+		t.Fatal("login prune used the wrong retention window or batch size", history.pruneCutoffs, history.pruneLimits)
+	}
+	if deleted, more := h.pruneLogins(); deleted != 7 || more {
+		t.Fatal("login prune did not finish remaining rows", deleted, more)
+	}
+	history.pruneErr = errors.New("private database detail")
+	if deleted, more := h.pruneLogins(); deleted != 0 || more || strings.Contains(audit.String(), "private database detail") {
+		t.Fatal("failed login prune exposed backend details", deleted, more, audit.String())
 	}
 }

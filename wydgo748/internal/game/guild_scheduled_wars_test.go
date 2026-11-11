@@ -128,6 +128,32 @@ func TestScheduledTowerRejectsOwnerlessAndOutOfArenaDots(t *testing.T) {
 	}
 }
 
+func TestScheduledTowerRejectsDefenderCaptureAndResyncsAppliedHP(t *testing.T) {
+	w, st, defender, _, clock := scheduledWarWorld(t, "2026-09-14 21:05")
+	w.tickGuildWars(clock.Now())
+	m := w.warTower()
+	if m == nil {
+		t.Fatal("scheduled tower did not start")
+	}
+	w.guilds.Wars.Tower.Owner, w.guilds.Wars.Tower.Kingdom = 1, 7
+	defender.X, defender.Y = towerWarSpawnX-1, towerWarSpawnY
+	w.updatePlayerSpatial(defender)
+	defender.show(m.ID)
+	for {
+		if _, ok := defender.Session.DequeuePacketForTest(); !ok {
+			break
+		}
+	}
+	m.HP, m.TargetID = 0, 44
+	saves := st.gameSaves
+	w.captureWarTower(defender, m, 1234)
+	if m.HP != 1234 || m.Dead || m.TargetID != 44 || w.guilds.Wars.Tower.Owner != 1 ||
+		st.gameSaves != saves || defender.Session.QueuedPacketsForTest() != 1 {
+		t.Fatalf("defender capture was not rejected and resynced: tower=%+v war=%+v saves=%d packets=%d",
+			m, w.guilds.Wars.Tower, st.gameSaves, defender.Session.QueuedPacketsForTest())
+	}
+}
+
 func scheduledWarWorld(t *testing.T, date string) (*World, *guildFlowStore, *Player, *Player, *fakeClock) {
 	t.Helper()
 	w, st, a, b := guildWarTestWorld(t)

@@ -41,16 +41,27 @@ DWORD WINAPI DownloadGuildMark(void* pArg)
 	HINTERNET session = InternetOpenA("WYD", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
 	if (session)
 	{
-		HINTERNET file = InternetOpenUrlA(session, request->url, nullptr, 0,
-			INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, 0);
+		DWORD timeout = guild_mark_download::TimeoutMs;
+		const bool configured =
+			InternetSetOptionA(session, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(timeout)) &&
+			InternetSetOptionA(session, INTERNET_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(timeout)) &&
+			InternetSetOptionA(session, INTERNET_OPTION_SEND_TIMEOUT, &timeout, sizeof(timeout));
+		HINTERNET file = configured ? InternetOpenUrlA(session, request->url, nullptr, 0,
+			INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_SECURE |
+			INTERNET_FLAG_NO_AUTO_REDIRECT | INTERNET_FLAG_NO_UI | INTERNET_FLAG_NO_COOKIES, 0) : nullptr;
 		if (file)
 		{
-			DWORD read = 0;
-			while (request->size < sizeof(request->data) &&
-				InternetReadFile(file, request->data + request->size,
-					static_cast<DWORD>(sizeof(request->data)) - request->size, &read) && read)
+			DWORD status = 0;
+			DWORD statusSize = sizeof(status);
+			if (HttpQueryInfoA(file, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER,
+				&status, &statusSize, nullptr) && status == HTTP_STATUS_OK)
 			{
-				request->size += read;
+				request->size = static_cast<DWORD>(guild_mark_download::ReadBitmap(
+					request->data, sizeof(request->data), [file](char* output, std::size_t capacity) {
+						DWORD received = 0;
+						return InternetReadFile(file, output, static_cast<DWORD>(capacity), &received)
+							? static_cast<int>(received) : -1;
+					}));
 			}
 			InternetCloseHandle(file);
 		}
@@ -91,7 +102,7 @@ void TMFieldScene::PumpGuildMarkDownloads()
 		auto& slot = g_pTextureManager->m_stGuildMark[index];
 		if (current && slot.nGuild == request->guildKey && !slot.pTexture)
 		{
-			if (request->size >= 630 && Guildmark_IsCorrectBMP(request->data) &&
+			if (request->size != 0 && Guildmark_IsCorrectBMP(request->data) &&
 				g_pTextureManager->LoadGuildTexture(index, request->data) == 1)
 				++m_nGuildMarkCount;
 			else

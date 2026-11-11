@@ -105,14 +105,25 @@ int RunSkillAttackRequestTests(int& checks)
             expected.Header.Type = MSG_Attack_Two_Opcode;
             expectedSize = sizeof(MSG_AttackTwo);
         }
+        expected.Header.Size = static_cast<decltype(expected.Header.Size)>(expectedSize);
         check(skill_attack::SelectEnvelope(packet, maximum) == expectedSize,
             "envelope size matches the original catalog routing");
         check(std::memcmp(&packet, &expected, sizeof(packet)) == 0,
-            "selection changes only the opcode, never targets, size or prediction flags");
+            "selection sets the header before transport and preserves the payload");
         if (opcode == MSG_Attack_Multi_Opcode)
             check(IsClientToServerAttackPacketSize(packet.Header.Type, expectedSize),
                 "normal skill envelopes remain accepted client-to-server prefixes");
     }
+    auto growth = skill_attack::Area<MSG_Attack>(1, 13, 2100, 2100, 0, 0);
+    growth.Dam[0].TargetID = growth.AttackerID;
+    const int growthSize = skill_attack::SelectEnvelope(growth, 1);
+    MSG_Attack preview{};
+    std::memcpy(&preview, &growth, growthSize);
+    preview.FlagLocal = 1;
+    check(preview.Header.Size == sizeof(MSG_AttackOne) &&
+        preview.Header.Type == MSG_Attack_One_Opcode && preview.SkillIndex == 13 &&
+        preview.FlagLocal == 1 && preview.Dam[0].TargetID == preview.AttackerID,
+        "Growth carries a complete local cast preview before socket send");
     check(!skill_request::SkillWeaponAllowed(74, 41) && skill_request::SkillWeaponAllowed(74, 101) &&
         skill_request::SkillWeaponAllowed(75, 41) && skill_request::SkillWeaponAllowed(79, 41) &&
         skill_request::BackpackSkill == 85 && skill_request::CoinArmorSkill == 86,

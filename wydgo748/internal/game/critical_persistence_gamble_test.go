@@ -59,6 +59,10 @@ func TestCriticalGambleDetachedCommitAndSharedFence(t *testing.T) {
 					return r[1] == 14
 				})
 				w, p, fallback, base, q, rng, release := criticalGambleFixture(t, stops)
+				bet := uint32(1000)
+				if mode == "loss" {
+					p.Char.Gold, bet = 2_000_000, 1_000_000
+				}
 				if mode == "silver" {
 					p.Char.Gold, w.gambleJackpot, w.gamblePool = maxCharacterGold, gambleJackpotMax, gamblePoolMax
 				}
@@ -70,28 +74,27 @@ func TestCriticalGambleDetachedCommitAndSharedFence(t *testing.T) {
 				before, peerBefore, trade, peerTrade := accountStateSnapshot(p.Account), accountStateSnapshot(peer.Account), p.Trade, peer.Trade
 				jackpot, pool := w.gambleJackpot, w.gamblePool
 				w.markInstanceStateDirty()
-				w.handle(command{s: p.Session, pkt: criticalGambleRequest(p, 1000)})
+				w.handle(command{s: p.Session, pkt: criticalGambleRequest(p, bet)})
 				proposal := awaitCriticalWrite(t, base.entered)
-				wantJackpot := uint64(jackpot) + 1
-				if wantJackpot > uint64(gambleJackpotMax) {
-					wantJackpot = uint64(gambleJackpotMax)
-				}
+				wantJackpot := uint64(jackpot)
 				result := gambleResults(stops)
-				prize := gamblePrize(1000, result)
+				prize := gamblePrize(bet, result)
 				if result[1] == 14 {
 					prize += wantJackpot
 					wantJackpot = 0
+				} else if mode == "loss" {
+					wantJackpot += 100_000
 				}
 				if prize > math.MaxInt32 {
 					prize = math.MaxInt32
 				}
-				wantPool := min(pool+30, gamblePoolMax)
+				wantPool := min(pool+uint64(bet/100)*3, gamblePoolMax)
 				if prize/1000 > wantPool {
 					wantPool = 0
 				} else {
 					wantPool -= prize / 1000
 				}
-				wantGold, payout := gamblePayoutItems(uint64(before.Chars[0].Gold-1000) + prize)
+				wantGold, payout := gamblePayoutItems(uint64(before.Chars[0].Gold-bet) + prize)
 				if proposal.instances == nil || proposal.instances.GambleJackpot != uint32(wantJackpot) || proposal.instances.GamblePool != wantPool ||
 					proposal.accounts[0].Chars[0].Gold != wantGold || len(proposal.accounts) != 1+map[bool]int{false: 0, true: 1}[trading] {
 					t.Fatal("detached bet lost its account, prize or atomic pools")
@@ -283,7 +286,7 @@ func TestCriticalGambleActualWorldLoopProgress(t *testing.T) {
 		readCriticalLoopOverview(t, w)
 	}
 	stop() // Join the actor before inspecting mutable pools and queue maps.
-	if p.Char.Gold != 9000 || w.gambleJackpot != 101 || w.gamblePool != 230 || w.shuttingDown || len(q.pending) != 0 ||
+	if p.Char.Gold != 9000 || w.gambleJackpot != 200 || w.gamblePool != 230 || w.shuttingDown || len(q.pending) != 0 ||
 		len(base.entered) != 0 || w.mobTickCounter < 3 || w.rng.(*gambleSequenceRNG).next != 4 {
 		t.Fatal("actual World did not settle one bet while advancing unrelated ticks")
 	}

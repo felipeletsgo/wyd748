@@ -66,6 +66,7 @@ void Initialize(State& state)
     state.enabled = true;
 }
 
+#if defined(WYD_ENABLE_D3D_VTABLE_TRACING)
 // IDirect3DDevice9 vtable slots (d3d9.h declaration order).
 constexpr int kSetTransformSlot = 44;
 constexpr int kSetRenderStateSlot = 57;
@@ -225,6 +226,7 @@ void PatchTable(void** table)
     }
     VirtualProtect(table, bytes, oldProtect, &oldProtect);
 }
+#endif
 
 } // namespace
 
@@ -243,10 +245,14 @@ double NowMs()
 
 void InstallDeviceHooks(IDirect3DDevice9* device)
 {
+#if defined(WYD_ENABLE_D3D_VTABLE_TRACING)
     if (!device || !Enabled())
         return;
     s_device = device;
     PatchTable(*reinterpret_cast<void***>(device));
+#else
+    (void)device;
+#endif
 }
 
 void AddPhase(Phase phase, double ms)
@@ -328,9 +334,11 @@ bool EndFrame()
     if (!Enabled())
         return false;
     State& state = GetState();
+#if defined(WYD_ENABLE_D3D_VTABLE_TRACING)
     // The D3D9 runtime rewrites the device's vtable copy; restore the hooks.
     if (s_device)
         PatchTable(*reinterpret_cast<void***>(s_device));
+#endif
     const double now = QueryMs(state);
     if (state.lastFrameMs >= 0.0)
     {

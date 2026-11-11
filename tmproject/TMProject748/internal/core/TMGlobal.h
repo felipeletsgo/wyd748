@@ -130,9 +130,6 @@ extern int g_nUpdateGuildName;
 extern char g_szEncryptedAcc[256];
 extern int g_bMoveServer;
 
- 
-extern int g_bTestServer;
-
 extern int Game_grade;
 extern int g_nBattleMaster;
 extern int g_pDebugMaxCount;

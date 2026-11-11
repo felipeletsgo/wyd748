@@ -727,6 +727,11 @@ func effectiveMobDefense(m *Mob) int {
 
 func effectiveMobDefenseAt(m *Mob, now time.Time) int {
 	defense := int(m.Def.Score.Defense)
+	if m.guardKind == guardAsder {
+		if samaritan := activeMobAffectAt(m, 24, now); samaritan != nil {
+			defense += samaritan.Level
+		}
+	}
 	if a := activeMobAffectAt(m, 12, now); a != nil {
 		defense = defense * (100 - clampInt(a.Value, 0, 100)) / 100
 	}
@@ -806,6 +811,8 @@ func mobPublicExtendedAt(m *Mob, now time.Time) *model.Score {
 		return nil
 	}
 	ext := m.Def.MakeScore(m.HP)
+	ext.MaxHP = guardMaxHPAt(m, now)
+	ext.CurHP = min(m.HP, ext.MaxHP)
 	ext.Defense = uint32(effectiveMobDefenseAt(m, now))
 	ext.Attack = uint32(effectiveMobAttackAt(m, now))
 	ext.AttackRun = uint32(effectiveMobAttackRunAt(m, now))
@@ -1348,14 +1355,17 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				}
 			}
 			if a.Type == 17 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
-				oldHP := playerCurHP(p.Char)
-				heal := a.Level/2 + a.Value
-				// Aura of Life restores living characters; it cannot resurrect.
-				if oldHP > 0 {
-					restorePlayerHP(p.Char, uint32(maxInt(0, heal)))
-				}
 				a.NextTick = now.Add(8 * time.Second)
-				hpChanged = oldHP != playerCurHP(p.Char)
+				oldHP := playerCurHP(p.Char)
+				if oldHP > 0 {
+					heal := uint32(maxInt(0, a.Level/2+a.Value))
+					restorePlayerHP(p.Char, heal)
+					hp := playerCurHP(p.Char)
+					hpChanged = hpChanged || hp != oldHP
+					w.sendToPlayerView(p, func() []byte {
+						return wire.AuraOfLifeRecovery(p.ID, hp, heal)
+					})
+				}
 			}
 			if (a.Type == 22 || a.Type == 23) && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
 				if w.criticalKillParticipantsReserved(p) {

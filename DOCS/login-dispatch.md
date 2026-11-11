@@ -15,7 +15,7 @@ The reset started at `0x02EC0001`, which is **7.48.001**, with server prefix
 ([launcher](client/launcher.md#release-line-748)). Revision N pairs with
 `[VERSION] 48000 + N`.
 
-Current state (2026-11-01):
+Historical state (2026-11-01). See the [active release](current-state.md) for the current revision.
 
 - Last published and activated client: **7.48.017**, revision 17
   (`0x02EC0011`), `config.txt` `[VERSION] 48017`
@@ -38,6 +38,12 @@ From 7.48.001 on, each mandatory client patch raises `Revision` and
 `MinimumClientBuildRevision` together by one (7.48.002 = revision 2 =
 `[VERSION] 48002`). Do not reuse the `0x5747` prefix. Release ordering is
 unchanged: distribute the new full client first, then activate the server gate.
+
+The unpublished client stops reading the network adapter identifier.
+Classification: `MODERNIZACAO_COMPATIVEL`. Initial login and channel reconnect
+send zeroes in the reserved bytes 100 through 115. The packet keeps its
+116-byte size and the transfer ticket remains at bytes 48 through 99.
+The Go server accepts old and new clients with the same admission rules.
 
 ## Client build admission — contract v1 (retired), 2026-10-22
 

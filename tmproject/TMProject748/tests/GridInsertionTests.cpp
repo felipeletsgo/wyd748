@@ -176,13 +176,38 @@ int RunGridInsertionTests(int& checks)
     check(grid_item_presentation::WeaponMeshScale(0.1f, 72.0f, 1.0f) == 1.0f &&
         grid_item_presentation::WeaponMeshScale(1.2f, 72.0f, 0.0f) == 1.0f,
         "weapon fit retains authored scale and rejects invalid UI scale");
+    // Mesh 33 (Divine Fury) occupies one active Carry cell. Both hand
+    // receptacles in FieldScene2.bin are 95 logical pixels tall.
+    const float divineFuryMaxZ = 1.672282f;
+    const float divineFuryHandScale = grid_item_presentation::WeaponMeshScale(divineFuryMaxZ, 95.0f, 1.0f);
+    check(divineFuryHandScale > 0.70f && divineFuryHandScale < 0.72f &&
+        divineFuryHandScale > 3.9f * grid_item_presentation::MeshScale(divineFuryMaxZ, 1),
+        "Divine Fury hand preview is larger than its one-cell fit and bounded by authored scale");
     const auto meshScale = source_contract::Method(source,
-        "float WYD748_GetGridMeshScale(const SGridControlItem* item)");
+        "static float WYD748_GetGridMeshScale(const SGridControlItem* item, const SGridControl* grid)");
     check(meshScale.find("ITEMTYPE_LEFT") != std::string::npos &&
         meshScale.find("ITEMTYPE_RIGHT") != std::string::npos &&
         meshScale.find("grid_item_presentation::WeaponMeshScale") != std::string::npos &&
         meshScale.find("grid_item_presentation::MeshScale") != std::string::npos,
         "production hand grids use receptacle fit and other grids retain cell fit");
+    const auto cursorScale = source_contract::Method(source,
+        "float WYD748_GetCursorMeshScale(const SGridControlItem* item)");
+    check(cursorScale.find("BASE_GetItemAbility(item->m_pItem, EF_POS)") != std::string::npos &&
+        cursorScale.find("scene->m_pGridLeft") != std::string::npos &&
+        cursorScale.find("scene->m_pGridRight") != std::string::npos &&
+        cursorScale.find("handGrid ? WYD748_GetGridMeshScale(item, handGrid) : 1.0f") != std::string::npos &&
+        cursorScale.find("m_pGridControl") == std::string::npos,
+        "cursor resolves hand fit from the item's equipment position and uses authored scale otherwise");
+    const auto cursorSource = ReadGridSource("controls/SCursor.cpp");
+    const auto attach = source_contract::Method(cursorSource, "int SCursor::AttachItem(SGridControlItem* pItem)");
+    const auto draw = source_contract::Method(cursorSource,
+        "void SCursor::FrameMove2(stGeomList* pDrawList, TMVector2 ivParenPos, int inParentLayer, int nFlag)");
+    const auto copy = draw.find("m_GeomItem = *m_pAttachedItem->GetGeomControl();");
+    const auto meshBranch = draw.find("m_GeomItem.eRenderType == RENDERCTRLTYPE::RENDER_3DOBJ");
+    const auto applyScale = draw.find("m_GeomItem.fScale = m_fAttachedMeshScale;");
+    check(attach.find("m_fAttachedMeshScale = WYD748_GetCursorMeshScale(pItem);") != std::string::npos &&
+        source_contract::InOrder(copy, meshBranch) && source_contract::InOrder(meshBranch, applyScale),
+        "cursor applies the pickup scale to its mesh copy while the source geometry keeps its slot fit");
     for (const char* caption : emptyCaptions)
         check(std::strcmp(grid_item_presentation::SplitCaption(caption),
             "Enter the quantity to split.") == 0, "missing split resource has an English caption");

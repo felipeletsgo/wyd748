@@ -85,6 +85,7 @@ func resetCharacterRuntime(p *Player) {
 	p.criticalLifecycle = nil
 	p.Char = nil
 	p.CharSlot = -1
+	p.guardTimers = [2]time.Time{}
 	p.ID = 0
 	p.TabText, p.StatusMessage, p.TabColor = "", "", 0
 	p.X, p.Y = 0, 0

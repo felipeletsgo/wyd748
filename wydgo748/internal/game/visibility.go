@@ -723,7 +723,7 @@ func (w *World) publishPlayerAffects(subject *Player) {
 	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
 		return observedPlayerScorePacket(observer, subject)
 	})
-	subject.Session.Send(playerAffectsPacket(subject))
+	subject.Session.Send(playerAffectsPacketAt(subject, w.now()))
 }
 
 // syncPlayerVitals keeps character HP/MP identical for the owner and all

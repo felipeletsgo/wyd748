@@ -17,3 +17,9 @@ func TestActionTarget748UsesDestinationInsteadOfSegmentOrigin(t *testing.T) {
 		t.Fatalf("destino 7.48=(%d,%d), esperado (2140,2101)", x, y)
 	}
 }
+
+func TestActionTarget748RejectsShortPacket(t *testing.T) {
+	if x, y := actionTarget748(make([]byte, 27)); x != 0 || y != 0 {
+		t.Fatalf("short action packet returned target (%d,%d)", x, y)
+	}
+}

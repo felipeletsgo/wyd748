@@ -44,7 +44,6 @@ NewApp::NewApp()
 	m_pObjectManager = 0;
 	m_pSocketManager = 0;
 	g_pApp = this;
-	ShellExecute(0, "open", ChangeUpdate_Path, 0, 0, 1);
 	BASE_InitModuleDir();
 	BASE_InitializeHitRate();
 	BASE_ReadMessageBin();
@@ -339,8 +338,6 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	memset(g_pItemHelp, 0, sizeof(g_pItemHelp));
 	char szItemHelpFile[128];
 	sprintf_s(szItemHelpFile, "%s", WYD748_TextPath(ItemHelp_Path).c_str());
-
-	remove(ChangeUpdate_Path);
 
 	MixHelp();
 

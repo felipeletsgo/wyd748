@@ -66,6 +66,19 @@ the compatibility bootstrap:
 | 5377 | Chat message list. |
 | 5739 / 6134 / 6135 / 12624 | Chat input, backing controls and channel tabs. |
 
+## Jackpot
+
+Confirm the interaction with CasinoGuide in Armia (2100, 2095). The guide
+teleports players to the Casino (4059, 3998) for free on both channels.
+
+The Jackpot window accepts bets from 1,000 to 1,000,000 gold in steps of
+1,000. The double arrows change the bet by up to 100,000. A losing round adds
+10% of the wager to the jackpot after the server commits the result.
+The window displays the last jackpot total received from the server.
+The reel symbols and line highlights scale with the frame.
+
+See the [Jackpot contract](../../.agents/research/client748/flows/ui/gamble-jackpot.md).
+
 ## Aylin preview and refinement presentation
 
 The four result grids contain independent, presentation-only copies of the

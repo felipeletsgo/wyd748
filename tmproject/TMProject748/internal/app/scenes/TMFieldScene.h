@@ -172,6 +172,12 @@ public:
 	void TotoClose();
 	void MobStop(D3DXVECTOR3 vec);
 	void UpdateAutoRun();
+	void InitializeGroundClickMarker();
+	void PlaceGroundClickMarker(float x, float z);
+	void UpdateGroundClickMarker(unsigned int now);
+	void UpdateZoneMusic();
+	void UpdateFlashOverlay(unsigned int now);
+	void UpdateKefraDeathEffects(unsigned int now);
 	void VisibleInputTradeName();
 	void VisibleInputPass();
 	void VisibleInputGuildName();
@@ -564,6 +570,8 @@ public:
 	unsigned int m_dwUseItemTime{};
 	unsigned int m_dwNPCClickTime{};
 	unsigned int m_dwStartAffectTime[32]{};
+	GuardTimers m_guardTimers{};
+	std::uint64_t m_guardTimerSync{};
 	unsigned int m_dwLastChatTime[4]{};
 	unsigned int m_dwLastCheckTime{};
 	unsigned int m_dwLastSetTargetHuman{};

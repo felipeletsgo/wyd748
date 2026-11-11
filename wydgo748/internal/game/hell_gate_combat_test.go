@@ -1,10 +1,12 @@
 package game
 
 import (
+	"encoding/binary"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 func TestHellGate759SkillSelection(t *testing.T) {
@@ -150,5 +152,64 @@ func TestHellGate759CasterTickTargetsOnlyItsOwnMembers(t *testing.T) {
 	w.tickActiveMobActions(w.now())
 	if playerCurHP(p.Char) != before {
 		t.Fatal("caster attacked a nonmember")
+	}
+}
+
+func TestHellGate759HistoricalSpellMissKeepsPlayerVitalsAndSendsMiss(t *testing.T) {
+	w, p, _, merchant := hellStoreWorld(t)
+	inst := attachDionysStore(w, p, merchant)
+	mage := &Mob{ID: 1300, InstanceID: inst.RuntimeID, X: p.X + 1, Y: p.Y, HP: 32000,
+		Def: &model.NPCDef{Name: "HG_SkelMage", Tipo: model.TipoMonstro,
+			Score: &model.Score{Level: 399, Attack: 3600, MaxHP: 32000, MaxMP: 1000}}}
+	inst.MobIDs = map[uint16]struct{}{mage.ID: {}}
+	w.registerMobSpatial(mage)
+	p.show(mage.ID)
+	p.Char.RuntimeScore = nil
+	p.Char.Score.MaxHP, p.Char.Score.CurHP, p.Char.Score.Dex = 50000, 50000, 4000
+	w.rng = fixedRNG{value: 99}
+	for {
+		if _, ok := p.Session.DequeuePacketForTest(); !ok {
+			break
+		}
+	}
+	beforeHP := playerCurHP(p.Char)
+	w.castHistoricalSkillAtPlayer(mage, p, model.SkillDef{Index: 32, InstanceType: 2}, w.now())
+	if playerCurHP(p.Char) != beforeHP || p.LastAttackerID != 0 {
+		t.Fatalf("miss changed player combat state: HP=%d attacker=%d", playerCurHP(p.Char), p.LastAttackerID)
+	}
+	packet, ok := p.Session.DequeuePacketForTest()
+	if !ok || !wire.Decrypt(packet) || wire.ParseHeader(packet).Type != wire.OpAttackOne ||
+		len(packet) < 48 || binary.LittleEndian.Uint16(packet[46:48]) != 0xFFFD {
+		t.Fatalf("historical miss packet missing or malformed: ok=%t packet=% X", ok, packet)
+	}
+}
+
+func TestHellGate759CasterRequiresOwnedMageAndSkill(t *testing.T) {
+	w, p, _ := useItemWorld(model.VolatileRule{})
+	const runtimeID = "hell-gate-caster-test"
+	inst := &ItemInstance{
+		RuntimeID: runtimeID,
+		Config: model.VolatileInstance{ID: runtimeID, StateMachine: "hell_gate",
+			HellGate: &model.VolatileHellGate{Version: 3, Population759: &model.VolatileHellGatePopulation{}}},
+		MemberIDs: []uint16{p.ID}, MemberCharacterUIDs: []string{p.Char.UID},
+		MobIDs: map[uint16]struct{}{1300: {}},
+	}
+	w.itemInstances = map[string]*ItemInstance{runtimeID: inst}
+	w.rebuildPlayerInstanceIndex()
+	mage := &Mob{ID: 1300, InstanceID: runtimeID, X: p.X + 1, Y: p.Y, HP: 32000,
+		Def: &model.NPCDef{Name: "HG_SkelMage", Tipo: model.TipoMonstro, SkillBar: [4]byte{32, 255, 255, 255},
+			Score: &model.Score{Level: 399, Attack: 3600, MaxHP: 32000, MaxMP: 1000}}}
+	w.registerMobSpatial(mage)
+	p.show(mage.ID)
+	w.skills = map[int]model.SkillDef{32: {Index: 32, InstanceType: 2}}
+	w.rng = fixedRNG{value: 0}
+	beforeHP := playerCurHP(p.Char)
+	if !w.hellGateCastAtPlayer(mage, p, w.now()) || playerCurHP(p.Char) >= beforeHP || p.LastAttackerID != mage.ID {
+		t.Fatal("owned historical mage did not execute its configured spell")
+	}
+	beforeHP = playerCurHP(p.Char)
+	delete(inst.MobIDs, mage.ID)
+	if w.hellGateCastAtPlayer(mage, p, w.now()) || playerCurHP(p.Char) != beforeHP {
+		t.Fatal("unowned mage cast or damaged a player")
 	}
 }

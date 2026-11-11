@@ -138,7 +138,9 @@ they appear in the source, not how often a loop runs them.
 
 Decision rule (project owner, 2026-10-03): native 7.48 evidence informs the
 decision but is not the default; keep the superior TMProject effect where one
-exists and port the native one only where the TMProject has none.
+exists and port the native one only where the TMProject has none. The
+[buff effects decision below](#native-748-buff-effects-2026-11-09) supersedes
+this rule for buffs.
 
 | Dispatch | Skills | Finding | Recommendation |
 | --- | --- | --- | --- |
@@ -168,7 +170,7 @@ the corresponding historical recommendations.
 
 | Status | Flow | Evidence |
 | --- | --- | --- |
-| Corrected in source | Growth (13) | Replaced deferred mesh 2838 with the native violet billboard and ground shade. The attack handler uses `TMSkillHolyTouch` variant 1 at the caster. |
+| Corrected in source | Growth (13) | Restore the native violet billboard and ground shade on cast. Set the local preview length before dispatch. Affect 14 has no persistent visual. |
 | Corrected in source | Cancellation (100) | Restored sound 156 during attack dispatch. The server removes Immunity through its support path. |
 | Excluded by owner | Weather near BerialGuard | Generator 5140 places the guard at (2130, 2147), outside the permanent snow fields. The aura clears rendered weather and writes that value to `g_nWeather`. The skill tooltip, panel, and cast preview use it. The server still applies rain (fire −10%, thunder +30%) or snow (ice +20%). |
 | Present in source | Rapid Hit (95) | The native attack branch offsets damage feedback per target. The adapted attack uses per-target delay, and `PlayEffectEvent` creates the projectiles and billboards. |
@@ -203,3 +205,30 @@ See the [Growth and Cancellation trace](../../.agents/research/client748/flows/c
 - CLIENT-TESTED: pending for this audit. The 104 named server skill records
   and the 100 allocation-comparison rows measure different scopes. Neither
   count certifies all skills, affects, creatures, or maps in a running client.
+
+## Native 7.48 buff effects (2026-11-09)
+
+Use native 7.48 for buff placement, scale, orientation, and texture. Keep the
+owner-selected Skill Amp plane at ground level with its native scale.
+
+- Lightning Storm follows the Foema at the native height without a lateral
+  offset.
+- Magic Shield, Rescue, and Elemental use the native vertical offsets for
+  both negative-angle layers.
+- Cancellation uses the native mesh inclinations and stock texture.
+- Enchant Frost anchors the persistent flare along the weapon. Fire Attack
+  uses the native white weapon particles.
+
+See the [buff placement trace](../../.agents/research/client748/flows/combat/persistent-buff-visuals.md#native-buff-placement-2026-11-09).
+The Release client built and passed automated tests. In-game visual
+comparison remains pending, including mounted characters and observers.
+
+### Aura of Life and ground rings
+
+The Aura of Life cast ring and persistent circle now sit just above the
+terrain. The recovery tick plays the ring every eight seconds for living
+characters with the buff. The blue number shows the calculated heal,
+including at full HP. Shadow and the ground planes of Holy Touch, Rescue,
+and Growth use the same terrain lift.
+
+See the [Aura of Life trace](../../.agents/research/client748/flows/combat/persistent-buff-visuals.md#aura-of-life-ground-effects-and-recovery-2026-11-09).

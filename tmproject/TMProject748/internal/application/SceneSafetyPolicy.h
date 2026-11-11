@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include "../app/scenes/GroundNeighborPolicy.h"
 #include "../wire/CreateMobContract.h"
@@ -40,6 +41,16 @@ inline unsigned int Remaining(unsigned int now, unsigned int stamp, unsigned int
 inline bool IsGateClosed(unsigned int now, unsigned int stamp, unsigned int window)
 {
     return stamp != 0 && Elapsed(now, stamp) < window;
+}
+}
+
+namespace guard_buff
+{
+// Use local uptime so server clock corrections cannot hide a live guard.
+constexpr int SecondsRemaining(std::uint32_t duration, std::uint64_t receivedAt, std::uint64_t now)
+{
+    const auto elapsed = (now - receivedAt) / 1000;
+    return elapsed < duration ? static_cast<int>(duration - elapsed) : 0;
 }
 }
 

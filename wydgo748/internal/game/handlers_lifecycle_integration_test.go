@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -158,6 +159,36 @@ func TestRestartAndSysQuitRejectInvalidOrTooEarlyRequests(t *testing.T) {
 	w.onSysQuit(p.Session)
 	if st.saves != 1 || p.Session.QueuedPacketsForTest() != before {
 		t.Fatal("DelayStart save failure should prevent acknowledgement")
+	}
+	p.Char = nil
+	w.onSysQuit(p.Session)
+	if st.saves != 1 || p.Session.QueuedPacketsForTest() != before {
+		t.Fatal("DelayStart without an active character changed state")
+	}
+}
+
+func TestCriticalSysQuitPublishesOnlyAfterPositionCommit(t *testing.T) {
+	w, p, _, backend, queue, _, _, release := criticalTinyFixture(t, true, true)
+	p.X, p.Y = p.X+10, p.Y+10
+	wantX, wantY := p.X, p.Y
+	oldX, oldY := p.Char.X, p.Char.Y
+	beforePackets := p.Session.QueuedPacketsForTest()
+	w.onSysQuit(p.Session)
+	write := awaitCriticalWrite(t, backend.entered)
+	expected := accountStateSnapshot(p.Account)
+	expected.Chars[p.CharSlot].X, expected.Chars[p.CharSlot].Y = wantX, wantY
+	if len(write.accounts) != 1 || !reflect.DeepEqual(write.accounts[0], accountPersistenceSnapshot(expected)) ||
+		p.Char.X != oldX || p.Char.Y != oldY ||
+		p.Session.QueuedPacketsForTest() != beforePackets {
+		t.Fatalf("DelayStart published early: proposal=%v live=(%d,%d) old=(%d,%d) packets=%d/%d",
+			write.accounts, p.Char.X, p.Char.Y, oldX, oldY,
+			p.Session.QueuedPacketsForTest(), beforePackets)
+	}
+	release()
+	w.applyCriticalCompletion(awaitCriticalResult(t, queue))
+	if p.Char.X != wantX || p.Char.Y != wantY || p.Session.QueuedPacketsForTest() != beforePackets+1 {
+		t.Fatalf("DelayStart did not publish committed position: char=(%d,%d) want=(%d,%d) packets=%d",
+			p.Char.X, p.Char.Y, wantX, wantY, p.Session.QueuedPacketsForTest()-beforePackets)
 	}
 }
 

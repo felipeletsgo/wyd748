@@ -148,7 +148,7 @@ bool WYD748_IsCenteredSingleCellGrid(const TMEGRIDTYPE gridType)
 		|| gridType == TMEGRIDTYPE::GRID_MISSION_NEEDLIST;
 }
 
-float WYD748_GetGridMeshScale(const SGridControlItem* item)
+static float WYD748_GetGridMeshScale(const SGridControlItem* item, const SGridControl* grid)
 {
 	if (!item || !g_pMeshManager || item->m_GCObj.n3DObjIndex < 0)
 		return 1.0f;
@@ -157,7 +157,6 @@ float WYD748_GetGridMeshScale(const SGridControlItem* item)
 	if (!mesh)
 		return 1.0f;
 
-	const auto* grid = item->m_pGridControl;
 	if (grid && (grid->m_eItemType == TMEITEMTYPE::ITEMTYPE_LEFT ||
 		grid->m_eItemType == TMEITEMTYPE::ITEMTYPE_RIGHT))
 		return grid_item_presentation::WeaponMeshScale(mesh->m_fMaxZ,
@@ -175,7 +174,25 @@ void WYD748_ApplyGridMeshScale(SGridControlItem* item)
 		return;
 
 	// Recompute on each insertion so moving back to Carry restores its fit.
-	item->m_GCObj.fScale = WYD748_GetGridMeshScale(item);
+	item->m_GCObj.fScale = WYD748_GetGridMeshScale(item, item->m_pGridControl);
+}
+
+float WYD748_GetCursorMeshScale(const SGridControlItem* item)
+{
+	if (!item->m_pItem || item->m_GCObj.eRenderType != RENDERCTRLTYPE::RENDER_3DOBJ ||
+		!g_pCurrentScene || g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
+		return 1.0f;
+
+	// Use the item's equipment position regardless of its source grid.
+	const auto* scene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	const int position = BASE_GetItemAbility(item->m_pItem, EF_POS);
+	const SGridControl* handGrid = nullptr;
+	if (position & static_cast<int>(TMEITEMTYPE::ITEMTYPE_LEFT))
+		handGrid = scene->m_pGridLeft;
+	else if (position & static_cast<int>(TMEITEMTYPE::ITEMTYPE_RIGHT))
+		handGrid = scene->m_pGridRight;
+
+	return handGrid ? WYD748_GetGridMeshScale(item, handGrid) : 1.0f;
 }
 
 SGridControlItem* SGridControl::m_pLastMouseOverItem;
@@ -735,10 +752,6 @@ SGridControlItem* SGridControl::PickupItem(int inCellIndexX, int inCellIndexY)
 		m_nNumItem--;
 	}
 
-	// A dragged item always uses the cell-safe presentation, including when it
-	// originated in an irregular equipment panel. AddItem restores scale 1.0
-	// if the item is placed back into equipment.
-	WYD748_ApplyGridMeshScale(pItem);
 	return pItem;
 }
 
@@ -772,9 +785,6 @@ SGridControlItem* SGridControl::PickupAtItem(int inCellIndexX, int inCellIndexY)
 		m_nNumItem--;
 	}
 
-	// PickupAtItem feeds the same cursor path as PickupItem and must not preserve
-	// equipment scale while the mesh is hovering over the inventory grid.
-	WYD748_ApplyGridMeshScale(pItem);
 	return pItem;
 }
 

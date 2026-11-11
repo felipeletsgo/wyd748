@@ -13,7 +13,8 @@ Do not invoke gameplay, asset, research, or release skills for organization-only
 - Read the requested rule, document, or skill and its direct references.
 - Inspect AGENTS.md, git status --short, HEAD, and the scoped diff once.
 - Search with rg; do not rescan unrelated source or research trees.
-- Correct the source of a contradiction, not a duplicate or historical record.
+- Correct the owning rule or document. Link historical records to the current owner when needed.
+- For status claims, compare the owning source or receipt. Keep this review read-only for product code.
 
 ## Invariants
 
@@ -34,7 +35,8 @@ Do not invoke gameplay, asset, research, or release skills for organization-only
 
 ## Closeout
 
-- Update DOCS/README.md and DOCS/documentation-map.md only when inventory changes.
+- Update the DOCS/README.md routes when their starting documents change.
+- Regenerate DOCS/documentation-map.md only when the inventory changes.
 - Run tools/repository/Test-RepositoryLayout.ps1 once for the changed batch.
 - Validate each changed skill entrypoint, scoped links, and git diff --check.
 - Do not run product builds, Ghidra, or runtime checks for documentation-only work.

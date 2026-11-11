@@ -12,7 +12,7 @@ public:
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;
     void SetVisible(int bVisible) override;
     void SetResult(char cResult);
-    void UpDateJackpot();
+    void SetJackpot(unsigned int jackpot);
 
 public:
     SPanel* m_pGamBleReel[3][22];
@@ -26,8 +26,6 @@ public:
     unsigned int m_dwOldServerTime;
     unsigned int m_dwStopTime;
     int m_bResult;
-    unsigned int m_dwJackpot;
-    unsigned int m_dwJackPotView;
     unsigned int m_dwAutoTime;
     unsigned int m_dwBoxAniTime;
     int m_nPresent;

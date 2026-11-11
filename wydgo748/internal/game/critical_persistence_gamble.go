@@ -64,11 +64,6 @@ func (w *World) queueGamble(p *Player, kind, bet uint32) error {
 	at, generation := w.now(), w.criticalInstanceGeneration
 	retained := w.instanceStateSnapshotAt(at)
 	instances := w.instanceStateSnapshotAt(at)
-	jackpot := uint64(instances.GambleJackpot) + uint64(bet/1000)
-	if jackpot > uint64(gambleJackpotMax) {
-		jackpot = uint64(gambleJackpotMax)
-	}
-	instances.GambleJackpot = uint32(jackpot)
 	poolAdd := uint64((bet / 100) * 3)
 	if instances.GamblePool >= gamblePoolMax || poolAdd >= gamblePoolMax-instances.GamblePool {
 		instances.GamblePool = gamblePoolMax
@@ -76,9 +71,7 @@ func (w *World) queueGamble(p *Player, kind, bet uint32) error {
 		instances.GamblePool += poolAdd
 	}
 	outcome := w.rollGambleWithJackpot(kind, bet, instances.GambleJackpot)
-	if outcome.result[1] == 14 {
-		instances.GambleJackpot = 0
-	}
+	instances.GambleJackpot = gambleJackpotAfterSpin(instances.GambleJackpot, bet, outcome)
 	poolDebit := uint64(outcome.prize / 1000)
 	if poolDebit > instances.GamblePool {
 		instances.GamblePool = 0

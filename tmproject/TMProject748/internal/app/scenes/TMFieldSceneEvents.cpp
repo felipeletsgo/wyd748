@@ -130,8 +130,6 @@ void TMFieldScene::SetVisibleGamble(int bShow, char cType)
 		if (m_pShopPanel && m_pShopPanel->m_bVisible == 1)
 			SetVisibleShop(0);
 		m_cGambleType = static_cast<unsigned char>(cType);
-		m_cPendingGambleType = 0;
-		m_dwGambleRequestTime = 0;
 		PositionCompatGamblePanel();
 		m_pGambleStore->SetVisible(1);
 		m_pReelPanel->SetVisible(cType == 1);
@@ -156,8 +154,6 @@ void TMFieldScene::SetVisibleGamble(int bShow, char cType)
 			m_pReelPanel2->m_dwStopTime = 0;
 		}
 		m_cGambleType = 0;
-		m_cPendingGambleType = 0;
-		m_dwGambleRequestTime = 0;
 		if (g_pDevice)
 			g_pDevice->m_nWidthShift = 0;
 		SetEquipGridState(1);
@@ -607,18 +603,22 @@ int TMFieldScene::OnPacketRESULTGAMBLE(MSG_ResultGamble* pStd)
 		if (stop >= 22)
 			return 0;
 
-	if ((m_cPendingGambleType != 1 && m_cPendingGambleType != 2) ||
-		!m_pGambleStore || !m_pGambleStore->IsVisible())
-		return 0;
-
-	SReelPanel* reel = m_cPendingGambleType == 1 ? m_pReelPanel : m_pReelPanel2;
-	if (!reel || !reel->IsVisible())
-		return 0;
-
+	// Retain the server snapshot even if the player closed the panel.
 	if (m_pReelPanel)
-		m_pReelPanel->m_dwJackpot = pStd->Jackpot;
+		m_pReelPanel->SetJackpot(pStd->Jackpot);
 	if (m_pReelPanel2)
-		m_pReelPanel2->m_dwJackpot = pStd->Jackpot;
+		m_pReelPanel2->SetJackpot(pStd->Jackpot);
+
+	const auto pendingType = m_cPendingGambleType;
+	m_cPendingGambleType = 0;
+	m_dwGambleRequestTime = 0;
+	if ((pendingType != 1 && pendingType != 2) || pendingType != m_cGambleType ||
+		!m_pGambleStore || !m_pGambleStore->IsVisible())
+		return 1;
+
+	SReelPanel* reel = pendingType == 1 ? m_pReelPanel : m_pReelPanel2;
+	if (!reel || !reel->IsVisible())
+		return 1;
 
 	for (char line = 0; line < 5; ++line)
 		if (pStd->Result[line] > 0)
@@ -631,8 +631,6 @@ int TMFieldScene::OnPacketRESULTGAMBLE(MSG_ResultGamble* pStd)
 		pStd->StopPosition[1],
 		pStd->StopPosition[2],
 		3000);
-	m_cPendingGambleType = 0;
-	m_dwGambleRequestTime = 0;
 	return 1;
 }
 

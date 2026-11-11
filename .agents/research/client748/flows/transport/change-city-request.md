@@ -4,7 +4,7 @@ title: Pedido de troca de cidade 0x291
 subsystem: transport-session
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-06
+updated: 2026-11-09
 ---
 
 # Pedido de troca de cidade 0x291
@@ -65,11 +65,9 @@ observáveis estão em `0x00478B2B` e `0x00478F7A`.
 | desconexão | transporte falha | teardown geral | cena/sessão encerrada | cleanup do socket | o packet não retém estado próprio |
 | logout/relogin | nova cena e novo personagem | lifecycle geral | marcador é reconstruído | nenhum request antigo é repetido | sem replay automático |
 
-O buffer nativo vive na pilha e é emprestado ao transporte. O client atual
-mantém `m_nVillage` e grava `HomeTownX/Y` somente no mesmo caminho que já existia;
-a extração não altera timers, música, cena ou ordem de efeitos. O servidor
-continua autoritativo: o DWORD recebido não restaura score nem substitui a
-posição publicada pelo movimento.
+The native buffer lives on the stack and is passed to transport. The native
+sender updates the local hometown projection. The Go server uses the player
+position to resolve the city, even when the packet reports a different city.
 
 ## Wire, ABI e recursos
 
@@ -85,23 +83,28 @@ zerados e não possui resposta S->C específica. A source e o servidor usam o
 mesmo tamanho; `security.go` ainda aceita o valor `4` para compatibilidade,
 enquanto os emissores nativos só enviam valores `<4`. Não há asset ou recurso.
 
-## Mapeamento atual
+## Current mapping
 
-Os dois emissores de `TMFieldScene.cpp` agora usam `MSG_ChangeCity` e
-`MSG_ChangeCity_Opcode`; a fachada `Basedef.h` apenas reexporta o header próprio.
-O WYD-Go já declara `OpChangeCity`, exige 16 bytes no gate e chama
-`onChangeCity`, que registra a posição autoritativa corrente sem aceitar frame
-curto ou player inexistente. Nenhuma rota foi adicionada ao dispatcher recebido
-do client porque o contrato é somente C->S.
+At the September extraction, both legacy `TMFieldScene.cpp` senders used
+`ChangeCityPacket.h`. The compact 7.48 frame returned before both senders.
+Commit `83a94da7` removed them with the legacy frame branch. The packet type
+remains declared, but the current client has no sender. The restored
+zone music selector uses the actor's position and the existing BGM manager.
+See the [October 7 field audit](../../../../../DOCS/client/port-748.md#october-7-field-compatibility-follow-up).
+
+Go still accepts the 16-byte request and validates the authoritative position
+in `onChangeCity`. Confirmed movement binds the hometown directly in
+`player_movement.go`. Location commits also stage the city from the server
+position. Hometown binding does not require the old client sender.
 
 ## Matriz de delta
 
-| Claim | Nativo 7.48 | Source atual | WYD-Go | Decisão |
-| --- | --- | --- | --- | --- |
-| wire | `0x291/16`, `Village@12` | antes usava `MSG_STANDARDPARM` e literal | gate/handler equivalentes | extrair tipo dedicado |
-| emissores | dois branches em `FUN_004776C3` | dois caminhos preservados | um handler autoritativo | manter |
-| estado | HomeTown atualizado depois do envio | comportamento preservado | posição do servidor continua autoridade | manter |
-| resposta | nenhuma específica | nenhuma | nenhuma | manter |
+| Claim | Native 7.48 | Current client | WYD-Go |
+| --- | --- | --- | --- |
+| Wire | `0x291/16`, `Village@12` | Type declaration retained | Gate and handler retained |
+| Senders | Two branches in `FUN_004776C3` | Removed in `83a94da7` | Optional legacy input |
+| Hometown | Updated after the client send | Receives server projections | Bound from server position |
+| Reply | No dedicated reply | None | None |
 
 ## Decisões
 

@@ -9,6 +9,7 @@
 #include "TMUtil.h"
 #include "TMCamera.h"
 #include "TMEffectBillBoard2.h"
+#include "TMEffectMesh.h"
 #include "TMSkillTownPortal.h"
 #include "../../application/FieldInteractionPolicy.h"
 #include "FieldActionPolicy.h"
@@ -17,6 +18,60 @@
 #include "TMObjectContainer.h"
 #include "TMSkinMesh.h"
 #include "TMEffectParticle.h"
+
+void TMFieldScene::InitializeGroundClickMarker()
+{
+	if (!m_pEffectContainer)
+		return;
+
+	m_pTarget1 = new TMEffectMesh(316, 0xFF111188, 0.0f, 0);
+	m_pTarget1->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+	m_pTarget1->m_bShow = 0;
+	m_pEffectContainer->AddChild(m_pTarget1);
+
+	m_pTarget2 = new TMEffectMesh(317, 0xFFFF0000, 0.0f, 0);
+	m_pTarget2->m_bShow = 0;
+	m_pEffectContainer->AddChild(m_pTarget2);
+
+	m_pTargetBill = new TMEffectBillBoard2(232, 0, 1.0f, 1.0f, 1.0f, 0.0005f, 0);
+	m_pTargetBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+	m_pTargetBill->SetColor(0xFF9999AA);
+	m_pTargetBill->m_bShow = 0;
+	m_pEffectContainer->AddChild(m_pTargetBill);
+}
+
+void TMFieldScene::PlaceGroundClickMarker(float x, float z)
+{
+	if (!m_pTarget1 || !m_pTarget2 || !m_pTargetBill)
+		return;
+
+	const float height = static_cast<float>(GroundGetMask(TMVector2{x, z})) * 0.1f;
+	m_pTarget1->m_vecPosition = {x, height + 0.3f, z};
+	m_pTarget2->m_vecPosition = m_pTarget1->m_vecPosition;
+	m_pTargetBill->m_vecPosition = {x, height + 0.1f, z};
+}
+
+void TMFieldScene::UpdateGroundClickMarker(unsigned int now)
+{
+	if (!m_pTarget1 || !m_pTarget2 || !m_pTargetBill)
+		return;
+
+	const bool show = m_pMyHuman && m_pMyHuman->HasGroundMoveTarget() && !m_pMyHuman->m_cDie &&
+		(m_pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_WALK ||
+		 m_pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_RUN) &&
+		!m_bAutoRun && !m_pMyHuman->m_pMoveTargetHuman && !m_pMyHuman->m_pMoveSkillTargetHuman && !m_pTargetItem;
+	m_pTarget1->m_bShow = show;
+	m_pTarget2->m_bShow = show;
+	m_pTargetBill->m_bShow = show;
+	if (show)
+	{
+		const float angle = static_cast<float>(now % 1000) * 3.1415927f / 500.0f;
+		m_pTarget1->m_fAngle = angle;
+		m_pTarget2->m_fAngle = angle;
+		const float scale = sinf(angle * 2.0f) * 0.1f + 1.0f;
+		m_pTargetBill->m_vecScale = {scale, scale, scale};
+	}
+}
 
 void TMFieldScene::UpdateAutoRun()
 {

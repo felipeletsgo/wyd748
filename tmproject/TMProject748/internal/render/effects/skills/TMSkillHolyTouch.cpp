@@ -5,8 +5,9 @@
 #include "TMEffectBillBoard.h"
 #include "TMEffectBillBoard2.h"
 #include "TMEffectParticle.h"
+#include "HumanVisualPolicy.h"
 
-TMSkillHolyTouch::TMSkillHolyTouch(TMVector3 vecPosition, int nType)
+TMSkillHolyTouch::TMSkillHolyTouch(TMVector3 vecPosition, int nType, float groundHeight)
 	:TMEffect()
 {
 	m_nType = nType;
@@ -51,7 +52,7 @@ TMSkillHolyTouch::TMSkillHolyTouch(TMVector3 vecPosition, int nType)
 		pEffect20->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
 		pEffect20->m_vecPosition = m_vecPosition;
 		pEffect20->m_bSlope = 1;
-		pEffect20->m_vecPosition.y += 0.30f;
+		pEffect20->m_vecPosition.y = groundHeight + ground_buff_visual::Lift;
 
 		g_pCurrentScene->m_pEffectContainer->AddChild(pEffect20);
 	}

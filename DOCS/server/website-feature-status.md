@@ -120,7 +120,9 @@ to 64 KB. The player API (`-guildmark-dir /var/lib/wyd-go-guildmark`) stores
 `<guild:04>.bmp`; Caddy serves every client request
 `/patch/guildmark/b<group:02><channel:02><guild:04>.bmp` from that file. The
 client downloads marks off the render thread from
-`http://wyd.forjago.com/patch/guildmark/`, creates textures on the render
+`https://wyd.forjago.com/patch/guildmark/` from client 7.48.111 onward.
+The client validates the complete BMP response.
+The client creates textures on the render
 thread, shows the mark next to the own character (score update) and other
 characters (CreateMob), and retries a missing mark after five minutes.
 Leadership is resolved from the account's characters in the saved guild

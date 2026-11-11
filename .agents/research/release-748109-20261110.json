@@ -1,0 +1,185 @@
+{
+  "release": "/srv/wyd-go/releases/20261110T144127Z",
+  "previousRelease": "/srv/wyd-go/releases/20261109T231129Z",
+  "restartAuthorized": true,
+  "mode": "working-tree, game binary and runtime data, client patch, and portal",
+  "sourceHead": "58332ebd618207ad2140aacb5f1ba6b160cb4245",
+  "activeMinimumRevision": 109,
+  "provenance": {
+    "localDirectory": "build/release-748109-corrected",
+    "clientPatchManifestSha256": "b2fe96f69844fafd2d2cbe6d6897cb635af9e2efcea1a47f483bffe261e1e324",
+    "gameReleaseManifestSha256": "14286f00585904b238edf863ade65c3d2dd5c87041b34694b78e69a52c69406f",
+    "websiteManifestSha256": "e205205a1d744c802740784044c61c319514e81f4590b7a0798d916ef2fcc4a9"
+  },
+  "validation": [
+    "Full Go test suite and go vet passed.",
+    "Linux amd64 game server build passed.",
+    "Release client build and architecture, socket, and crash capture tests passed.",
+    "Portal build and 116 portal tests passed.",
+    "Verified Knight 436 and Mage 438 in the packaged volatile rules."
+  ],
+  "gameArchive": {
+    "path": "release.tar.gz",
+    "size": 14452957,
+    "sha256": "2ca5c6142557e9aa8149f753f118dbf1fee9ea06fa02d512c70ea9f72899a47a"
+  },
+  "websiteArchive": {
+    "path": "website.tar.gz",
+    "size": 880380,
+    "sha256": "d2d1bb51eb925431aa0b5fd6c0a63faae5382eee20a4a88ecbf1d2b1400dba06"
+  },
+  "patch": {
+    "feed": [
+      "[WYD]",
+      "48100 notice.txt",
+      "48101 patch-48101.zip",
+      "48102 patch-48102.zip",
+      "48103 patch-48103.zip",
+      "48104 patch-48104.zip",
+      "48105 patch-48105.zip",
+      "48106 patch-48106.zip",
+      "48107 patch-48107.zip",
+      "48108 patch-48108.zip",
+      "48109 patch-48109.zip"
+    ],
+    "sha256": "4a6b35d7c79360e768a2a37b489e058a089300517de7dc41aeb2e4dbbfb8f802",
+    "size": 934127,
+    "entries": 2,
+    "protocols": [
+      "https",
+      "http"
+    ]
+  },
+  "patchEntries": [
+    {
+      "path": "WYD.exe",
+      "source": "tmproject/build/TMProject748/Release/WYD.exe",
+      "size": 2098176,
+      "sha256": "9c03f8cd724ede7b034927af7b4cde58138fdc8b44d0acba884215068810636f"
+    },
+    {
+      "path": "Effect/cancel.wys",
+      "source": "tmproject/client748/Effect/cancel.wys",
+      "size": 5569,
+      "sha256": "12ab3f666abbe9d30d3c81ae9408e5e57a24e7d0201f990289da7afee00b35a3"
+    }
+  ],
+  "publicManifest": {
+    "version": 2,
+    "clientVersion": "7.48.109",
+    "feedVersion": 48109,
+    "publishedAt": "2026-11-10",
+    "launcherVersion": null,
+    "minimumLauncherVersion": null,
+    "fullClient": {
+      "clientVersion": "7.48.100",
+      "url": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+      "sizeBytes": 260877805,
+      "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66"
+    },
+    "patch": {
+      "url": "/patch/patch-48109.zip",
+      "sizeBytes": 934127,
+      "sha256": "4a6b35d7c79360e768a2a37b489e058a089300517de7dc41aeb2e4dbbfb8f802",
+      "executableSha256": "9C03F8CD724EDE7B034927AF7B4CDE58138FDC8B44D0ACBA884215068810636F"
+    },
+    "updateFeed": "/patch/update.htm"
+  },
+  "publicPagesVerified": [
+    "/download",
+    "/changelog",
+    "/news/client-7-48-109"
+  ],
+  "active": {
+    "at": "2026-11-10T14:43:07.465564+00:00",
+    "activeRelease": "/srv/wyd-go/releases/20261110T144127Z",
+    "previousRelease": "/srv/wyd-go/releases/20261109T231129Z",
+    "schema": "20",
+    "serverPayloadFiles": 1078,
+    "websitePayloadFiles": 6667,
+    "preservedHashes": 352,
+    "backup": {
+      "at": "2026-11-10T14:41:27Z",
+      "archive": "wydgo-20261110T144127Z.dump",
+      "bytes": 552223,
+      "sha256": "f20aa76556ced75b3f27543d6f7c3c706bc423f43fec8e92c91186a1f53f577c"
+    },
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "1044820",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261110T144127Z/game/wyd-server",
+        "sha256": "174db8015877ca93a8558b679704736f204d63bce32e08911f4cd6e825ea9a0c"
+      },
+      "wyd-game@2": {
+        "MainPID": "1044821",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261110T144127Z/game/wyd-server",
+        "sha256": "174db8015877ca93a8558b679704736f204d63bce32e08911f4cd6e825ea9a0c"
+      },
+      "wyd-player": {
+        "MainPID": "896681",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      }
+    },
+    "readiness": {
+      "8082": "200",
+      "8083": "200"
+    },
+    "listeners": [
+      8281,
+      8282
+    ],
+    "shutdownComplete": {
+      "wyd-game@1": true,
+      "wyd-game@2": true
+    },
+    "warnings": []
+  },
+  "admission": {
+    "at": "2026-11-10T14:43:06.216729+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 108,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 109,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 108,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 109,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "scope": [
+    "Click-to-move routes, ground click marker, and client fixes",
+    "Casino guide, slot machine grid, one-million bet limit, and ten-percent loss contribution",
+    "Knight contract 436 summons Asder, Mage contract 438 summons Sophia, and Archer 437 remains an Archer Troop",
+    "One-hour guard buff timers and guard behavior"
+  ],
+  "clientTested": false,
+  "pending": "Real-client launcher extraction and in-game acceptance."
+}

@@ -1,11 +1,12 @@
 #include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <string>
 #include <windows.h>
-#include "../internal/platform/windows/AdapterIdentity.h"
-#include "../internal/wire/ClientBuildContract.h"
+#include "../internal/wire/MessageHeader.h"
+#include "../CommonFiles/SharedStructs.h"
 #include "SourceMethod.h"
 #include "../internal/application/AccountLoginAttempt.h"
 
@@ -98,33 +99,14 @@ int RunLoginCredentialContractTests(int& checks)
             "invalid password is rejected before network and serialization");
     }
 
-    int identity[4]{};
-    constexpr char guid[] = "{01234567-89AB-CDEF-0123-456789abcdef}";
-    check(ParseAdapterIdentity(guid, sizeof(guid), identity),
-        "valid adapter GUID is accepted");
-    check(static_cast<unsigned int>(identity[0]) == 0x01234567u &&
-        static_cast<unsigned int>(identity[1]) == 0x89ABCDEFu &&
-        static_cast<unsigned int>(identity[2]) == 0x01234567u &&
-        static_cast<unsigned int>(identity[3]) == 0x89ABCDEFu,
-        "adapter GUID retains the four legacy wire words");
-
-    int invalidIdentity[4]{1, 2, 3, 4};
-    constexpr char malformed[] = "{01234567-89AB-CDEF-0123-456789abcdeZ}";
-    check(!ParseAdapterIdentity(malformed, sizeof(malformed), invalidIdentity) &&
-        invalidIdentity[0] == 1 && invalidIdentity[3] == 4,
-        "malformed GUID does not partially change packet identity");
-    check(!ParseAdapterIdentity(guid, sizeof(guid) - 1, invalidIdentity),
-        "unterminated adapter name is rejected within its capacity");
-    check(!ParseAdapterIdentity(guid, 20, invalidIdentity),
-        "truncated adapter name is rejected");
-
-    check(source.find("ReadFirstAdapterIdentity(stAccountLogin.AdapterName)") !=
-        std::string::npos, "initial login uses bounded adapter identity");
     const std::string fieldSource = source_contract::Method(LoadSource(
         "TMProject748/internal/app/scenes/TMFieldSceneSessionPackets.cpp"),
         "int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)");
-    check(fieldSource.find("ReadFirstAdapterIdentity(stAccountLogin.AdapterName)") !=
-        std::string::npos, "migration login uses bounded adapter identity");
+    for (const auto* loginSource : {&handler, &fieldSource}) {
+        check(loginSource->find("MSG_AccountLogin stAccountLogin{}") != std::string::npos &&
+            loginSource->find(".AdapterName") == std::string::npos,
+            "login path leaves the reserved adapter field zero");
+    }
 
     const auto identify = handler.find("client_build::IdentifyLogin(stAccountLogin)");
     const auto send = handler.find("SendPacket(");
@@ -133,17 +115,16 @@ int RunLoginCredentialContractTests(int& checks)
     const auto migrateIdentify = fieldSource.find("client_build::IdentifyLogin(stAccountLogin)");
     check(migrateIdentify != std::string::npos && source_contract::InOrder(migrateIdentify, fieldSource.find("SendPacket(")),
         "migration reconnect identifies the same compiled build");
-    struct LoginIdentity {
-        int ClientVersion = 0;
-        unsigned int ClientBuild = 0;
-        char ticket[52] = "migration-ticket";
-        int adapter[4] = {1, 2, 3, 4};
-    } login;
+    MSG_AccountLogin login{};
+    constexpr char ticket[] = "migration-ticket";
+    std::memcpy(login.Zero, ticket, sizeof(ticket));
     client_build::IdentifyLogin(login);
     check(login.ClientVersion == 748 && login.ClientBuild ==
         (client_build::Prefix | client_build::Revision), "compiled identity fields match contract");
-    check(std::string(login.ticket) == "migration-ticket" && login.adapter[0] == 1 &&
-        login.adapter[3] == 4, "build identification preserves ticket and adapter identity");
+    const int reserved[4]{};
+    check(std::strcmp(login.Zero, ticket) == 0 &&
+        std::memcmp(login.AdapterName, reserved, sizeof(reserved)) == 0,
+        "build identification preserves the migration ticket and zeroed adapter field");
     const std::string disconnectSource = source_contract::Method(LoadSource(
         "TMProject748/internal/app/scenes/TMScene.cpp"),
         "int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)");

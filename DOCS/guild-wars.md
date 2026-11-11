@@ -90,6 +90,10 @@ and completed in release `20261102T233404Z`; see the [receipt](../.agents/resear
 The configured timezone is explicitly `America/Sao_Paulo`, independent of
 the Windows system timezone.
 
+The 30-minute tower schedule below is in source. See the
+[release status](current-state.md#gameplay-changes-in-748109) before
+using this table to plan live play.
+
 | Event | Time | Action |
 | --- | --- | --- |
 | Tower, Monday to Friday | 21:00 and 21:04 | Five-minute and one-minute warnings |

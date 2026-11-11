@@ -61,10 +61,10 @@ Server routing compares the full crafting Merchant value, so 40 cannot match 8.
 `NPCGener2.txt` and the `npcgener2` configuration key were removed.
 Remove that obsolete key from preserved deployment configuration before activation.
 
-The shared file contains 5,501 source groups. The loader admits 5,485 enabled
-groups; existing disabled, out-of-map, and nonpositive-capacity records remain
-inactive. The import preserves distinct routes, quantities, and existing overlaps
-for the owner's manual review. Dedicated event files retain their lifecycle owners.
+The original consolidation contained 5,501 source groups and enabled 5,485.
+The loader leaves disabled, out-of-map, and nonpositive-capacity groups inactive.
+The import preserves routes, quantities, and overlaps for the owner's review.
+Dedicated event files retain their lifecycle owners.
 DeathWorm group 5134 at `(2137,2052)` was removed for incorrect coordinates by owner request.
 
 ## Validation and live application

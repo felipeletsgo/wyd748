@@ -814,6 +814,8 @@ struct MSG_SetHpDam
 	int Hp;
 	short Dam;
 };
+static_assert(sizeof(MSG_SetHpDam) == 20);
+static_assert(offsetof(MSG_SetHpDam, Hp) == 12 && offsetof(MSG_SetHpDam, Dam) == 16);
 
 struct MSG_Carry
 {

@@ -307,6 +307,24 @@ func TestColosseumEntryRules(t *testing.T) {
 	}
 }
 
+func TestColosseumRetryDropsUnpaidPlayersAfterLeavingTheWorld(t *testing.T) {
+	w, _ := colosseumWorld(t, time.Date(2026, 10, 21, 20, 5, 0, 0, time.UTC))
+	p := addZonePlayer(w, 1, 2630, 1726, 500)
+	p.Char.Inv[0] = model.Item{Index: colosseumElixirItem}
+	w.colosseum.unpaid = make(map[*Player]bool)
+	w.colosseum.unpaid[p] = true
+	delete(w.players, p.Session)
+
+	w.retryColosseumElixir()
+
+	if w.colosseum.unpaid[p] {
+		t.Fatal("a player who left the world remained in the unpaid retry set")
+	}
+	if p.Char.Inv[0].Index != colosseumElixirItem || w.colosseum.unpaid == nil {
+		t.Fatal("dropping a stale retry consumed the elixir or cleared live Colosseum state")
+	}
+}
+
 // A restart that misses minutes 5..6 skips the hour instead of firing every
 // missed wave within seconds; the next hour runs normally.
 func TestColosseumRestartAfterTheStartSkipsTheHour(t *testing.T) {

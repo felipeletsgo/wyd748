@@ -72,7 +72,10 @@ func TestCriticalGamblePostgresCommitAndRejection(t *testing.T) {
 				return r[1] == 14
 			})
 			rng := configureCriticalGamble(w, p, stops)
-			if mode != "loss" {
+			bet := uint32(1000)
+			if mode == "loss" {
+				p.Char.Gold, bet = 2_000_000, 1_000_000
+			} else {
 				p.Char.Gold, w.gambleJackpot, w.gamblePool = maxCharacterGold, gambleJackpotMax, gamblePoolMax
 			}
 			suffix := time.Now().UTC().Format("150405.000000000")
@@ -132,9 +135,13 @@ func TestCriticalGamblePostgresCommitAndRejection(t *testing.T) {
 					t.Fatalf("durable Gamble aggregate differs from its JSON contract: got=%s want=%s error=%v", gotJSON, wantJSON, err)
 				}
 			}
-			w.handle(command{s: p.Session, pkt: criticalGambleRequest(p, 1000)})
+			w.handle(command{s: p.Session, pkt: criticalGambleRequest(p, bet)})
 			proposal := awaitCriticalWrite(t, backend.entered)
-			w.handle(command{s: p.Session, pkt: criticalGambleRequest(p, 1000)})
+			if mode == "loss" && (proposal.accounts[0].Chars[0].Gold != 1_000_000 ||
+				proposal.instances.GambleJackpot != 100_100) {
+				t.Fatal("million-gold loss must debit the full wager and add 100,000 to the jackpot")
+			}
+			w.handle(command{s: p.Session, pkt: criticalGambleRequest(p, bet)})
 			assertDurable(before, retainedState)
 			release()
 			result := awaitCriticalResult(t, q)

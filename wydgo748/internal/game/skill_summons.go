@@ -99,20 +99,44 @@ func (w *World) planContractSummon(owner *Player, t *model.VolatileSummon) (*con
 		return nil, false
 	}
 	attackRun := uint32(clampInt(int(t.MoveSpeed), 1, 15))
+	kind := guardNone
+	switch {
+	case t.Tank:
+		kind = guardAsder
+	case t.Healer:
+		kind = guardSophia
+	}
+	level := playerLevel(owner.Char)
+	hp, defense, mp := t.HP, t.Defense, uint32(100)
+	if kind != guardNone {
+		// Character levels are zero-based in the score and one-based in the HUD.
+		hp += 20 * (level + 1)
+		defense += 2 * (level + 1)
+		mp = 65535
+	}
+	gear := func(index uint16) model.Item {
+		item := model.Item{Index: index}
+		if index != 0 && t.Refinement != 0 {
+			item.Eff = [6]byte{43, t.Refinement}
+		}
+		return item
+	}
 	def := &model.NPCDef{
 		Name: t.Name + "^", Tipo: model.TipoMonstro,
-		Equip: model.Equip{Rosto: model.Item{Index: t.Face}, Arma: model.Item{Index: t.Weapon}, Escudo: model.Item{Index: t.Shield}},
-		Score: &model.Score{Version: model.ScoreVersion, Level: playerLevel(owner.Char),
-			Attack: t.Attack, Defense: t.Defense, MaxHP: t.HP, MaxMP: 100, AttackRun: attackRun},
+		Equip: model.Equip{Rosto: model.Item{Index: t.Face}, Arma: gear(t.Weapon), Escudo: gear(t.Shield),
+			Elmo: gear(t.Armor[0]), Armadura: gear(t.Armor[1]), Calca: gear(t.Armor[2]),
+			Luva: gear(t.Armor[3]), Bota: gear(t.Armor[4])},
+		Score: &model.Score{Version: model.ScoreVersion, Level: level,
+			Attack: t.Attack, Defense: defense, MaxHP: hp, MaxMP: mp, AttackRun: attackRun,
+			CurHP: hp, CurMP: mp},
 	}
-	def.Score.CurHP, def.Score.CurMP = t.HP, 100
 	mobID := w.allocMobID()
 	if mobID == 0 {
 		return nil, false
 	}
-	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: t.HP, GenerIndex: -1,
+	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: hp, GenerIndex: -1,
 		InstanceID: w.playerRuntimeInstanceID(owner.ID),
-		SummonerID: owner.ID, SummonKind: summonKindContract, SummonRange: t.AttackRange}
+		SummonerID: owner.ID, SummonKind: summonKindContract, SummonRange: t.AttackRange, guardKind: kind}
 	plan := &contractSummonPlan{owner: owner, summon: m}
 	for _, existing := range w.summons {
 		if existing != nil && existing.SummonerID == owner.ID &&
@@ -127,6 +151,8 @@ func (w *World) commitContractSummon(plan *contractSummonPlan) {
 	if plan == nil || plan.owner == nil || plan.summon == nil {
 		return
 	}
+	m := plan.summon
+	timersChanged := m.guardKind != guardNone
 	for _, existing := range plan.previous {
 		if existing == nil || w.mobsByID[existing.ID] != existing {
 			continue
@@ -135,11 +161,22 @@ func (w *World) commitContractSummon(plan *contractSummonPlan) {
 			w.hideMob(viewer, existing, 0)
 		}
 		existing.Dead = true
+		if existing.guardKind != guardNone {
+			plan.owner.guardTimers[existing.guardKind-1] = time.Time{}
+			existing.ExpiresAt = time.Time{} // Publish the replacement snapshot once.
+			timersChanged = true
+		}
 		w.removeMobInstance(existing)
 	}
-	m := plan.summon
+	if m.guardKind != guardNone {
+		m.ExpiresAt = w.now().Add(time.Hour)
+		plan.owner.guardTimers[m.guardKind-1] = m.ExpiresAt
+	}
 	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
+	if timersChanged {
+		w.sendGuardTimers(plan.owner)
+	}
 }
 
 func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) bool {
@@ -358,7 +395,17 @@ func (w *World) tickSummonCombat(now time.Time) {
 			continue
 		}
 		owner := w.playerByID(summon.SummonerID)
+		if summon.guardKind != guardNone && !summon.ExpiresAt.After(now) {
+			w.publishMobRemoval(summon)
+			summon.Dead = true
+			w.removeMobInstance(summon)
+			continue
+		}
 		if owner == nil || owner.Char == nil || !owner.InWorld || w.criticalPlayerReserved(owner) {
+			continue
+		}
+		if summon.guardKind != guardNone {
+			w.tickContractGuard(owner, summon, now)
 			continue
 		}
 		passive := summon.SummonKind == summonKindThornWall || summon.SummonKind == summonKindMount ||
@@ -371,6 +418,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 			}
 		}
 		w.rebindSummonGameplaySpace(summon, w.playerRuntimeInstanceID(owner.ID))
+
 		if summon.SummonKind == summonKindThornWall {
 			continue
 		}

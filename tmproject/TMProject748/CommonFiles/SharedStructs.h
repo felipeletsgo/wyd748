@@ -49,7 +49,7 @@ struct		  MSG_AccountLogin
 	int  ClientVersion;
 	unsigned int ClientBuild; // Coordinated build identity, not the native DBNeedSave selector.
 	char Zero[52];
-	int AdapterName[4];
+	int AdapterName[4]; // Reserved legacy field. The client sends zeroes.
 
 };
 

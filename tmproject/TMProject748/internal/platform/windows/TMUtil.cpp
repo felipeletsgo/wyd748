@@ -2,7 +2,6 @@
 #include "TMUtil.h"
 #include "PacketSendBoundary.h"
 #include "AttackFrameContract.h"
-#include "../../application/ClientSendCadence.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include <climits>
@@ -29,7 +28,7 @@ TMVector3 TMVector3Cross(const TMVector3* pV1, const TMVector3* pV2)
     return v;
 }
 
-bool SendOneMessage(char* Msg, int Size)
+bool SendOneMessage(char* Msg, int Size, unsigned int actionInterval)
 {
     if (Msg == nullptr || Size < static_cast<int>(sizeof(MSG_STANDARD)))
         return false;
@@ -41,7 +40,7 @@ bool SendOneMessage(char* Msg, int Size)
 
     if (client_send_cadence::Allows(CurrentTime, LastSendTime,
         pMsgStandard->Type == MSG_Action_Opcode, g_usLastPacketType == MSG_Action_Opcode,
-        IsAttackOpcode(pMsgStandard->Type), IsAttackOpcode(g_usLastPacketType)))
+        IsAttackOpcode(pMsgStandard->Type), IsAttackOpcode(g_usLastPacketType), actionInterval))
     {
         if (!g_pSocketManager || !g_pSocketManager->SendOneMessage(Msg, Size))
             return false;

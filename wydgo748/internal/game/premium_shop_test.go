@@ -383,11 +383,16 @@ func TestDonateCoinCreditsAccountInOneWrite(t *testing.T) {
 	w, p, _, backend, queue, release := premiumFixture(t)
 	p.Char.Inv[5] = model.Item{Index: 3394, UID: "coin-uid"}
 	rule := model.VolatileRule{Action: "grant_counter", Consume: true, Counters: map[string]uint32{donateCounter: 1000}}
+	w.items[3394] = model.ItemDef{Index: 3394, Name: "Wyden Coin"}
+	w.volatiles = model.VolatileCatalog{
+		Items:     map[uint16]model.VolatileRule{3394: rule},
+		ItemCodes: map[uint16]int{3394: 187},
+	}
 	if !isDonateCoinRule(rule) || isDonateCoinRule(model.VolatileRule{Action: "grant_counter",
 		Counters: map[string]uint32{donateCounter: 1, "fame": 1}}) {
 		t.Fatal("only a donate-only counter is a Wyden coin")
 	}
-	w.admitDonateCoin(p, 5, rule)
+	w.onUseItem(p.Session, useItemPacket(5, 0))
 	write := awaitCriticalWrite(t, backend.entered)
 	if write.donate == nil || write.accounts[0].Donate != 6000 || write.accounts[0].Chars[p.CharSlot].Inv[5].Index != 0 ||
 		write.donate.ledger[0].Kind != store.DonateKindCoinUse || write.donate.ledger[0].ItemUID != "coin-uid" ||
@@ -413,7 +418,7 @@ func TestDonateCoinCreditsAccountInOneWrite(t *testing.T) {
 
 	p.Char.Inv[6] = model.Item{Index: 3394, UID: "coin-two"}
 	p.Account.Donate = model.MaxDonateBalance
-	w.admitDonateCoin(p, 6, rule)
+	w.onUseItem(p.Session, useItemPacket(6, 0))
 	if wire.ParseHeader(nextPacket(t, p)).Type != wire.OpSendItem {
 		t.Fatal("a refused coin must resync the slot")
 	}

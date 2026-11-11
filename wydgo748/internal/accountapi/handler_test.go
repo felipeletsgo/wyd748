@@ -2,6 +2,7 @@ package accountapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,18 @@ import (
 
 	"wydgo/internal/store"
 )
+
+func TestHealthEndpointsReturnOK(t *testing.T) {
+	h := New(nil)
+	for _, path := range []string{"/health", "/healthz"} {
+		recorder := httptest.NewRecorder()
+		h.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
+		var body map[string]string
+		if recorder.Code != http.StatusOK || json.Unmarshal(recorder.Body.Bytes(), &body) != nil || body["status"] != "ok" {
+			t.Fatalf("health endpoint %s returned status=%d body=%s", path, recorder.Code, recorder.Body.String())
+		}
+	}
+}
 
 func TestCreateAccountAPI(t *testing.T) {
 	st := store.NewJSONStore(t.TempDir())

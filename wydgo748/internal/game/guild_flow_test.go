@@ -135,6 +135,70 @@ func TestGuildCommandExpelUsesAuthoritativeHierarchy(t *testing.T) {
 	}
 }
 
+func TestGuildCommandExpelRejectsInvalidTargetsAndRollsBack(t *testing.T) {
+	tests := []struct {
+		name       string
+		argument   string
+		member     bool
+		online     bool
+		victimRank byte
+		storeErr   error
+	}{
+		{name: "empty target", argument: ""},
+		{name: "actor cannot expel self", argument: "Leader", member: true, online: true, victimRank: model.GuildRankLeader},
+		{name: "target is not a member", argument: "Member", online: true, victimRank: model.GuildRankMember},
+		{name: "offline member cannot be expelled", argument: "Offline", member: true, victimRank: model.GuildRankMember},
+		{name: "peer rank cannot be expelled", argument: "Member", member: true, online: true, victimRank: model.GuildRankLeader},
+		{name: "persistence failure restores membership", argument: "Member", member: true, online: true, victimRank: model.GuildRankMember, storeErr: errors.New("database unavailable")},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			leader, _ := networkedTestPlayer(1, "Leader", 2100, 2100)
+			var players []*Player
+			if tc.online {
+				member, _ := networkedTestPlayer(2, "Member", 2101, 2100)
+				member.Char.GuildID = 1
+				member.Char.GuildRank = tc.victimRank
+				players = append(players, member)
+			}
+			w, st := guildFlowWorld(append([]*Player{leader}, players...)...)
+			st.err = tc.storeErr
+			guild := model.Guild{ID: 1, Name: "Alpha", Members: []model.GuildMember{{
+				Character: leader.Char.Name, Account: leader.Account.Name, Rank: model.GuildRankLeader,
+			}}}
+			leader.Char.GuildID, leader.Char.GuildRank = guild.ID, model.GuildRankLeader
+			if tc.member {
+				character := tc.argument
+				if tc.online {
+					character = "Member"
+				}
+				guild.Members = append(guild.Members, model.GuildMember{
+					Character: character, Account: "MemberAccount", Rank: tc.victimRank,
+				})
+			}
+			w.guilds.Guilds = []model.Guild{guild}
+
+			w.guildCommandExpel(leader.Session, leader, tc.argument)
+
+			current := w.guilds.FindByID(guild.ID)
+			wantSaves := 0
+			if tc.storeErr != nil {
+				wantSaves = 1
+			}
+			if current == nil || leader.Char.GuildID != guild.ID ||
+				len(current.Members) != len(guild.Members) || st.gameSaves != wantSaves {
+				t.Fatalf("rejected expel changed guild state: guild=%+v actor=%d saves=%d", current, leader.Char.GuildID, st.gameSaves)
+			}
+			if tc.online && tc.member {
+				victim := players[0]
+				if victim.Char.GuildID != guild.ID || current.Member(victim.Char.Name) == nil {
+					t.Fatalf("rejected expel changed victim membership: char=%d member=%+v", victim.Char.GuildID, current.Member(victim.Char.Name))
+				}
+			}
+		})
+	}
+}
+
 func TestGuildLeavePromotesOldestMember(t *testing.T) {
 	leader, _ := networkedTestPlayer(1, "Leader", 2100, 2100)
 	member, _ := networkedTestPlayer(2, "Member", 2101, 2100)

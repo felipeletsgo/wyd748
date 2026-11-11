@@ -71,16 +71,17 @@ int SelectEnvelope(Packet& request, int maximumTargets)
 {
     static_assert(sizeof(Packet) == kAttackMultiBasePacketSize,
         "Skill envelope selection requires the canonical attack buffer");
+    int size = sizeof(Packet);
     if (maximumTargets == 1) {
         request.Header.Type = MSG_Attack_One_Opcode;
-        return static_cast<int>(kAttackOneBasePacketSize);
+        size = kAttackOneBasePacketSize;
     }
-    if (maximumTargets == 2) {
+    else if (maximumTargets == 2) {
         request.Header.Type = MSG_Attack_Two_Opcode;
-        return static_cast<int>(kAttackTwoBasePacketSize);
+        size = kAttackTwoBasePacketSize;
     }
-    // Preserve the original opcode and all target bytes for other catalog
-    // values. Clearing area targets and copying local previews stay at callers.
-    return static_cast<int>(sizeof(Packet));
+    // The manual area preview reaches TMScene before the socket stamps the size.
+    request.Header.Size = static_cast<decltype(request.Header.Size)>(size);
+    return size;
 }
 }

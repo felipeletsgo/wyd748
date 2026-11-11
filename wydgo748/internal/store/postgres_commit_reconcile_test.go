@@ -83,6 +83,33 @@ func TestUnknownCommitStaysUnknownWhileInProgress(t *testing.T) {
 	}
 }
 
+func TestTransactionStatusReadsCommittedOutcome(t *testing.T) {
+	st, _ := criticalFaultStore(t, 2*time.Second)
+	tx, err := st.pool.Begin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var xid string
+	if err := tx.QueryRow(context.Background(), `SELECT pg_current_xact_id()::text`).Scan(&xid); err != nil {
+		_ = tx.Rollback(context.Background())
+		t.Fatal(err)
+	}
+	if err := tx.Commit(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	status, err := st.TransactionStatus(xid)
+	if err != nil || status != "committed" {
+		t.Fatalf("transaction status=%q err=%v", status, err)
+	}
+	if _, err := st.TransactionStatus("not-an-xid"); err == nil {
+		t.Fatal("invalid transaction ID did not return a query error")
+	}
+	unknown := &UnresolvedCommitError{XID: xid, Cause: errors.New("acknowledgement lost")}
+	if unknown.Error() != "acknowledgement lost" || !errors.Is(unknown, unknown.Cause) {
+		t.Fatalf("unresolved error=%v", unknown)
+	}
+}
+
 // closedAfterSendTx models pgconn returning its "conn closed" lock error
 // after COMMIT reached PostgreSQL. That error claims SafeToRetry, but the
 // outcome must still come from the exact transaction status.

@@ -23,7 +23,8 @@ skill pointer must keep the canonical `name` and `description` and link its
 `.agents/skills/<name>/SKILL.md`. Procedure lives only in the canonical
 skill; its `references/` and `scripts/` paths resolve from that directory.
 `tools/repository/Test-RepositoryLayout.ps1` enforces the shim, pointer
-parity, missing pointers, and orphan pointers.
+parity, and metadata presence. It also checks local Markdown links and section
+targets. References to optional native inputs can remain local-only.
 
 ## Shared guardrails
 
@@ -59,10 +60,10 @@ preferences, not repository rules. Move a durable repository rule into
 
 ## Working conventions for either agent
 
-- Reuse the selected checkout and preserve its dirty changes. This document
-  does not impose a branch policy absent from `AGENTS.md`. A fresh worktree
-  may lack ignored runtime inputs such as `tmproject/client748/WYD.exe`;
-  inspect prerequisites before treating fixture failures as product regressions.
+- Reuse the selected checkout and preserve its dirty changes. Follow the Git
+  rules in `AGENTS.md`. A fresh checkout can lack ignored runtime inputs
+  such as `tmproject/client748/WYD.exe`. Check prerequisites before classifying
+  fixture failures as product regressions.
 - Keep scratch output in the agent's temporary directory or ignored build
   directories, never in `tmproject/` or `wydgo748/`. Recorded paths such as
   `%TEMP%\codex-wyd748-lifecycle-149205b7` in research records and handoffs are

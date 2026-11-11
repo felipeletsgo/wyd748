@@ -46,9 +46,15 @@ func TestPlayerChallengeRejectsInvalidModeAndForgedIdentity(t *testing.T) {
 	if target.ChallengeFrom != 0 || target.Session.QueuedPacketsForTest() != 0 {
 		t.Fatal("aceitacao sem convite foi tratada como solicitacao")
 	}
+	if state := w.security[requester.Session]; state == nil || state.violations != 1 {
+		t.Fatalf("modo invalido nao gerou violacao: state=%+v", state)
+	}
 	w.onPlayerChallenge(requester.Session, wire.StandardParm2(wire.OpPlayerChallenge, target.ID, uint32(target.ID), 0))
 	if target.ChallengeFrom != 0 || target.Session.QueuedPacketsForTest() != 0 {
 		t.Fatal("identidade forjada criou convite")
+	}
+	if state := w.security[requester.Session]; state == nil || state.violations != 2 {
+		t.Fatalf("ID de sessao forjado nao gerou violacao: state=%+v", state)
 	}
 }
 

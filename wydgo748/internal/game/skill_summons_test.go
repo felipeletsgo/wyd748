@@ -8,6 +8,41 @@ import (
 	"wydgo/internal/model"
 )
 
+func TestRemoveContractSummonsPreservesOtherSummonKindsAndOwners(t *testing.T) {
+	owner, _ := networkedTestPlayer(1, "ContractOwner", 100, 100)
+	otherOwner, _ := networkedTestPlayer(2, "OtherOwner", 101, 100)
+	w := worldWithNetworkedPlayers(owner, otherOwner)
+	mustCommitContractSummon(t, w, owner, &model.VolatileSummon{Name: "Guard", Face: 206, HP: 100})
+	var ownedContract *Mob
+	for _, mob := range w.summons {
+		if mob != nil && mob.SummonerID == owner.ID && mob.SummonKind == summonKindContract {
+			ownedContract = mob
+		}
+	}
+	if ownedContract == nil {
+		t.Fatal("fixture did not register the owner's contract summon")
+	}
+	otherContract := &Mob{ID: 990, X: 102, Y: 100, HP: 100, GenerIndex: -1,
+		SummonerID: otherOwner.ID, SummonKind: summonKindContract, Def: testNPCDef(model.Score{MaxHP: 100})}
+	bmSummon := &Mob{ID: 991, X: 103, Y: 100, HP: 100, GenerIndex: -1,
+		SummonerID: owner.ID, SummonKind: summonKindBM, Def: testNPCDef(model.Score{MaxHP: 100})}
+	for _, mob := range []*Mob{otherContract, bmSummon} {
+		w.appendMobInstance(mob)
+		w.publishMobSpawn(mob)
+	}
+
+	w.removeContractSummons(owner.ID)
+	if !ownedContract.Dead || w.mobsByID[ownedContract.ID] != nil || w.summons[ownedContract.ID] != nil {
+		t.Fatal("owned contract summon remained active after removal")
+	}
+	if otherContract.Dead || w.mobsByID[otherContract.ID] != otherContract || w.summons[otherContract.ID] != otherContract {
+		t.Fatal("another owner's contract summon was removed")
+	}
+	if bmSummon.Dead || w.mobsByID[bmSummon.ID] != bmSummon || w.summons[bmSummon.ID] != bmSummon {
+		t.Fatal("the owner's BM summon was removed with its contract summon")
+	}
+}
+
 func TestBMSummonAnyLearnedSkillCreatesAllTypesWithOneManaCharge(t *testing.T) {
 	for _, mastery := range []int{0, 320} {
 		for index := 56; index <= 63; index++ {

@@ -100,6 +100,7 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	{
 		if (wParam & MK_CONTROL)
 			return 1;
+		m_pMyHuman->ClearGroundMoveTarget();
 		// Item and actor hover are independent. Let a plain right click reach
 		// the item even if an actor would take the same click as a skill target.
 		if (!(wParam & MK_SHIFT) && !g_pEventTranslator->m_bAlt &&
@@ -127,15 +128,19 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	if (!handled)
 		handled = CheckMerchant(m_pMouseOverHuman);
 	if (handled)
+	{
+		m_pMyHuman->ClearGroundMoveTarget();
 		return 1;
+	}
 
 	if (pick.y < -5000.0f)
 		return 1;
 	m_pMyHuman->SetSpeed(m_bMountDead);
 	m_vecMyNext.x = static_cast<int>(pick.x);
 	m_vecMyNext.y = static_cast<int>(pick.z);
-	if (m_pMyHuman->m_fProgressRate >= 0.89999998f || m_pMyHuman->m_fProgressRate == 0.0f)
-		m_pMyHuman->GetRoute(m_vecMyNext, 0, 0);
+	m_bAutoRun = 0;
+	m_pMyHuman->SetGroundMoveTarget(m_vecMyNext);
+	PlaceGroundClickMarker(pick.x, pick.z);
 
 	m_pTargetHuman = nullptr;
 	m_pMyHuman->m_pMoveTargetHuman = nullptr;

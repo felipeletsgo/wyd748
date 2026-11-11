@@ -2,6 +2,7 @@ package game
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -45,6 +46,31 @@ func TestCelestialArchTierAndInitialCythera(t *testing.T) {
 			t.Errorf("level=%d: tier/cythera/bonus=%d/%d/%d; want %d/%d/%d",
 				test.level, tier, celestialCytheraForTier(tier),
 				celestialArchTierBonus(tier), test.tier, test.cythera, test.bonus)
+		}
+	}
+}
+
+func TestCelestialCytheraMilestoneBoundaries(t *testing.T) {
+	for _, test := range []struct {
+		level uint32
+		tier  byte
+		ac    byte
+		hp    byte
+	}{
+		{level: 0},
+		{level: 119},
+		{level: 120, tier: 1, ac: 30, hp: 40},
+		{level: 149, tier: 1, ac: 30, hp: 40},
+		{level: 150, tier: 2, ac: 35, hp: 50},
+		{level: 179, tier: 2, ac: 35, hp: 50},
+		{level: 180, tier: 3, ac: 45, hp: 60},
+		{level: 197, tier: 3, ac: 45, hp: 60},
+		{level: 198, tier: 4, ac: 50, hp: 70},
+	} {
+		tier, ac, hp := celestialCytheraMilestone(test.level)
+		if tier != test.tier || ac != test.ac || hp != test.hp {
+			t.Errorf("level %d returned tier/ac/hp=%d/%d/%d, want %d/%d/%d",
+				test.level, tier, ac, hp, test.tier, test.ac, test.hp)
 		}
 	}
 }
@@ -146,6 +172,115 @@ func TestEvolutionInitialCombatBasesMatchNative748(t *testing.T) {
 	if playerAttack(sub) != 891 || playerDefense(sub) != 954 {
 		t.Fatalf("SubCelestial level 0 score ATK/DEF=%d/%d, want 891/954",
 			playerAttack(sub), playerDefense(sub))
+	}
+}
+
+func TestIdealStoneUseRejectsInvalidItemTransformationAndEvolution(t *testing.T) {
+	t.Run("nil player", func(t *testing.T) {
+		w, _, _ := newCelestialWorld(t, 399)
+		w.useCelestialIdeal(nil, nil, nil, 0)
+	})
+	t.Run("wrong item", func(t *testing.T) {
+		w, p, st := newCelestialWorld(t, 399)
+		before := cloneCharacterState(p.Char)
+		w.useCelestialIdeal(p.Session, p, &model.Item{Index: 1}, 0)
+		if st.saves != 0 || !reflect.DeepEqual(p.Char, &before) {
+			t.Fatal("wrong item changed the character or reached persistence")
+		}
+	})
+	t.Run("active face transformation", func(t *testing.T) {
+		w, p, st := newCelestialWorld(t, 399)
+		p.Char.Affects[0] = model.Affect{Type: affectFaceTransform, ExpiresAt: w.now().Add(time.Hour)}
+		before, packets := cloneCharacterState(p.Char), p.Session.QueuedPacketsForTest()
+		w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
+		if st.saves != 0 || !reflect.DeepEqual(p.Char, &before) || p.Session.QueuedPacketsForTest() != packets+2 {
+			t.Fatal("active transformation consumed or failed to return the Ideal Stone")
+		}
+	})
+	t.Run("unsupported evolution", func(t *testing.T) {
+		w, p, st := newCelestialWorld(t, 399)
+		p.Char.Evolution = "mortal"
+		before, packets := cloneCharacterState(p.Char), p.Session.QueuedPacketsForTest()
+		w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
+		if st.saves != 0 || !reflect.DeepEqual(p.Char, &before) || p.Session.QueuedPacketsForTest() != packets+2 {
+			t.Fatal("unsupported evolution consumed or failed to return the Ideal Stone")
+		}
+	})
+}
+
+func prepareKingIdealRecipe(p *Player) {
+	p.Char.Evolution = archEvolution
+	p.Char.Equip[10] = model.Item{Index: 1742}
+	p.Char.Equip[sefirotSlot] = model.Item{Index: 1761}
+	for i, stone := 0, uint16(5334); stone <= 5337; i, stone = i+1, stone+1 {
+		p.Char.Inv[i] = model.Item{Index: stone}
+	}
+}
+
+func TestKingIdealRecipeRejectsIncompleteIngredientsAndRollsBackSaveFailure(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*Player)
+	}{
+		{name: "wrong evolution", mutate: func(p *Player) { p.Char.Evolution = "mortal" }},
+		{name: "missing immortality", mutate: func(p *Player) { p.Char.Equip[10] = model.Item{} }},
+		{name: "invalid sephirot", mutate: func(p *Player) { p.Char.Equip[sefirotSlot] = model.Item{Index: 1} }},
+		{name: "missing secret stone", mutate: func(p *Player) { p.Char.Inv[2] = model.Item{} }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w, p, st := newCelestialWorld(t, 399)
+			prepareKingIdealRecipe(p)
+			tt.mutate(p)
+			before := cloneCharacterState(p.Char)
+			if w.craftIdealStoneAtKing(p.Session, p) || st.saves != 0 || !reflect.DeepEqual(p.Char, &before) {
+				t.Fatal("incomplete King recipe was accepted or mutated state")
+			}
+		})
+	}
+	t.Run("save failure rollback", func(t *testing.T) {
+		w, p, st := newCelestialWorld(t, 399)
+		prepareKingIdealRecipe(p)
+		st.err = errors.New("save unavailable")
+		before := cloneCharacterState(p.Char)
+		if !w.craftIdealStoneAtKing(p.Session, p) || st.saves != 1 || !reflect.DeepEqual(p.Char, &before) {
+			t.Fatal("failed King recipe save did not restore every ingredient")
+		}
+	})
+}
+
+func TestCelestialFaceTransformationAndInventoryPredicates(t *testing.T) {
+	face := model.Item{Index: 17, Eff: [6]byte{1, 2, 3, 4, 5, 6}}
+	markCelestialFace(&face, "  CELESTIAL ")
+	if face.Eff != [6]byte{1, 2, 3, celestialFaceType, 5, 17} {
+		t.Fatalf("Celestial face projection = %v", face.Eff)
+	}
+	unchanged := face
+	markCelestialFace(&face, "mortal")
+	markCelestialFace(nil, "celestial")
+	if face != unchanged {
+		t.Fatal("unknown face evolution changed the native face marker")
+	}
+
+	now := time.Unix(900, 0)
+	ch := &model.Char{}
+	if celestialTransformationActive(nil, now) || celestialTransformationActive(ch, now) {
+		t.Fatal("missing transformation reported active")
+	}
+	ch.Affects[0] = model.Affect{Type: 16, ExpiresAt: now}
+	ch.Affects[1] = model.Affect{Type: affectFaceTransform, ExpiresAt: now.Add(time.Second)}
+	if !celestialTransformationActive(ch, now) {
+		t.Fatal("live face transformation was ignored")
+	}
+	ch.Affects[1].ExpiresAt = now
+	if celestialTransformationActive(ch, now) {
+		t.Fatal("expired transformations remained active")
+	}
+
+	ch.Inv[3] = model.Item{Index: 5334}
+	if celestialInventoryHasItem(nil, 5334) || celestialInventoryHasItem(ch, 0) ||
+		celestialInventoryHasItem(ch, 5335) || !celestialInventoryHasItem(ch, 5334) {
+		t.Fatal("Celestial inventory predicate mishandled absent or present items")
 	}
 }
 
@@ -367,10 +502,15 @@ func reenterCelestialTestCharacter(t *testing.T, w *World, p *Player) {
 
 func TestIdealCreatesCelestialWithoutCrystalPrerequisite(t *testing.T) {
 	w, p, st := newCelestialWorld(t, 399)
+	w.items = map[uint16]model.ItemDef{idealStoneItem: {Index: idealStoneItem, Name: "Ideal Stone"}}
+	w.volatiles = model.VolatileCatalog{
+		Items:     map[uint16]model.VolatileRule{idealStoneItem: {Action: "celestial_ideal", Consume: true}},
+		ItemCodes: map[uint16]int{idealStoneItem: 187},
+	}
 	observer := addZonePlayer(w, 9, 1000, 1000, 500)
 	observerPackets := observer.Session.QueuedPacketsForTest()
 	packetsBefore := p.Session.QueuedPacketsForTest()
-	w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
+	w.onUseItem(p.Session, useItemPacket(0, 0))
 	ch := &p.Account.Chars[0]
 	if ch.ShortSkill != emptyShortSkills() {
 		t.Fatal("new Celestial received phantom shortcuts")

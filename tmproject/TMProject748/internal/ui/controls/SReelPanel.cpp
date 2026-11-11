@@ -13,8 +13,8 @@ void PlaceReelSymbol(SPanel* panel, float x, int y, float width, int height, boo
 	panel->SetVisible(visible && bottom > top);
 	if (bottom <= top)
 		return;
-	panel->SetPos(x, static_cast<float>(top));
-	panel->SetSize(width, static_cast<float>(bottom - top));
+	panel->SetPos(RenderDevice::UiPx(x), top * RenderDevice::m_fUIScaleY);
+	panel->SetSize(RenderDevice::UiPx(width), (bottom - top) * RenderDevice::m_fUIScaleY);
 	// Reel textures are 62x62. Clip the source and destination together.
 	auto& geometry = panel->m_GCPanel;
 	geometry.bClip = 1;
@@ -32,7 +32,7 @@ constexpr int kReelTextureOffset[3][22] = {
 }
 
 SReelPanel::SReelPanel(unsigned int inTextureSetIndex, float inX, float inY, float inSizeX, float inSizeY, float inPitch)
-	: SPanel(-2, inX, inY, 186.0f, 180.0f, 0x1010101, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH)
+	: SPanel(-2, inX, inY, 3.0f * inSizeX + 2.0f * inPitch, 3.0f * inSizeY, 0x1010101, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH)
 {
 	memset(m_pGamBleReel, 0, sizeof(m_pGamBleReel));
 	memset(m_pGamBleBox, 0, sizeof(m_pGamBleBox));
@@ -45,8 +45,6 @@ SReelPanel::SReelPanel(unsigned int inTextureSetIndex, float inX, float inY, flo
 	m_dwOldServerTime = g_pTimerManager ? g_pTimerManager->GetServerTime() : 0;
 	m_dwStopTime = 0;
 	m_bResult = 0;
-	m_dwJackpot = 0;
-	m_dwJackPotView = 0;
 	m_dwAutoTime = 0;
 	m_dwBoxAniTime = 0;
 	m_nPresent = 0;
@@ -106,7 +104,7 @@ SReelPanel::SReelPanel(unsigned int inTextureSetIndex, float inX, float inY, flo
 		AddChild(m_pJACKPOTBG);
 
 	SetVisible(1);
-	UpDateJackpot();
+	SetJackpot(0);
 }
 
 SReelPanel::~SReelPanel()
@@ -136,7 +134,6 @@ void SReelPanel::SetRoll(bool bRoll, int StopPos1, int StopPos2, int StopPos3, u
 				m_pGamBleBox[1][index]->SetVisible(0);
 		}
 		m_bResult = 0;
-		m_dwJackpot = 0;
 		m_nPresent = 0;
 	}
 }
@@ -187,18 +184,6 @@ void SReelPanel::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int in
 		}
 	}
 
-	if (m_dwJackpot == 0 || m_dwJackPotView >= m_dwJackpot)
-	{
-		m_dwJackPotView = m_dwJackpot;
-	}
-	else
-	{
-		const unsigned int difference = m_dwJackpot - m_dwJackPotView;
-		const unsigned int stepBase = difference / 500;
-		const unsigned long long step = 1ull + static_cast<unsigned long long>(stepBase) * stepBase;
-		m_dwJackPotView = step >= difference ? m_dwJackpot : m_dwJackPotView + static_cast<unsigned int>(step);
-	}
-	UpDateJackpot();
 	m_dwOldServerTime = serverTime;
 }
 
@@ -253,7 +238,7 @@ void SReelPanel::SetResult(char cResult)
 	}
 }
 
-void SReelPanel::UpDateJackpot()
+void SReelPanel::SetJackpot(unsigned int jackpot)
 {
 	static constexpr unsigned int divisor[10] = {
 		1000000000u, 100000000u, 10000000u, 1000000u, 100000u,
@@ -263,7 +248,7 @@ void SReelPanel::UpDateJackpot()
 	{
 		if (!m_pJACKPOTCOUNT[digit])
 			continue;
-		const bool leadingZero = digit < 9 && m_dwJackPotView < divisor[digit];
-		m_pJACKPOTCOUNT[digit]->m_GCPanel.nTextureIndex = leadingZero ? 10 : (m_dwJackPotView / divisor[digit]) % 10;
+		const bool leadingZero = digit < 9 && jackpot < divisor[digit];
+		m_pJACKPOTCOUNT[digit]->m_GCPanel.nTextureIndex = leadingZero ? 10 : (jackpot / divisor[digit]) % 10;
 	}
 }

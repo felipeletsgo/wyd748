@@ -8,6 +8,31 @@
 // jackpot; these types only preserve the UI wire contract.
 constexpr auto MSG_DoJackpotBet_Opcode = 0x2BE;
 constexpr auto MSG_ResultGamble_Opcode = 0x1BF;
+
+namespace gamble_bet
+{
+	constexpr int Minimum = 1'000;
+	constexpr int Maximum = 1'000'000;
+	constexpr int LargeStep = 100'000;
+
+	constexpr bool IsValid(int bet)
+	{
+		return bet >= Minimum && bet <= Maximum && bet % Minimum == 0;
+	}
+
+	constexpr int Adjust(int bet, int step, int balance)
+	{
+		const int next = bet + step;
+		if (step < 0)
+			return next < Minimum ? Minimum : next;
+		const int affordable = balance / Minimum * Minimum;
+		const int upper = affordable < Maximum ? affordable : Maximum;
+		if (upper <= bet)
+			return bet;
+		return next < upper ? next : upper;
+	}
+}
+
 struct MSG_DoJackpotBet
 {
 	MSG_STANDARD Header;

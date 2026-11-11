@@ -90,6 +90,36 @@ func TestBreakerRefusesOptionalReadsOnly(t *testing.T) {
 	}
 }
 
+func TestBreakerThresholdsAndPriority(t *testing.T) {
+	tests := []struct {
+		name   string
+		point  control.MetricsPoint
+		open   bool
+		reason string
+	}{
+		{name: "loop lag threshold stays closed", point: control.MetricsPoint{LoopLagP99Micros: breakerLoopLagMicros}},
+		{name: "queue age threshold stays closed", point: control.MetricsPoint{QueueAgeP99Micros: breakerQueueAgeMicros}},
+		{name: "persistence threshold stays closed", point: control.MetricsPoint{PostgresQueueDepth: breakerPostgresQueue}},
+		{name: "queue age opens", point: control.MetricsPoint{QueueAgeP99Micros: breakerQueueAgeMicros + 1}, open: true, reason: "command_queue_age"},
+		{name: "persistence backlog opens", point: control.MetricsPoint{PostgresQueueDepth: breakerPostgresQueue + 1}, open: true, reason: "persistence_backlog"},
+		{name: "loop lag has priority", point: control.MetricsPoint{
+			LoopLagP99Micros: breakerLoopLagMicros + 1, QueueAgeP99Micros: breakerQueueAgeMicros + 1,
+			PostgresQueueDepth: breakerPostgresQueue + 1,
+		}, open: true, reason: "loop_lag"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sampler := newMetricsSampler()
+			sampler.ring[0] = test.point
+			sampler.count, sampler.next = 1, 1
+			got := (&Handler{sampler: sampler}).breaker()
+			if got.Open != test.open || got.Reason != test.reason {
+				t.Fatalf("breaker=%+v, want open=%t reason=%q", got, test.open, test.reason)
+			}
+		})
+	}
+}
+
 func TestMetricsRequireStatusAndSampler(t *testing.T) {
 	h, entries, _, _ := newTestHandler(t)
 	entries["operator"] = Staff{Capabilities: []string{PlayersCapability}}

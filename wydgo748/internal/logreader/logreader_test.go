@@ -97,14 +97,31 @@ func TestJournalArgsAreFixed(t *testing.T) {
 
 func serveTest(t *testing.T, server *Server) Client {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "socket")
+	path := socketTestPath(t, "socket")
 	listener, err := net.Listen("unix", path)
 	if err != nil {
 		t.Skip("unix sockets unavailable:", err)
 	}
-	t.Cleanup(func() { listener.Close() })
-	go server.Serve(listener)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = server.Serve(listener)
+	}()
+	t.Cleanup(func() {
+		_ = listener.Close()
+		<-done
+	})
 	return Client{Path: path}
+}
+
+func socketTestPath(t testing.TB, name string) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "wyd-logreader-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	return filepath.Join(dir, name)
 }
 
 func TestServerFiltersPagesAndAuthorizes(t *testing.T) {

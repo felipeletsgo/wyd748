@@ -125,13 +125,15 @@ func TestTranslateMatchesFixedAndFormattedEnglish(t *testing.T) {
 
 func TestLoadRejectsInvalidCatalogs(t *testing.T) {
 	cases := map[string][2]string{
-		"verb mismatch":   {"A\tYou need %d gold.\n", "A\tVocê precisa de %s.\n"},
-		"unknown pt key":  {"A\tText.\n", "B\tTexto.\n"},
-		"duplicate key":   {"A\tText.\nA\tOther.\n", ""},
-		"missing tab":     {"A Text.\n", ""},
-		"empty english":   {"# only a comment\n", ""},
-		"not windows1252": {"A\tSnowman ☃.\n", ""},
-		"too long":        {"A\t" + strings.Repeat("x", MaxTextBytes+1) + "\n", ""},
+		"verb mismatch":          {"A\tYou need %d gold.\n", "A\tVocê precisa de %s.\n"},
+		"verb count mismatch":    {"A\t%s needs %d gold.\n", "A\t%s precisa de gold.\n"},
+		"unknown pt key":         {"A\tText.\n", "B\tTexto.\n"},
+		"duplicate key":          {"A\tText.\nA\tOther.\n", ""},
+		"missing tab":            {"A Text.\n", ""},
+		"empty english":          {"# only a comment\n", ""},
+		"not windows1252":        {"A\tSnowman ☃.\n", ""},
+		"too long":               {"A\t" + strings.Repeat("x", MaxTextBytes+1) + "\n", ""},
+		"scanner token too long": {"A\t" + strings.Repeat("x", 70_000) + "\n", ""},
 	}
 	for name, files := range cases {
 		if _, err := Load(writeCatalog(t, files[0], files[1])); err == nil {

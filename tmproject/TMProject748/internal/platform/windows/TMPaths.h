@@ -2,10 +2,10 @@
 
 /* Title and Main defines*/
 constexpr const char* GameWindow_Title = "WYD 7.48";
+constexpr const char* AccountRegistration_Url = "https://wyd.forjago.com/register/";
 
 /* File related defines */
 constexpr const char* LogFile_Path = "clientlogs.log";
-constexpr const char* ChangeUpdate_Path = "Change.exe";
 
 constexpr const char* ServerName_Path = "sn.bin";
 constexpr const char* ServerList_Path = "serverlist.bin";

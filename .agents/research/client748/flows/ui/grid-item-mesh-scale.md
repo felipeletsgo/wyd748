@@ -4,7 +4,7 @@ title: Native item mesh scaling in inventory and equipment grids
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-17
+updated: 2026-11-10
 ---
 
 # Native item mesh scaling in inventory and equipment grids
@@ -56,11 +56,11 @@ is not the quickslot role suggested by the inherited 7.69 enum name.
 
 ## State and lifecycle
 
-Each insertion recomputes presentation scale using the destination cell height.
-Inventory, equipment, skill-item insertion and cursor pickup use the same fit.
-The grid/cursor retains existing item ownership and teardown. No new cached
-scale survives scene destruction or relogin. Invalid dimensions return 1.0
-as a defensive adaptation, not a newly claimed native branch.
+Native inventory, equipment, skill-item insertion and cursor pickup use the
+same fit. The adapted client recomputes the scale at each insertion. See the
+2026-11-10 follow-up for the hand and cursor presentation rules.
+Invalid dimensions return 1.0 as a defensive adaptation, not a newly claimed
+native branch.
 
 For the mix follow-up, existing scene initialization binds Odin's seven grids
 under root 6481 to raw type 20. Staging retains the authoritative Carry item
@@ -81,11 +81,12 @@ or change equipment centering.
 
 ## Current mapping
 
-SGrid::AddItem / AddSkillItem / pickup -> ApplyGridItemPresentation ->
-grid_item_presentation::MeshScale(maxZ, cellHeight).
+`SGridControl::AddItem` and `AddSkillItem` call `WYD748_ApplyGridMeshScale`.
+Hand grids use `WeaponMeshScale`. Other grids use `MeshScale`.
+`SCursor::AttachItem` resolves the cursor scale independently.
 
-Classification: PARIDADE_NATIVA for fitting all mesh insertions;
-MODERNIZACAO_COMPATIVEL for finite/positive dimension guards.
+Cell fitting follows the native insertion rule. Dimension guards and the hand
+grid fit are compatible adaptations.
 
 `WYD748_IsCenteredSingleCellGrid` now uses
 `grid_item_presentation::IsNativeMixReceptacle` for the six even native mix
@@ -94,6 +95,8 @@ the latter queues both the item and its label. Classification: PARIDADE_NATIVA
 for this receptacle selection, independently of the level-40 recipe policy.
 
 ## Delta matrix
+
+This table records the original fitting change and the mix follow-up.
 
 | Claim | Before | After |
 | --- | --- | --- |
@@ -165,3 +168,28 @@ through `Build-Client.ps1 -NoDeploy` passed. Log:
 `CLIENT-TESTED`: pending for Ehre output, inventory and cursor presentation.
 The local correction is not installed or published. Allocate the next mandatory
 client revision with its matching server minimum during release preparation.
+
+## Cursor mesh size — 2026-11-10
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The owner showed Divine Fury at
+different cursor sizes when picked up from equipment and Carry. The cursor
+copied the slot scale from `SGridControlItem::GetGeomControl`.
+
+`SCursor::AttachItem` resolves the preview scale from the item's equipment
+position. Hand items reuse the hand grid's mesh fit. Other 3D items use their
+authored scale. `SCursor::FrameMove2` applies the scale to the cursor's copy.
+The source item remains owned by its grid during selection. Detaching releases
+the cursor reference. Insertion computes the destination fit. Sprite rendering,
+slot occupancy, and item movement keep their existing paths.
+
+`STATICALLY VERIFIED`: the active Portuguese catalog maps Divine Fury (900 and
+2128) to mesh 33 (`bwand09.msa`), a left-hand item with a one-cell footprint.
+Both hand grids (339 and 340 in `FieldScene2.bin`) are 95 logical pixels tall.
+With MaxZ approximately 1.672282, the hand fit is approximately 0.710 and the
+one-cell fit is approximately 0.179.
+
+`AUTOMATED TESTED`: ArchitectureTests passed 3,202,835 checks, including
+the Divine Fury scale and cursor render path. SocketReceiveTests and
+CrashCaptureTests passed. The incremental Release/x86 client build passed.
+
+`CLIENT-TESTED`: pending for pickup from both slots and placement back in Carry.

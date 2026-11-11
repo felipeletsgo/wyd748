@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"wydgo/internal/data"
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
 )
@@ -246,6 +247,64 @@ func TestQuestRepetivelNaoMarcaConclusao(t *testing.T) {
 	}
 	if p.X != 2398 || p.Y != 2105 {
 		t.Fatalf("portal nao teleportou: (%d,%d)", p.X, p.Y)
+	}
+}
+
+func TestCasinoGuideTeleportsFromArmia(t *testing.T) {
+	const guide = "CasinoGuide"
+	w := newZoneTestWorld()
+	var err error
+	w.terrain, err = data.LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	npcs, err := data.LoadNPCs("../../data/npcs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	quests, err := data.LoadQuests("../../data/content/quests.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.questsByNPC, err = indexQuests(quests, npcs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var def *model.NPCDef
+	for i := range npcs {
+		if npcs[i].Name == guide {
+			def = &npcs[i]
+			break
+		}
+	}
+	if def == nil || def.Tipo != model.TipoNPC || def.Equip.Rosto.Index != 58 || def.Score == nil || def.Score.Merchant != 43 {
+		t.Fatalf("invalid Casino guide template: %+v", def)
+	}
+	generators, err := data.LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := addZonePlayer(w, 1, 2100, 2096, 500)
+	p.Char.Gold = 100
+	st := &atomicCharStateMemoryStore{}
+	w.store = st
+	p.Char.UID = "casino-visitor"
+	for _, generator := range generators {
+		if generator.Enabled && generator.Leader == guide {
+			w.spawnGroup(&generState{def: generator, leader: def, follower: def})
+		}
+	}
+	if len(w.mobs) != 1 || w.mobs[0].X != 2100 || w.mobs[0].Y != 2095 {
+		t.Fatalf("expected one Casino guide at (2100,2095), got %v", w.mobs)
+	}
+	pkt := useNPCPacket(w.mobs[0].ID)
+	pkt[16] = 1
+	w.onUseNPC(p.Session, pkt)
+	if p.X != 4059 || p.Y != 3998 || p.Char.Gold != 100 || len(p.Char.QuestsDone) != 0 {
+		t.Fatalf("invalid Casino entry: position=(%d,%d) gold=%d quests=%v", p.X, p.Y, p.Char.Gold, p.Char.QuestsDone)
+	}
+	if st.atomicSaves != 1 || st.accountSnapshot == nil || p.Char.X != p.X || p.Char.Y != p.Y {
+		t.Fatal("Casino entry did not commit and update the live character position")
 	}
 }
 

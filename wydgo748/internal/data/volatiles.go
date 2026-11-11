@@ -374,7 +374,8 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		}
 		if rule.Action == "summon_contract" {
 			if rule.Summon == nil || rule.Summon.Name == "" || rule.Summon.Group == "" ||
-				rule.Summon.Face == 0 || rule.Summon.HP == 0 || rule.Summon.AttackRange <= 0 {
+				rule.Summon.Face == 0 || rule.Summon.HP == 0 || rule.Summon.AttackRange <= 0 ||
+				rule.Summon.Refinement > 9 || (rule.Summon.Healer && rule.Summon.Tank) {
 				return rule, fmt.Errorf("data: %s summon_contract has template incomplete", where)
 			}
 		}

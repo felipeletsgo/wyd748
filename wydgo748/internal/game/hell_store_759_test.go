@@ -92,6 +92,84 @@ func TestDionys759LotteryGoldenAndCatalog(t *testing.T) {
 	}
 }
 
+func appendHell759Pick(rolls *[]int, weights []int, choice int) {
+	total := 0
+	for _, weight := range weights {
+		total += weight
+	}
+	if total < 10_000 {
+		*rolls = append(*rolls, 0) // Use the first nonzero part of a partial table.
+	}
+	roll := 0
+	for _, weight := range weights[:choice] {
+		roll += weight
+	}
+	*rolls = append(*rolls, roll)
+}
+
+func TestDionys759ArmorLotteryCoversArmorPartsAndOptions(t *testing.T) {
+	tests := []struct {
+		name              string
+		tier, part, class int
+		kind1, choice     int
+		effect1, effect2  byte
+	}{
+		{name: "helmet first option", part: 0, class: 0, kind1: 0, choice: 1, effect1: 4, effect2: 3},
+		{name: "helmet second option with second tier", tier: 1, part: 0, class: 3, kind1: 1, choice: 2, effect1: 3, effect2: 60},
+		{name: "helmet default option", part: 0, class: 1, kind1: 2, choice: 3, effect1: 60, effect2: 60},
+		{name: "armor selected option", tier: 1, part: 1, class: 2, choice: 2, effect1: 71, effect2: 2},
+		{name: "gloves default selection", part: 2, class: 0, choice: 3, effect1: 71, effect2: 60},
+		{name: "boots selected option", tier: 1, part: 3, class: 3, choice: 2, effect1: 72, effect2: 2},
+		{name: "accessory first option", part: 4, class: 0, choice: 1, effect1: 73, effect2: 73},
+		{name: "accessory second option", tier: 1, part: 4, class: 1, choice: 2, effect1: 73, effect2: 60},
+		{name: "accessory third option", part: 4, class: 2, choice: 3, effect1: 73, effect2: 74},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rolls := make([]int, 0, 16)
+			appendHell759Pick(&rolls, []int{4500, 5500}, test.tier)
+			appendHell759Pick(&rolls, []int{1800, 1800, 1800, 2400, 2200}, test.part)
+			appendHell759Pick(&rolls, []int{2800, 2800, 2200, 2200}, test.class)
+			kind1 := 0
+			if test.part == 0 {
+				kind1 = test.kind1
+				appendHell759Pick(&rolls, []int{3000, 3500, 3500}, kind1)
+			}
+			appendHell759Pick(&rolls, hell759ArmorFirst[test.part*3+kind1][:], 0)
+			appendHell759Pick(&rolls, []int{3000, 3500, 3500}, test.choice-1)
+
+			kind2 := 2
+			if test.part == 0 {
+				if test.choice == 0 {
+					kind2 = 0
+				} else if test.choice == 1 {
+					kind2 = 1
+				}
+			} else if test.part == 4 {
+				if test.choice == 1 {
+					kind2 = 0
+				} else if test.choice == 2 {
+					kind2 = 1
+				}
+			} else if test.choice == 2 {
+				kind2 = 1
+			}
+			appendHell759Pick(&rolls, hell759ArmorSecond[test.part*3+kind2][:], 0)
+			rng := &sequenceRNG{values: rolls}
+			w := &World{rng: rng}
+			got := w.hell759ArmorItem()
+			wantIndex := hell759Armor[test.tier][test.part*4+test.class]
+			if got.Index != wantIndex || got.Eff[2] == 0 || got.Eff[4] == 0 ||
+				got.Eff[2] != test.effect1 || got.Eff[4] != test.effect2 {
+				t.Fatalf("armor lottery=%+v, want index=%d effects=%d,%d", got, wantIndex, test.effect1, test.effect2)
+			}
+			if len(rng.values) != 0 {
+				t.Fatalf("armor lottery left unused rolls: %v", rng.values)
+			}
+		})
+	}
+}
+
 func TestDionys759StoreLifecycleAndFailedSave(t *testing.T) {
 	for _, reason := range []string{"success", "admission", "deadline", "dead", "nonmember", "unowned", "other-runtime", "save-failure"} {
 		t.Run(reason, func(t *testing.T) {

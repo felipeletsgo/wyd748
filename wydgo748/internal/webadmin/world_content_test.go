@@ -14,8 +14,9 @@ import (
 )
 
 type testWorldReads struct {
-	calls int
-	err   error
+	calls       int
+	err         error
+	instanceErr error
 }
 
 func (r *testWorldReads) MapSnapshot(_ context.Context, x, y uint16, radius int) (control.MapSnapshot, error) {
@@ -28,7 +29,7 @@ func (r *testWorldReads) MapSnapshot(_ context.Context, x, y uint16, radius int)
 
 func (r *testWorldReads) Instances(context.Context) (control.InstancesView, error) {
 	r.calls++
-	return control.InstancesView{Version: 1, Instances: []control.InstanceStatus{}}, nil
+	return control.InstancesView{Version: 1, Instances: []control.InstanceStatus{}}, r.instanceErr
 }
 
 type testNotes struct{ added []control.AccountNoteCommand }
@@ -59,6 +60,14 @@ func TestContentAndZoneEndpoints(t *testing.T) {
 	if r := request(h, "GET", "/api/v1/staff/content/search?q=potion", "", cookie, ""); r.Code != 200 || !strings.Contains(r.Body.String(), `"Small Potion"`) {
 		t.Fatal(r.Code, r.Body.String())
 	}
+	for _, query := range []string{
+		"q=" + strings.Repeat("a", 49),
+		"q=%00",
+	} {
+		if r := request(h, "GET", "/api/v1/staff/content/search?"+query, "", cookie, ""); r.Code != 400 || !strings.Contains(r.Body.String(), "invalid_query") {
+			t.Fatalf("accepted invalid content search %q: %d %s", query, r.Code, r.Body.String())
+		}
+	}
 	if r := request(h, "GET", "/api/v1/staff/content/items/400", "", cookie, ""); r.Code != 200 || !strings.Contains(r.Body.String(), `"mob":"Wolf"`) {
 		t.Fatal(r.Code, r.Body.String())
 	}
@@ -79,6 +88,10 @@ func TestContentAndZoneEndpoints(t *testing.T) {
 	if r := request(h, "GET", "/api/v1/staff/content/issues", "", cookie, ""); r.Code != 200 {
 		t.Fatal(r.Code)
 	}
+	h.cfg.Content = nil
+	if r := request(h, "GET", "/api/v1/staff/content/search?q=potion", "", cookie, ""); r.Code != 503 || !strings.Contains(r.Body.String(), "content_unavailable") {
+		t.Fatalf("unavailable content index status=%d body=%s", r.Code, r.Body.String())
+	}
 }
 
 func TestMapAndInstancesAreOptionalBoundedReads(t *testing.T) {
@@ -90,6 +103,15 @@ func TestMapAndInstancesAreOptionalBoundedReads(t *testing.T) {
 	if r := request(h, "GET", "/api/v1/staff/world/map?x=1&y=1&radius=129", "", cookie, ""); r.Code != 400 || reads.calls != 0 {
 		t.Fatal(r.Code)
 	}
+	beforeInstances := reads.calls
+	if r := request(h, "GET", "/api/v1/staff/world/instances", "", cookie, ""); r.Code != 200 || reads.calls != beforeInstances+1 || !strings.Contains(r.Body.String(), `"version":1`) {
+		t.Fatal("instance view did not return", r.Code, r.Body.String())
+	}
+	reads.instanceErr = control.ErrBusy
+	if r := request(h, "GET", "/api/v1/staff/world/instances", "", cookie, ""); r.Code != 429 || !strings.Contains(r.Body.String(), "control_busy") {
+		t.Fatal("instance read error was not reported", r.Code, r.Body.String())
+	}
+	reads.instanceErr = nil
 	// Reads the World did not serve do not consume the quota.
 	reads.err = control.ErrBusy
 	for i := range 20 {

@@ -1,0 +1,178 @@
+{
+  "release": "/srv/wyd-go/releases/20261111T040102Z",
+  "previousRelease": "/srv/wyd-go/releases/20261110T155851Z",
+  "restartAuthorized": true,
+  "mode": "working-tree, game binary with unchanged runtime data, client patch, and portal",
+  "sourceHead": "58332ebd618207ad2140aacb5f1ba6b160cb4245",
+  "activeMinimumRevision": 111,
+  "provenance": {
+    "localDirectory": "build/release-748111",
+    "clientPatchManifestSha256": "a09af69212d2b4b61219cb78852031c94de3c068f53077e0dc8afcc3e11edcef",
+    "gameReleaseManifestSha256": "02924af340d5e8a4e10dac7ecd1bbcaad846e8357fd43e78041c9fa5735af10c",
+    "websiteManifestSha256": "465d4fa466d9a80d58ff1fa4439f0baf4c0d2e60ef5fd7839af9007994abe078"
+  },
+  "validation": [
+    "Go wire suite and targeted client admission tests passed.",
+    "Linux amd64 game server build passed. Runtime data matches 7.48.110.",
+    "Release client build and architecture, socket, and crash capture tests passed.",
+    "Portal build and test suite passed."
+  ],
+  "gameArchive": {
+    "path": "release.tar.gz",
+    "size": 14452897,
+    "sha256": "562a6487809f30deca39688d0dc14297431ee1b903d7846f8adf616f96a7be22"
+  },
+  "websiteArchive": {
+    "path": "website.tar.gz",
+    "size": 881351,
+    "sha256": "03b2232e7296b5ec3fcd993bb8e634b364fa9988b2ef55d099a2b93cd190b933"
+  },
+  "patch": {
+    "feed": [
+      "[WYD]",
+      "48100 notice.txt",
+      "48101 patch-48101.zip",
+      "48102 patch-48102.zip",
+      "48103 patch-48103.zip",
+      "48104 patch-48104.zip",
+      "48105 patch-48105.zip",
+      "48106 patch-48106.zip",
+      "48107 patch-48107.zip",
+      "48108 patch-48108.zip",
+      "48109 patch-48109.zip",
+      "48110 patch-48110.zip",
+      "48111 patch-48111.zip"
+    ],
+    "sha256": "df7eabe342a9cbbd3a00fba05de2ba5524a7564001ab6d006505fe0f2e68b04b",
+    "size": 930772,
+    "entries": 1,
+    "protocols": [
+      "https",
+      "http"
+    ]
+  },
+  "patchEntries": [
+    {
+      "path": "WYD.exe",
+      "source": "tmproject/build/defender-hardening-111/WYD.exe",
+      "size": 2097152,
+      "sha256": "633ce35d888e9d9822b4b129f681cb33410616686a1f2e75889acef8e6507e2d"
+    }
+  ],
+  "publicManifest": {
+    "version": 2,
+    "clientVersion": "7.48.111",
+    "feedVersion": 48111,
+    "publishedAt": "2026-11-11",
+    "launcherVersion": null,
+    "minimumLauncherVersion": null,
+    "fullClient": {
+      "clientVersion": "7.48.100",
+      "url": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+      "sizeBytes": 260877805,
+      "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66"
+    },
+    "patch": {
+      "url": "/patch/patch-48111.zip",
+      "sizeBytes": 930772,
+      "sha256": "df7eabe342a9cbbd3a00fba05de2ba5524a7564001ab6d006505fe0f2e68b04b",
+      "executableSha256": "633CE35D888E9D9822B4B129F681CB33410616686A1F2E75889ACEF8E6507E2D"
+    },
+    "updateFeed": "/patch/update.htm"
+  },
+  "publicPagesVerified": [
+    "/download",
+    "/changelog",
+    "/news/client-7-48-111"
+  ],
+  "active": {
+    "at": "2026-11-11T04:03:19.136034+00:00",
+    "activeRelease": "/srv/wyd-go/releases/20261111T040102Z",
+    "previousRelease": "/srv/wyd-go/releases/20261110T155851Z",
+    "schema": "20",
+    "serverPayloadFiles": 1078,
+    "websitePayloadFiles": 6671,
+    "preservedHashes": 352,
+    "backup": {
+      "at": "2026-11-11T04:01:02Z",
+      "archive": "wydgo-20261111T040102Z.dump",
+      "bytes": 543910,
+      "sha256": "c0bbf5b840b7c1f8495b7d1d1a107e31029c027e9d1ae2454f72dd18d6ad1f70"
+    },
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "1173015",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261111T040102Z/game/wyd-server",
+        "sha256": "fe3b0556590f4cb9b37ffab31f08e48c789f4873d42d5500e210cbe93de91fbc"
+      },
+      "wyd-game@2": {
+        "MainPID": "1173016",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executablePath": "/srv/wyd-go/releases/20261111T040102Z/game/wyd-server",
+        "sha256": "fe3b0556590f4cb9b37ffab31f08e48c789f4873d42d5500e210cbe93de91fbc"
+      },
+      "wyd-player": {
+        "MainPID": "896681",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "ActiveState": "active"
+      }
+    },
+    "readiness": {
+      "8082": "200",
+      "8083": "200"
+    },
+    "listeners": [
+      8281,
+      8282
+    ],
+    "shutdownComplete": {
+      "wyd-game@1": true,
+      "wyd-game@2": true
+    },
+    "warnings": []
+  },
+  "admission": {
+    "at": "2026-11-11T04:04:10.318210+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 110,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 111,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 110,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 111,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "scope": [
+    "Client startup cleanup, official registration URL, and HTTPS guild mark downloads",
+    "Mandatory client revision 111 on both channels"
+  ],
+  "clientTested": false,
+  "pending": "Real-client launcher extraction, Microsoft Defender validation for this exact executable, and in-game acceptance."
+}

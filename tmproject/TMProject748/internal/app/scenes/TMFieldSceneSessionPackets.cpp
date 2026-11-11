@@ -8,7 +8,6 @@
 #include "SControlContainer.h"
 #include "TMGlobal.h"
 #include "TMUtil.h"
-#include "AdapterIdentity.h"
 #include "ClientDiagnostics.h"
 
 int TMFieldScene::OnPacketCNFCharacterLogout(MSG_STANDARD* pStd)
@@ -77,8 +76,6 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 			// Migration must advertise the same compiled identity as initial login.
 			client_build::IdentifyLogin(stAccountLogin);
 			stAccountLogin.Header.Size = sizeof(MSG_AccountLogin);
-
-			ReadFirstAdapterIdentity(stAccountLogin.AdapterName);
 
 			strncpy(stAccountLogin.AccountName, pStd->AccountName, sizeof(pStd->AccountName));
 			strncpy(stAccountLogin.Zero, pStd->TID, sizeof(pStd->TID));

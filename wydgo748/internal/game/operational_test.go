@@ -126,3 +126,63 @@ func TestEveryChatCommandAliasIsReservedAsCharacterName(t *testing.T) {
 		}
 	}
 }
+
+func TestOperationalConfigValidateCoversEveryLimitBoundary(t *testing.T) {
+	minimums := OperationalConfig{
+		AuthAttemptsPerMinuteIP: 1, AuthAttemptsPerMinuteAccount: 1,
+		MaxAuthenticatedClientsPerIP: 1, AuthHashConcurrency: 1,
+		WorldCommandQueueCapacity: 64, ChatLocalPer10Seconds: 1,
+		ChatWhisperPer10Seconds: 1, ChatGlobalPer10Seconds: 1, ChannelID: 1,
+	}
+	maximums := OperationalConfig{
+		AuthAttemptsPerMinuteIP: 1000, AuthAttemptsPerMinuteAccount: 1000,
+		MaxAuthenticatedClientsPerIP: 10000, AuthHashConcurrency: 64,
+		WorldCommandQueueCapacity: 65536, ChatLocalPer10Seconds: 1000,
+		ChatWhisperPer10Seconds: 1000, ChatGlobalPer10Seconds: 1000, ChannelID: 255,
+	}
+	for _, test := range []struct {
+		name   string
+		config OperationalConfig
+	}{
+		{name: "minimums", config: minimums},
+		{name: "maximums", config: maximums},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if err := test.config.Validate(); err != nil {
+				t.Fatalf("valid boundary configuration rejected: %v", err)
+			}
+		})
+	}
+
+	invalid := []struct {
+		name   string
+		mutate func(*OperationalConfig)
+	}{
+		{"auth per IP below minimum", func(c *OperationalConfig) { c.AuthAttemptsPerMinuteIP = 0 }},
+		{"auth per IP above maximum", func(c *OperationalConfig) { c.AuthAttemptsPerMinuteIP = 1001 }},
+		{"auth per account below minimum", func(c *OperationalConfig) { c.AuthAttemptsPerMinuteAccount = 0 }},
+		{"auth per account above maximum", func(c *OperationalConfig) { c.AuthAttemptsPerMinuteAccount = 1001 }},
+		{"local chat below minimum", func(c *OperationalConfig) { c.ChatLocalPer10Seconds = 0 }},
+		{"local chat above maximum", func(c *OperationalConfig) { c.ChatLocalPer10Seconds = 1001 }},
+		{"whisper chat below minimum", func(c *OperationalConfig) { c.ChatWhisperPer10Seconds = 0 }},
+		{"whisper chat above maximum", func(c *OperationalConfig) { c.ChatWhisperPer10Seconds = 1001 }},
+		{"global chat below minimum", func(c *OperationalConfig) { c.ChatGlobalPer10Seconds = 0 }},
+		{"global chat above maximum", func(c *OperationalConfig) { c.ChatGlobalPer10Seconds = 1001 }},
+		{"clients per IP below minimum", func(c *OperationalConfig) { c.MaxAuthenticatedClientsPerIP = 0 }},
+		{"clients per IP above maximum", func(c *OperationalConfig) { c.MaxAuthenticatedClientsPerIP = 10001 }},
+		{"zero channel ID", func(c *OperationalConfig) { c.ChannelID = 0 }},
+		{"hash concurrency below minimum", func(c *OperationalConfig) { c.AuthHashConcurrency = 0 }},
+		{"hash concurrency above maximum", func(c *OperationalConfig) { c.AuthHashConcurrency = 65 }},
+		{"queue capacity below minimum", func(c *OperationalConfig) { c.WorldCommandQueueCapacity = 63 }},
+		{"queue capacity above maximum", func(c *OperationalConfig) { c.WorldCommandQueueCapacity = 65537 }},
+	}
+	for _, test := range invalid {
+		t.Run(test.name, func(t *testing.T) {
+			config := DefaultOperationalConfig()
+			test.mutate(&config)
+			if err := config.Validate(); err == nil {
+				t.Fatal("invalid configuration was accepted")
+			}
+		})
+	}
+}

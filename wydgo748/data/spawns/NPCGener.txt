@@ -140812,3 +140812,22 @@
 	DestY:	1567
 	DestRange:	0
 	DestWait:	0
+
+// Casino guide in Armia, between GuardianGate and DemonGate.
+# [16234]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:	CasinoGuide
+	Follower:	CasinoGuide
+	RouteType:	0
+	Formation:	0
+	StartX:	2100
+	StartY:	2095
+	StartRange:	0
+	StartWait:	0
+	DestX:	2100
+	DestY:	2095
+	DestRange:	0
+	DestWait:	0

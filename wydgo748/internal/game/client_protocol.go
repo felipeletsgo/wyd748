@@ -1,6 +1,8 @@
 package game
 
 import (
+	"time"
+
 	"wydgo/internal/model"
 	gameNet "wydgo/internal/net"
 	"wydgo/internal/wire"
@@ -35,10 +37,14 @@ func playerScorePacket(p *Player) []byte {
 
 // playerAffectsPacket follows the same recipient-owned ABI rule as score.
 func playerAffectsPacket(p *Player) []byte {
+	return playerAffectsPacketAt(p, time.Now())
+}
+
+func playerAffectsPacketAt(p *Player, now time.Time) []byte {
 	if p == nil || p.Session == nil || p.Char == nil {
 		return nil
 	}
-	return wire.UpdateAffects(p.ID, *p.Char)
+	return wire.UpdateAffectsWithGuardsAt(p.ID, p.Char.Affects[:], p.guardTimers, now)
 }
 
 // observedPlayerScorePacket serializes one subject for a specific observer;

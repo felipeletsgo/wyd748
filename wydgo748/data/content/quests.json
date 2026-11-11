@@ -621,6 +621,25 @@
         "His servants rise faster than you can bury them. Keep moving.",
         "Strike the master, not the dead. The dead never end."
       ]
+    },
+    {
+      "id": 23,
+      "npc": "CasinoGuide",
+      "repeatable": true,
+      "rewards": {
+        "teleport": {
+          "x": 4059,
+          "y": 3998
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Casino.",
+        "success": "Welcome to the Casino!"
+      },
+      "dialogue": [
+        "I can take you to the Casino.",
+        "The ride to the Casino is free."
+      ]
     }
   ]
 }

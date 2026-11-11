@@ -7,6 +7,8 @@
 
 #include <cstdio>
 #include <vector>
+#include <algorithm>
+#include <cstring>
 
 namespace
 {
@@ -199,6 +201,60 @@ int RunFieldActionSafetyTests(int& checks)
         !field_action::ShouldReportCastFailure(true, true, 3499, 500) &&
         field_action::ShouldReportCastFailure(true, true, 3500, 500),
         "A05-07 repeated cast failures obey manual and automatic limits");
+
+    // Guild mark transport must reject truncation, excess bytes and failed reads.
+    {
+        std::vector<char> bitmap(630, 0);
+        const auto put32 = [&bitmap](std::size_t offset, unsigned int value) {
+            for (int byte = 0; byte < 4; ++byte)
+                bitmap[offset + byte] = static_cast<char>(value >> (8 * byte));
+        };
+        bitmap[0] = 'B';
+        bitmap[1] = 'M';
+        put32(2, 630);
+        put32(10, 54);
+        put32(14, 40);
+        put32(18, 16);
+        put32(22, 12);
+        bitmap[26] = 1;
+        bitmap[28] = 24;
+        char output[guild_mark_download::MaxBytes + 1]{};
+        const auto download = [&bitmap, &output](int failureAt) {
+            std::size_t offset = 0;
+            return guild_mark_download::ReadBitmap(output, sizeof(output),
+                [&bitmap, &offset, failureAt](char* target, std::size_t capacity) {
+                    if (failureAt >= 0 && offset >= static_cast<std::size_t>(failureAt))
+                        return -1;
+                    const auto size = std::min({capacity, bitmap.size() - offset, std::size_t(17)});
+                    std::memcpy(target, bitmap.data() + offset, size);
+                    offset += size;
+                    return static_cast<int>(size);
+                });
+        };
+        check(download(-1) == 630 && std::memcmp(output, bitmap.data(), 630) == 0,
+            "guild marks preserve a complete BMP across fragmented reads");
+        check(download(630) == 0, "a read error after the BMP prefix rejects the download");
+        bitmap.resize(632);
+        put32(2, 632);
+        check(download(-1) == 632, "guild marks accept the supported 632-byte BMP");
+        bitmap.pop_back();
+        check(download(-1) == 0, "guild marks reject a truncated body");
+        bitmap.resize(633);
+        check(download(-1) == 0, "guild marks reject excess response bytes");
+        bitmap.resize(630);
+        put32(2, 630);
+        const std::size_t headerFields[] = {0, 2, 10, 14, 18, 22, 26, 28, 30};
+        for (const auto offset : headerFields)
+        {
+            const char saved = bitmap[offset];
+            bitmap[offset] ^= 1;
+            check(download(-1) == 0, "guild marks reject inconsistent BMP headers");
+            bitmap[offset] = saved;
+        }
+        check(!guild_mark_download::IsValidBitmap(nullptr, 630) &&
+            !guild_mark_download::IsValidBitmap(output, 53),
+            "guild mark header reads reject null and short buffers");
+    }
 
     // C-12: the detached downloader hands each completed request to the scene
     // exactly once. Network transport and worker-count limits stay external.

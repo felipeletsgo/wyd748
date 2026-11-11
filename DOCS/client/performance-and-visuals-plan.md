@@ -21,15 +21,20 @@ for later build, owner acceptance and publication records.
 ## Measurement tool
 
 `internal/platform/diagnostics/PerfTrace.{h,cpp}` is opt-in. Set
-`WYD_PERF_LOG` to a CSV path before starting the client (`{pid}` is replaced
-by the process id); without it every hook is a cached flag test. One row per
-second records FPS, frame time and the slowest frame, CPU time of FrameMove,
-render, Present and CleanUp, D3D draw/state calls per frame (device vtable
-counters, re-applied every frame because the runtime rewrites the table),
+`WYD_PERF_LOG` to a CSV path before starting the client. The client replaces
+`{pid}` with its process ID. One row per second records FPS, frame time, the
+slowest frame, CPU time of FrameMove, render, Present and CleanUp,
 effects created/destroyed, `.trn`/`.dat` load time, scene node counts
 (total, deleted, effects, humans, items, ground objects), focus/minimized
 state, working set and process CPU (percent of one core). Each `.trn` and
 `.dat` load also writes a `#load,<kind>,<file>,<ms>` line.
+
+Standard builds omit the code that rewrites the Direct3D device table.
+Their D3D draw and state counters remain zero. For these counters, build the
+solution in Release/x86 with `/p:WydEnableD3dVtableTracing=true`.
+Use the separate `tmproject/build/TMProject748/Release-PerfTrace/WYD-PerfTrace.exe`
+for local profiling. The diagnostic build reapplies counters if the runtime
+rewrites the device table.
 
 ```powershell
 $env:WYD_PERF_LOG = "C:\temp\wyd-perf-{pid}.csv"

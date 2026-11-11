@@ -4,7 +4,7 @@ title: Defer local route application until packet admission
 subsystem: movement
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-11-02
+updated: 2026-11-09
 ---
 
 # Deferred route intent
@@ -61,6 +61,15 @@ The actor owns the pending value; it holds no scene or actor pointers.
 `TMHuman::FrameMove` retries it. `InitPosition` cancels obsolete input.
 `GetRoute` writes route buffers and local prediction after successful send admission.
 
+Ground clicks retain their own world destination until arrival or cancellation.
+`TMFieldScene::FrameMove` calls `UpdateGroundMove`. A click can replace the
+current segment at step progress 0 or at least 0.9. Continuation waits for the
+last step or for the actor to stop. It reuses `GetRoute` and the one-second
+send gate. The local ground segment ends at its last encoded step. Padding
+cells do not delay continuation. Each new endpoint must reduce the remaining
+distance. A blocked route cancels the destination. Death, position reset,
+air movement, auto-run, and a new movement action cancel obsolete ground input.
+
 ## Delta matrix
 
 | Claim | Evidence | Decision |
@@ -81,8 +90,35 @@ Real client: pending. Check rapid destination changes, stop, chase, stun,
 teleport, death, relogin, and observer movement at speeds 4 through 7.
 No native binary was executed.
 
+## WYD KR comparison
+
+USED for comparison: `references/WYD_KR 7.70+/WYD.exe`, SHA-256
+`71D2E7746831FAE932313602CFE827575FA3C2A0C61D3566142563B2814C872A`.
+Read-only Ghidra exports are in `tmproject/build/native-research/kr-movement/`.
+The KR binary is a separate client lineage and supplies no 7.48 parity proof.
+
+- `FUN_004fc0c0` handles `WM_LBUTTONDOWN` after the UI and target checks.
+  The ground branch calls `FUN_004e0b30` at `0x004fcba3`.
+  This stores the picked tile and calls the route builder at step progress
+  zero or at least 0.9. The constant at `0x00870f88` verifies the threshold.
+- `FUN_0055f640` calls `FUN_0057dbe0` with a field limit of 12 steps.
+  The outer gate uses 500 ms at speeds 4 and 5 and 100 ms at 6 and 7.
+  The 52-byte normal walk uses `0x36C`. The send branch waits over 1,000 ms.
+- The actor dispatch with `0x36C` runs outside that send branch. The actor
+  handler `FUN_005662b0` reaches `FUN_00552a50`, which installs the route
+  table and stamps the movement start. The KR client can replan locally
+  during the send interval. WYD-Go queues the latest request during it.
+
+The 7.48 field tick `FUN_004776C3` also retries the stored destination through
+`FUN_00520216` near step completion. The compact tick omitted that call.
+The compatible restoration keeps the final packet gate and applies only
+admitted routes. A short segment can still end before the send gate opens.
+KR FPS, frame pacing, and server behavior were not measured.
+
 ## Validation
 
 `CoreDataSafetyTests` checks replacement, due time, wrap, and cancellation.
 `EntitySafetyTests` checks send-before-apply wiring and authoritative reset.
+`EntitySafetyTests` also checks mid-step retargeting, continuation at the
+last step, and suppression when the active segment reaches the destination.
 Build and integration receipts: `build/client-native-corrections-20261102/REPORT.md`.

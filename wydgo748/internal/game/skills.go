@@ -838,7 +838,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			results = append(results, skillResult{mob: target})
 			continue
 		}
-		target.TargetID = p.ID
+		w.setMobRetaliationTarget(target, p.ID)
 		appliedTotal := uint32(0)
 		calculatedTotal := uint32(0)
 		if directDamage {

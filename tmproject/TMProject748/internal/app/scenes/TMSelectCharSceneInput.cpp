@@ -354,9 +354,9 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			}
 			return 1;
 		}
-		if (m_pMessageBox->m_dwMessage == 65875)
+		if (m_pMessageBox->m_dwMessage == B_CREATE_ID)
 		{
-			ShellExecute(0, 0, g_pMessageStringTable[263], 0, 0, 3);
+			ShellExecuteA(g_pApp->m_hWnd, "open", AccountRegistration_Url, nullptr, nullptr, SW_SHOWMAXIMIZED);
 			return 1;
 		}
 		if (m_pMessageBox->m_dwMessage == 1)

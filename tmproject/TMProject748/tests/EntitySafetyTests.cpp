@@ -1,5 +1,7 @@
 #include "../internal/game/entities/EntitySafetyPolicy.h"
+#include "../internal/game/entities/HumanMovementPolicy.h"
 #include "../internal/application/ActorLifetime.h"
+#include "../internal/application/ClientSendCadence.h"
 #include "SourceMethod.h"
 
 #include <algorithm>
@@ -519,13 +521,43 @@ int RunEntitySafetyTests(int& checks)
     }
 
     {
+        check(!ground_route::MayReplan(true, 0.4f, true, false, false) &&
+            ground_route::MayReplan(true, 0.9f, true, false, false) &&
+            !ground_route::MayReplan(true, 0.95f, false, false, false) &&
+            ground_route::MayReplan(true, 0.95f, false, true, false) &&
+            !ground_route::MayReplan(true, 0.95f, false, true, true) &&
+            !ground_route::MayReplan(true, 0.95f, true, true, true) &&
+            ground_route::MayReplan(false, 1.0f, false, true, false),
+            "ground movement retains early clicks and continues only when the next segment is needed");
         const auto movement = ReadSource("internal/game/entities/TMHumanMovement.cpp");
-        const auto route = source_contract::Method(movement, "void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)");
+        const auto updateGround = source_contract::Method(movement, "void TMHuman::UpdateGroundMove(unsigned int now)");
+        const auto route = source_contract::Method(movement, "bool TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop, bool groundMove)");
+        for (int steps : {2, 3})
+        {
+            for (float speed : {4.0f, 5.0f, 6.0f, 7.0f})
+            {
+                constexpr unsigned int sentAt = 10000;
+                const unsigned int stepTime = human_motion::UnitTime(speed);
+                const unsigned int beforeEnd = sentAt + stepTime * steps - stepTime / 10;
+                check(ground_route::MayReplan(true, 0.9f, true, true, false) &&
+                    human_timer::Elapsed(beforeEnd, sentAt, client_send_cadence::GroundActionInterval) &&
+                    client_send_cadence::Allows(beforeEnd, sentAt, true, true, false, false,
+                        client_send_cadence::GroundActionInterval) &&
+                    !client_send_cadence::Allows(beforeEnd, sentAt, true, true, false, false),
+                    "ground retarget fits before a two- or three-step route ends at supported running speeds");
+            }
+        }
         check(source_contract::Before(route, "m_pendingMoveTarget.Set(", "BASE_GetRoute(") &&
-            source_contract::Before(route, "if (!SendOneMessage(", "g_pCurrentScene->OnPacketEvent(MSG_Action_Opcode"),
+            source_contract::Before(route, "if (!SendOneMessage(", "g_pCurrentScene->OnPacketEvent(MSG_Action_Opcode") &&
+            updateGround.find("client_send_cadence::GroundActionInterval") != std::string::npos &&
+            source_contract::Before(route, "groundMove ? client_send_cadence::GroundActionInterval",
+                "SendOneMessage(reinterpret_cast<char*>(&stAction), sizeof(stAction), actionInterval)") &&
+            source_contract::Before(route, "SendOneMessage(reinterpret_cast<char*>(&stAction), sizeof(stAction), actionInterval)",
+                "if (groundMove) m_cOnlyMove = 0;"),
             "movement defers local prediction and stop application until send acceptance");
         const auto init = source_contract::Method(movement, "void TMHuman::InitPosition(float fX, float fY, float fZ)");
-        check(init.find("m_pendingMoveTarget.Clear();") != std::string::npos,
+        check(init.find("m_pendingMoveTarget.Clear();") != std::string::npos &&
+            init.find("ClearGroundMoveTarget();") != std::string::npos,
             "teleport and authoritative position reset cancel old movement intent");
         const auto scene = source_contract::Method(ReadSource("internal/app/scenes/TMScene.cpp"), "TMScene::~TMScene()");
         const auto manager = source_contract::Method(ReadSource("internal/core/ObjectManager.cpp"), "ObjectManager::~ObjectManager()");

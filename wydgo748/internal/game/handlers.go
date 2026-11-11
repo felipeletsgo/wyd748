@@ -2296,7 +2296,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	p.CombatTargetID = m.ID
 	// Like TMSrv SetBattle, being attacked immediately puts a mob
 	// into combat, before its next scan for visible enemies.
-	m.TargetID = p.ID
+	w.setMobRetaliationTarget(m, p.ID)
 	hit := playerPhysicalHitMobAt(p, m, w.weaponCriticalDamage(p), w.intn, now)
 	if !hit.Hit {
 		secondary := ironSpearSecondaryResult{}
@@ -2426,7 +2426,7 @@ func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastR
 			!w.combatLineOfSight(attacker.X, attacker.Y, m.X, m.Y) {
 			return ironSpearSecondaryResult{}
 		}
-		m.TargetID = attacker.ID
+		w.setMobRetaliationTarget(m, attacker.ID)
 		hit := playerPhysicalFollowupHitMobAt(attacker, m, double, critical, w.weaponCriticalDamage(attacker), w.intn, now)
 		result := ironSpearSecondaryResult{
 			target: wire.SkillTarget{ID: m.ID, MaxHP: m.Def.Score.MaxHP}, mob: m, oldMobHP: m.HP, ok: true,

@@ -115,6 +115,23 @@ func TestClassifyGambleLineNativeRules(t *testing.T) {
 	}
 }
 
+func TestNoPrizeGambleStopsUsesDeterministicFallbackAfterFifteenWins(t *testing.T) {
+	winning := findGambleStops(t, func(result [5]byte) bool { return gamblePrize(gambleMinBet, result) > 0 })
+	values := make([]int, 0, 45)
+	for range 15 {
+		values = append(values, int(winning[0]), int(winning[1]), int(winning[2]))
+	}
+	rng := &gambleSequenceRNG{values: values}
+	w := &World{rng: rng}
+	stops := w.noPrizeGambleStops()
+	if prize := gamblePrize(gambleMinBet, gambleResults(stops)); prize != 0 {
+		t.Fatalf("fallback stops %v still pay %d", stops, prize)
+	}
+	if rng.next != 45 {
+		t.Fatalf("random attempts consumed %d values, want exactly 45 before deterministic fallback", rng.next)
+	}
+}
+
 func TestGambleReelsAndPrizeFormula(t *testing.T) {
 	for a := 0; a < gambleReelLength; a++ {
 		for b := 0; b < gambleReelLength; b++ {
@@ -158,20 +175,21 @@ func TestGamblePayoutItemsUsesNativeGoldBars(t *testing.T) {
 func TestGamblePersistsBeforePublishing(t *testing.T) {
 	stops := findGambleStops(t, func(result [5]byte) bool { return gamblePrize(1_000, result) == 0 })
 	w, p, store := gambleHandlerWorld(t, stops)
+	p.Char.Gold = 2_000_000
 	w.gambleJackpot = 100
 	w.gamblePool = 200
 
-	w.onDoJackpotBet(p.Session, gambleBetPacket(1, 1_000))
+	w.onDoJackpotBet(p.Session, gambleBetPacket(1, 1_000_000))
 
-	if p.Char.Gold != 9_000 || w.gambleJackpot != 101 || w.gamblePool != 230 {
+	if p.Char.Gold != 1_000_000 || w.gambleJackpot != 100_100 || w.gamblePool != 30_200 {
 		t.Fatalf("authoritative state incorrect: gold=%d jackpot=%d pool=%d", p.Char.Gold, w.gambleJackpot, w.gamblePool)
 	}
 	if store.saves != 1 || store.snapshot == nil || store.account == nil || store.packetsAtSave != 0 {
 		t.Fatalf("persist-before-publish violated: saves=%d snapshot=%v account=%v packets=%d",
 			store.saves, store.snapshot != nil, store.account != nil, store.packetsAtSave)
 	}
-	if store.snapshot.GambleJackpot != 101 || store.snapshot.GamblePool != 230 ||
-		store.account.Chars[p.CharSlot].Gold != 9_000 {
+	if store.snapshot.GambleJackpot != 100_100 || store.snapshot.GamblePool != 30_200 ||
+		store.account.Chars[p.CharSlot].Gold != 1_000_000 {
 		t.Fatalf("persisted snapshot incomplete: instance=%+v gold=%d",
 			store.snapshot, store.account.Chars[p.CharSlot].Gold)
 	}
@@ -186,13 +204,22 @@ func TestGambleJackpotPaysAndResets(t *testing.T) {
 	w.gambleJackpot = 7_777
 	w.gamblePool = 1_000_000
 	result := gambleResults(stops)
-	wantPrize := uint32(gamblePrize(1_000, result) + 7_778)
+	wantPrize := uint32(gamblePrize(1_000, result) + 7_777)
 
 	w.onDoJackpotBet(p.Session, gambleBetPacket(2, 1_000))
 
 	if w.gambleJackpot != 0 || p.Char.Gold != 9_000+wantPrize {
 		t.Fatalf("jackpot state incorrect: jackpot=%d gold=%d wantGold=%d result=%v",
 			w.gambleJackpot, p.Char.Gold, 9_000+wantPrize, result)
+	}
+}
+
+func TestGambleJackpotOnlyGrowsOnLossAndCaps(t *testing.T) {
+	if got := gambleJackpotAfterSpin(333, 1_000_000, gambleOutcome{prize: 1_000_000}); got != 333 {
+		t.Fatalf("winning wager changed jackpot: %d", got)
+	}
+	if got := gambleJackpotAfterSpin(gambleJackpotMax-1, 1_000_000, gambleOutcome{}); got != gambleJackpotMax {
+		t.Fatalf("jackpot exceeded its cap: %d", got)
 	}
 }
 
@@ -207,7 +234,7 @@ func TestGambleRejectsInvalidRequestsAndUnavailableStore(t *testing.T) {
 		{"kind above range", gambleBetPacket(3, 1_000), 10_000},
 		{"bet below minimum", gambleBetPacket(1, 999), 10_000},
 		{"bet not multiple", gambleBetPacket(1, 1_500), 10_000},
-		{"bet above maximum", gambleBetPacket(1, 101_000), 200_000},
+		{"bet above maximum", gambleBetPacket(1, 1_001_000), 2_000_000},
 		{"insufficient gold", gambleBetPacket(1, 10_000), 9_999},
 	}
 	for _, tt := range tests {

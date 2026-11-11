@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 func hellGateRewardTestInstance(w *World, leader, member *Player, now time.Time) *ItemInstance {
@@ -61,6 +62,46 @@ func TestGrantHellGateExperienceIsAtomicAndExactlyOnce(t *testing.T) {
 	}
 	if st.saves != 1 {
 		t.Fatalf("repeated Hell Gate reward wrote again: %d saves", st.saves)
+	}
+}
+
+func TestPublishHellGateExperienceSkipsInvalidEntriesAndPublishesLevelAndAppearance(t *testing.T) {
+	w := newZoneTestWorld()
+	p := addZonePlayer(w, 1, 2100, 2100, 500)
+	before := p.Session.QueuedPacketsForTest()
+
+	publishHellGateExperience(w, []hellGateExperienceChange{
+		{},
+		{player: p, levels: 1, cytheraChanged: true},
+	})
+
+	if got := p.Session.QueuedPacketsForTest() - before; got != 6 {
+		t.Fatalf("level and appearance publication sent %d packets, want 6", got)
+	}
+	var packets [][]byte
+	for p.Session.QueuedPacketsForTest() > 0 {
+		packet, ok := p.Session.DequeuePacketForTest()
+		if !ok || !wire.Decrypt(packet) {
+			t.Fatal("invalid outbound packet")
+		}
+		packets = append(packets, packet)
+	}
+	wantTypes := map[uint16]int{
+		wire.OpSetHpMp:     1,
+		wire.OpUpdateScore: 1,
+		wire.OpCreateMob:   1,
+		wire.OpSendItem:    1,
+		wire.OpUpdateEquip: 1,
+		wire.OpUpdateEtc:   1,
+	}
+	for _, packet := range packets {
+		header := wire.ParseHeader(packet)
+		wantTypes[header.Type]--
+	}
+	for typ, remaining := range wantTypes {
+		if remaining != 0 {
+			t.Errorf("packet type %#x count mismatch: remaining=%d", typ, remaining)
+		}
 	}
 }
 
@@ -228,5 +269,39 @@ func TestQueueCriticalHellGateExperienceCommitsAccountsAndInstanceOnce(t *testin
 	}
 	if err := w.queueCriticalInstanceReward(inst, now); !errors.Is(err, errCriticalPersistenceIdentity) {
 		t.Fatalf("duplicate critical Hell Gate reward returned %v", err)
+	}
+}
+
+func TestQueueCriticalHellGateRewardPersistsExitWithoutOfflineAccountWrites(t *testing.T) {
+	w, leader, member, _, clock := instanceTestWorld()
+	inst := hellGateRewardTestInstance(w, leader, member, clock.Now())
+	claimCriticalTestPlayers(t, w, leader, member)
+	leader.InWorld, member.InWorld = false, false
+	leader.Session.Close()
+	member.Session.Close()
+
+	gate, release := criticalGate(t)
+	defer release()
+	base := &criticalTestStore{entered: make(chan criticalWrite, 1), release: gate}
+	backend := &criticalInstanceAtomicTestStore{&criticalInstanceTestStore{base}}
+	queue := newCriticalTestQueue(t, backend, 1, 2)
+	w.criticalWrites = newCriticalPersistenceOwner(queue)
+	leaderBefore, memberBefore := leader.Char.Exp, member.Char.Exp
+	now := clock.Now()
+	if err := w.queueCriticalInstanceReward(inst, now); err != nil {
+		t.Fatalf("offline Hell Gate reward admission failed: %v", err)
+	}
+	write := awaitCriticalWrite(t, base.entered)
+	if len(write.accounts) != 0 || len(write.instances.Instances) != 1 || !write.instances.Instances[0].RewardGranted ||
+		!write.instances.Instances[0].ExitAt.Equal(now.Add(10*time.Second)) || inst.RewardGranted {
+		t.Fatalf("offline reward proposal wrote accounts or lost the exit marker: %+v", write)
+	}
+
+	release()
+	awaitReadyCriticalResults(t, queue, 1)
+	w.processCriticalCompletions(1)
+	if !inst.RewardGranted || !inst.ExitAt.Equal(now.Add(10*time.Second)) ||
+		leader.Char.Exp != leaderBefore || member.Char.Exp != memberBefore {
+		t.Fatal("offline Hell Gate completion granted EXP or failed to install the exit marker")
 	}
 }

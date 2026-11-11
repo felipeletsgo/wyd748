@@ -1,10 +1,42 @@
 # Current project state
 
-Updated 2026-11-09 (São Paulo). Both channels require client revision 108.
+Updated 2026-11-11 (São Paulo). Both channels require client revision 111.
 
-## Active release 7.48.108
+## Active release 7.48.111
 
-Release `20261109T231129Z` runs on both game channels and the player API.
+Release `20261111T040102Z` runs on both game channels. Patch `48111` contains
+the updated `WYD.exe`. It removes legacy launcher replacement and uses HTTPS
+for guild mark downloads. Both channels reject revision 110 and send revision
+111 to credential validation. The public patch, portal, running executable hashes,
+channel readiness, and database backup passed verification.
+Windows Defender validation and real-client acceptance remain pending.
+The rollback release is `20261110T155851Z`.
+See the [release receipt](../.agents/research/release-748111-20261111.json).
+
+## Previous release 7.48.110
+
+Release `20261110T155851Z` ran on both game channels. Patch `48110` updates
+`WYD.exe` to show the active guard and its remaining time in the buff bar.
+Both channels reject revision 109 and send revision 110 to credential validation.
+Verified the public patch, portal, running executable hashes, and database backup.
+In-game visual acceptance remains pending. The rollback release is `20261110T144127Z`.
+See the [release receipt](../.agents/research/release-748110-20261110.json).
+
+## Previous release 7.48.109
+
+Release `20261110T144127Z` ran on both game channels. The launcher feed
+appended `48109 patch-48109.zip`. The portal advertised the verified patch.
+The patch contains `WYD.exe` and `Effect/cancel.wys`.
+
+Both channels reject revision 108 and send revision 109 to credential validation.
+Verified the running executable hashes, channel readiness, and database backup.
+Gameplay and real-client launcher extraction remain pending.
+The rollback release is `20261109T231129Z`.
+See the [release receipt](../.agents/research/release-748109-20261110.json).
+
+## Previous release 7.48.108
+
+Release `20261109T231129Z` ran on both game channels and the player API.
 The launcher feed appends `48108 patch-48108.zip`. The ten-file patch
 contains the executable and base, EN, and PT equipment and tooltip resources.
 
@@ -18,12 +50,40 @@ Gameplay and real-client launcher extraction remain pending.
 The rollback release is `20261109T160924Z`.
 See the [release receipt](../.agents/research/release-748108-20261109.json).
 
-The source build targets revision 109. The public launcher feed and live server
-admission use revision 108 until a new release is published and activated.
+## Gameplay changes in 7.48.109
+
+- [HP and MP recovery](SCORE.md#equipment-bonuses-from-wyd-kr) uses an
+  eight-second pulse with flat points. The KR equipment catalog shipped in
+  7.48.108.
+- [Tower war](guild-wars.md#default-schedule) warns at 21:00, opens at 21:05
+  and closes at 21:35, São Paulo time.
+- Left-click movement keeps the latest destination and displays a ground marker.
+- The Casino guide teleports to X4059 Y3998. Slots accept bets up to one million
+  gold and add 10% of a lost bet to the jackpot.
+
+### Guard contracts
+
+`EXTENSAO_COORDENADA`. Knight contract 436 summons Asder, the tank.
+Mage contract 438 summons Sophia, the Blood healer. Both guards last one hour.
+Archer contract 437 still summons an Archer Troop until the HT is implemented.
+Each player can have one contract summon. A new letter
+replaces it after the item write succeeds. Guard death, timeout, and owner
+departure remove the guard. The world owns each guard and its timer.
+
+The owner-only `0x3B9` snapshot keeps its 140-byte base. The 148-byte form
+adds two little-endian `uint32` durations in seconds at offsets 140 and 144.
+Order is Asder, then Sophia. Zero clears a timer. The base clears both.
+The client accepts durations from 0 to 3600 seconds.
+Other players receive the existing mob spawn, combat, and removal packets.
+
+The owner reported that 7.48.109 summons the guards but omits the buff icon.
+`MODERNIZACAO_COMPATIVEL`. Revision 110 routes the snapshot to the owner HUD.
+It counts down on local uptime and shows the guard name and `mm:ss` on hover.
+Visual acceptance remains pending.
 
 ## Previous release 7.48.107
 
-Release `20261109T160924Z` ran on both game channels before 7.48.108. The launcher feed ends with
+Release `20261109T160924Z` ran on both game channels before 7.48.108. The feed then ended with
 `48107 patch-48107.zip`. The patch contains `WYD.exe` and `sound/soundlist.txt`.
 
 The release restores summon and mount attack effects, ground-item pickup by
@@ -220,15 +280,17 @@ Local receipts remain in ignored `build/tmproject748-remediation-20261101/`,
 `build/guild-city-areas-20261101/`. The channel-list directory contains
 `owner-client-acceptance.json`. These earlier local records alone do not establish VPS activation;
 the November 2 release receipt records publication and activation.
-The latest correction receipt is `build/client-native-corrections-20261102/REPORT.md`.
+The November 2 native correction receipt is `build/client-native-corrections-20261102/REPORT.md`.
 The earlier item-use and quoted-sale receipt remains in
 `build/client-pending-corrections-20261102/REPORT.md`.
 The November 2 news draft remains in `build/release-748018/news-draft.md`; it was not published. The 7.48.101 draft is `build/release-748101-20261107/news-draft.md`; it also awaits owner review.
 
 ## Rollback and operations
 
-The active release rollback target is `/srv/wyd-go/releases/20261108T150126Z`, recorded in the [BM activation receipt](../.agents/research/release-bm-summoner-20261108.json). It enforces minimum client revision 103. The published patch feed is append-only; do not lower or reuse a revision. Older process-mode rollback notes belong to the dated release history.
-These are recorded options, not authorization to change services.
+Use the rollback target in the [active release record](#active-release-748111).
+Verify the current feed, admission minimum, and running releases before
+rollback. Preserve the append-only feed and obtain authority before changing
+services. Older rollback records remain in the dated release history.
 Use [server operations](server/operations.md), [public deployment](server/public-launch.md) and the release skill for authorized work.
 
 ## Historical records

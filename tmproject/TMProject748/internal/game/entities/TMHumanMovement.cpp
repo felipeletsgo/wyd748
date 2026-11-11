@@ -5,6 +5,8 @@
 #include "TMEffectSkinMesh.h"
 #include "HumanAnglePolicy.h"
 #include "HumanMovementPolicy.h"
+#include "EntitySafetyPolicy.h"
+#include "FieldActionPolicy.h"
 #include "TMFieldScene.h"
 #include "TMUtil.h"
 #include "TMObjectContainer.h"
@@ -12,6 +14,7 @@
 void TMHuman::InitPosition(float fX, float fY, float fZ)
 {
     m_pendingMoveTarget.Clear();
+    ClearGroundMoveTarget();
     if (m_dwDelayDel != 0)
         return;
 
@@ -135,8 +138,67 @@ void TMHuman::SetWantAngle(float fAngle)
     m_fMoveToAngle = m_fAngle;
 }
 
-void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
+void TMHuman::SetGroundMoveTarget(IVector2 target)
 {
+    m_pendingMoveTarget.Clear();
+    if (m_groundMovePending && m_groundMoveTarget.x == target.x && m_groundMoveTarget.y == target.y)
+        return;
+    m_groundMoveTarget = target;
+    m_groundMovePending = true;
+    m_groundMoveRetarget = true;
+}
+
+void TMHuman::ClearGroundMoveTarget()
+{
+    m_groundMovePending = false;
+}
+
+void TMHuman::UpdateGroundMove(unsigned int now)
+{
+    if (!m_groundMovePending)
+        return;
+
+    const auto* scene = static_cast<TMFieldScene*>(g_pCurrentScene);
+    if (m_cDie || m_cCantMove || m_cSameHeight ||
+        m_pMoveTargetHuman || m_pMoveSkillTargetHuman || scene->m_pTargetItem ||
+        scene->m_bAutoRun || scene->m_stAutoTrade.TargetID == m_dwID ||
+        field_action::AirMoveBlocksAutoRun(scene->m_bAirMove != 0, scene->m_nAirMove_State))
+    {
+        ClearGroundMoveTarget();
+        return;
+    }
+
+    const auto target = m_groundMoveTarget;
+    const bool atDestination = static_cast<int>(m_vecPosition.x) == target.x &&
+        static_cast<int>(m_vecPosition.y) == target.y;
+    if (!m_bMoveing && atDestination)
+    {
+        ClearGroundMoveTarget();
+        return;
+    }
+
+    const bool reachesDestination = m_vecTargetPos.x == target.x && m_vecTargetPos.y == target.y;
+    if (!ground_route::MayReplan(m_bMoveing != 0, m_fProgressRate, m_groundMoveRetarget,
+        m_nLastRouteIndex >= m_nMaxRouteIndex - 1, reachesDestination))
+        return;
+
+    if ((!m_dwOldMovePacketTime ||
+         human_timer::Elapsed(now, m_dwOldMovePacketTime, client_send_cadence::GroundActionInterval)) &&
+        !GetRoute(target, 0, 0, true))
+        ClearGroundMoveTarget();
+}
+
+bool TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop, bool groundMove)
+{
+    if (!g_pCurrentScene)
+        return false;
+    const bool localField = this == g_pCurrentScene->m_pMyHuman &&
+        g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD;
+    if (groundMove && !localField)
+        return false;
+    if (localField && !groundMove)
+        ClearGroundMoveTarget();
+
     if (g_pCurrentScene && this == g_pCurrentScene->m_pMyHuman &&
         (bStop == 2 || (vecTarget.x == m_LastSendTargetPos.x && vecTarget.y == m_LastSendTargetPos.y)))
         m_pendingMoveTarget.Clear();
@@ -147,6 +209,8 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
             nStartRouteIndex = m_nLastRouteIndex + 1;
         int nSX = (int)m_vecRouteBuffer[nStartRouteIndex].x;
         int nSY = (int)m_vecRouteBuffer[nStartRouteIndex].y;
+        const unsigned int actionInterval = groundMove ? client_send_cadence::GroundActionInterval :
+            client_send_cadence::LegacyActionInterval;
         unsigned int dwDealyTime = 1000;
         unsigned int dwServerTime = g_pTimerManager->GetServerTime();
 
@@ -171,17 +235,15 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
             && transition_gate::HasElapsed(dwTime, pFScene->m_dwLastTown, 6000)
             && transition_gate::HasElapsed(dwTime, pFScene->m_dwLastTeleport, 6000))))
         {
-            const bool localField = this == g_pCurrentScene->m_pMyHuman &&
-                g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD;
-            if (localField && bStop != 2 && dwServerTime - m_dwOldMovePacketTime <= 1000)
+            if (localField && bStop != 2 && m_dwOldMovePacketTime &&
+                !human_timer::Elapsed(dwServerTime, m_dwOldMovePacketTime, actionInterval))
             {
-                    // Native FUN_00520216 has a one-second send gate. Keep
-                    // the latest intent until that gate opens; never apply
-                    // a local route which the authoritative server did not get.
-                m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
-                return;
+                // Ground input owns its destination across segments.
+                if (!groundMove)
+                    m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
+                return true;
             }
-            if (dwServerTime - m_dwOldMovePacketTime > dwDealyTime || bStop)
+            if (groundMove || dwServerTime - m_dwOldMovePacketTime > dwDealyTime || bStop)
             {
                 if (localField) m_pendingMoveTarget.Clear();
                 char* pHeightMapData = (char*)g_pCurrentScene->m_HeightMapData;
@@ -251,7 +313,7 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                                     if (!SendOneMessage(reinterpret_cast<char*>(&dst), sizeof(dst)))
                                     {
                                         m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
-                                        return;
+                                        return true;
                                     }
                                     pFScene->m_stMoveStop.LastX = dst.PosX;
                                     pFScene->m_stMoveStop.LastY = dst.PosY;
@@ -307,6 +369,12 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                         vecTarget.x = (int)vecRouteTable[nRouteIndex].x;
                         vecTarget.y = (int)vecRouteTable[nRouteIndex].y;
 
+                        if (groundMove &&
+                            ((m_LastSendTargetPos.x == vecTarget.x && m_LastSendTargetPos.y == vecTarget.y) ||
+                             (std::max)(abs(nTX - vecTarget.x), abs(nTY - vecTarget.y)) >=
+                             (std::max)(abs(nTX - nSX), abs(nTY - nSY))))
+                            return false;
+
                         for (int k = nRouteIndex + 1; k < 48; ++k)
                         {
                             vecRouteTable[k].x = 0.0f;
@@ -342,13 +410,14 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                                 if (g_pCurrentScene->m_pMyHuman == this
                                     && g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_SELECT_SERVER
                                     && g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_DEMO
-                                    && dwServerTime - m_dwOldMovePacketTime > 1000
+                                    && (localField || dwServerTime - m_dwOldMovePacketTime > actionInterval)
                                     && bStop != 2)
                                 {
-                                    if (!SendOneMessage(reinterpret_cast<char*>(&stAction), sizeof(stAction)))
+                                    if (!SendOneMessage(reinterpret_cast<char*>(&stAction), sizeof(stAction), actionInterval))
                                     {
-                                        m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
-                                        return;
+                                        if (!groundMove)
+                                            m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
+                                        return true;
                                     }
                                     pFScene->m_stMoveStop.LastX = stAction.PosX;
                                     pFScene->m_stMoveStop.LastY = stAction.PosY;
@@ -365,14 +434,25 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                             memset(m_cRouteBuffer, 0, sizeof(m_cRouteBuffer));
                             memcpy(m_cRouteBuffer, cRouteBuffer, nRouteIndex);
                             if (localField) pFScene->m_vecMyNext = vecTarget;
+                            if (groundMove) m_cOnlyMove = 0;
                             OnPacketEvent(MSG_Action_Opcode, (char*)&stAction);
-                            return;
+                            if (groundMove)
+                            {
+                                // The route table pads with copies of its endpoint.
+                                // End the segment at its last real step.
+                                m_nMaxRouteIndex = static_cast<int>(strlen(stAction.Route));
+                                m_nLastRouteIndex = 0;
+                                m_fProgressRate = 0.0f;
+                                m_groundMoveRetarget = false;
+                            }
+                            return true;
                         }
                     }
                 }
             }
         }
     }
+    return false;
 }
 
 void TMHuman::GenerateRouteTable(int nSX, int nSY, char* pRouteBuffer, TMVector2* pRouteTable, int* pMaxRouteIndex)

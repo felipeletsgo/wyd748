@@ -260,11 +260,41 @@ func MobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
 
 func HpMp(id uint16, score *model.Score) []byte { return SetHpMp(id, score) }
 
+// AuraOfLifeRecovery carries authoritative HP and the calculated heal for the
+// floating number. The display field is limited to a positive signed WORD.
+func AuraOfLifeRecovery(id uint16, hp, displayedHeal uint32) []byte {
+	b := Build(OpSetHpDam, id, 20)
+	putU32(b, 12, hp)
+	putU16(b, 16, uint16(min(displayedHeal, 32767)))
+	return b
+}
+
 func UpdateAffects(id uint16, ch model.Char) []byte {
-	// The 7.48 handler proves Header(12) + 16 eight-byte records. Level/Value
-	// follow the STRUCT_AFFECT coordinated with this source client.
-	b := Build(OpUpdateAffect, id, 140)
-	putSourceAffects(b, 12, ch.Affects[:], time.Now())
+	return UpdateAffectsWithGuardsAt(id, ch.Affects[:], [2]time.Time{}, time.Now())
+}
+
+// UpdateAffectsWithGuardsAt extends the private 140-byte snapshot with two
+// little-endian uint32 durations in seconds, ordered Asder then Sophia.
+// The base layout also clears both guard timers. No timer is persisted.
+func UpdateAffectsWithGuardsAt(id uint16, affects []model.Affect, guards [2]time.Time, now time.Time) []byte {
+	const baseSize = 140
+	var seconds [2]uint32
+	for i, expiry := range guards {
+		remaining := min(time.Hour, expiry.Sub(now))
+		if remaining > 0 {
+			seconds[i] = uint32((remaining + time.Second - 1) / time.Second)
+		}
+	}
+	size := baseSize
+	if seconds != [2]uint32{} {
+		size += 8
+	}
+	b := Build(OpUpdateAffect, id, size)
+	putSourceAffects(b, 12, affects, now)
+	if size != baseSize {
+		putU32(b, baseSize, seconds[0])
+		putU32(b, baseSize+4, seconds[1])
+	}
 	return b
 }
 

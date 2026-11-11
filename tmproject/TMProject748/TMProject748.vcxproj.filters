@@ -1447,9 +1447,6 @@
     <ClInclude Include="internal\core\ServerStatus.h">
       <Filter>Header Files\Engine\Core</Filter>
     </ClInclude>
-    <ClInclude Include="internal\platform\windows\AdapterIdentity.h">
-      <Filter>Header Files\Internal\Platform</Filter>
-    </ClInclude>
     <ClInclude Include="internal\render\mesh\DyePixelShader.h">
       <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>

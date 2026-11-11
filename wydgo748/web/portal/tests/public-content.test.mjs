@@ -29,9 +29,9 @@ test('public content ships real static routes with valid internal links and no i
 });
 test('download receipt preserves the native launcher and unpublished news', () => {
   const receipt = JSON.parse(html('client-manifest.json'));
-  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.108');
-  assert.equal(receipt.feedVersion, 48108);
-  assert.equal(receipt.patch.url, '/patch/patch-48108.zip');
+  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.111');
+  assert.equal(receipt.feedVersion, 48111);
+  assert.equal(receipt.patch.url, '/patch/patch-48111.zip');
   assert.equal(receipt.fullClient.clientVersion, '7.48.100');
   assert.equal(receipt.updateFeed, '/patch/update.htm');
   assert.equal(receipt.fullClient.sha256, '7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66');
@@ -59,6 +59,9 @@ test('download receipt preserves the native launcher and unpublished news', () =
   assert.match(html('changelog/index.html'), /Server update — fewer disconnects/);
   assert.ok(html('changelog/index.html').includes(receipt.clientVersion));
   assert.match(html('news/index.html'), /client-7-48-108/);
+  assert.match(html('news/client-7-48-109/index.html'), /Asder.*Sophia/s);
+  assert.match(html('news/client-7-48-110/index.html'), /Asder.*Sophia/s);
+  assert.match(html('news/client-7-48-111/index.html'), /HTTPS/);
   assert.equal(existsSync(resolve(dist, 'news/client-7-48-018/index.html')), false, 'review draft must not be published');
   assert.equal(html('news/index.html').includes('client-7-48-018'), false);
   assert.match(html('roadmap/index.html'), /Planned/);

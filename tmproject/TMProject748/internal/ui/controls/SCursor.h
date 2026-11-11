@@ -34,4 +34,7 @@ public:
     static int m_nCursorType;
     static HCURSOR m_hCursor1;
     static HCURSOR m_hCursor2;
+
+private:
+    float m_fAttachedMeshScale = 1.0f;
 };

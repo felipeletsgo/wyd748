@@ -136,3 +136,28 @@ func TestInstancesViewCopiesState(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestInstancesReadUsesWorldQueue(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.commands = make(chan command, 1)
+	w.itemInstances = map[string]*ItemInstance{
+		"room": {RuntimeID: "room", Config: model.VolatileInstance{ID: "room-config", Name: "Room"}, MemberIDs: []uint16{p.ID}},
+	}
+	type result struct {
+		view control.InstancesView
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		view, err := w.Instances(context.Background())
+		done <- result{view: view, err: err}
+	}()
+	w.handle(<-w.commands)
+	got := <-done
+	if got.err != nil || len(got.view.Instances) != 1 || got.view.Instances[0].RuntimeID != "room" {
+		t.Fatalf("instances view=%+v err=%v", got.view, got.err)
+	}
+	if w.controlPending.Load() {
+		t.Fatal("world read gate remained held after the request")
+	}
+}

@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 2,
   // Owner-selected full-client baseline; subsequent patches start at 48101.
-  clientVersion: '7.48.108',
-  feedVersion: 48108,
-  publishedAt: '2026-11-09' as string | null,
+  clientVersion: '7.48.111',
+  feedVersion: 48111,
+  publishedAt: '2026-11-11' as string | null,
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -16,10 +16,10 @@ export const clientRelease = {
     sha256: '7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66' as string | null,
   },
   patch: {
-    url: '/patch/patch-48108.zip',
-    sizeBytes: 1127703,
-    sha256: 'eca7114a11bdc57371652829f94f51737c106a255abe5c238e4abc0b6aea8431',
-    executableSha256: '43141E0B164EC100AB178362D50F9EF063794BE0B9AFD2C4DD393A43F300FC0D',
+    url: '/patch/patch-48111.zip',
+    sizeBytes: 930772,
+    sha256: 'df7eabe342a9cbbd3a00fba05de2ba5524a7564001ab6d006505fe0f2e68b04b',
+    executableSha256: '633CE35D888E9D9822B4B129F681CB33410616686A1F2E75889ACEF8E6507E2D',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -29,6 +29,22 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-11-11', category: 'Client and server', title: 'Client 7.48.111 — client update', entries: [
+    'Download guild emblems over HTTPS and reject incomplete images.',
+    'Baixa os emblemas de guilda por HTTPS e rejeita imagens incompletas.',
+  ] },
+  { date: '2026-11-10', category: 'Client and server', title: 'Client 7.48.110 — guard buff timers', entries: [
+    'See Asder or Sophia at the start of the active buff bar. Hover over the icon for the remaining time.',
+    'Veja Asder ou Sophia no início da barra de buffs. Passe o mouse sobre o ícone para consultar o tempo restante.',
+  ] },
+  { date: '2026-11-10', category: 'Client and server', title: 'Client 7.48.109 — movement, guards and Casino', entries: [
+    'Improve click-to-move routes and show a marker when the client accepts a ground click.',
+    'Choose Asder or Sophia as a guard for one hour. The buff bar shows the remaining time.',
+    'Use the new Casino guide. The slot machine accepts bets up to one million gold and adds 10% of a lost bet to the jackpot.',
+    'Melhora as rotas de movimento por clique e mostra um marcador quando o cliente aceita um clique no chão.',
+    'Escolha Asder ou Sophia como guarda por uma hora. A barra de buffs mostra o tempo restante.',
+    'Use o novo guia do Cassino. O caça-níquel aceita apostas de até um milhão de gold e destina 10% das apostas perdidas ao prêmio.',
+  ] },
   { date: '2026-11-09', category: 'Client and server', title: 'Client 7.48.108 — progression, equipment and PvP', entries: [
     'Correct class attributes, progression points, mastery limits and Celestial and SubCelestial unlocks.',
     'Align equipment, mount and Angel bonuses with the Korean catalog. Correct excessive mana recovery from equipment.',

@@ -31,3 +31,13 @@ func TestPercentRollUsesOneToHundredInclusive(t *testing.T) {
 		})
 	}
 }
+
+func TestPercentRollNamedMessage(t *testing.T) {
+	roll := percentRoll{Roll: 12, Chance: 30, Success: true}
+	if got := roll.namedMessage(""); got != "Success: 12/30" {
+		t.Fatalf("unnamed message=%q", got)
+	}
+	if got := roll.namedMessage("Upgrade"); got != "Upgrade Success: 12/30" {
+		t.Fatalf("named message=%q", got)
+	}
+}

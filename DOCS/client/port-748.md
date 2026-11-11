@@ -14,20 +14,20 @@ avoid replacing an older `WYD.exe`; earlier records use that name. With
 updated; the installed executable remains unchanged. Historical executables
 and patchers are not fallbacks, products, or validation gates.
 
-Client revision 103 is installed locally, published as patch 48103, and active
-with server minimum revision 103. The adapted source includes the drop-list
-query/result path and the versioned sale quote. Earlier statements in this
-document about an unpublished candidate or absent drop-list packets are superseded.
+The adapted source includes the drop-list query/result path and the
+versioned sale quote. Revision 103 shipped the drop-list layout correction.
+Use [current state](../current-state.md) for the source revision, published
+patch, live server minimum, and validation status.
 Repurchase and numeric AccountLock remain unsupported; war letters, alternate
 mix, and account transfer are not implemented end to end. See the
 [opcode catalog](../wire-opcode-catalog.md#retired-and-incomplete-legacy-paths)
-and the [current release record](../client/launcher.md#active-release-748103-2026-11-08).
+and the [revision 103 receipt](../../.agents/research/release-748103-20261108.json).
 
 ### Eight native-source corrections (2026-11-02)
 
 Classification: `MODERNIZACAO_COMPATIVEL`. Packet layouts remain unchanged.
-These corrections shipped in revision 18, were retained in baseline 7.48.100,
-and remain in the current revision 103. Existing coordinated skill-book and MagicAttack policies remain.
+These corrections shipped in revision 18 and carried forward into baseline
+7.48.100. Existing coordinated skill-book and MagicAttack policies remain.
 Native 7.59 TMSRVIN supplies server arithmetic; it does not establish 7.48 parity.
 Core.dll evidence was consulted without resolving an independent gameplay root.
 Native receipts remain under `references/decompilacao server/dlls/rea-analysis/results/audit-eight-corrections-20261102/`.
@@ -60,9 +60,9 @@ now have tested source corrections. See BUG-012–BUG-015 in the
 [bug register](../bug-register.md#queue). New gameplay acceptance remains pending.
 Evidence: `tmproject/build/mount-crash-20261102/REPORT.md`.
 The owner authorized local installation on November 2; the installed hash matches the validated build.
-Patch 48018 and server release `20261102T233404Z` were published and active at that time. Release 7.48.103 is now active.
-The prepared native-launcher baseline 7.48.100 includes these corrections.
-The baseline was later published and activated; the current client and server minimum are revision 103.
+Patch 48018 and server release `20261102T233404Z` were published and active at
+that time. The subsequent native-launcher baseline 7.48.100 includes these
+corrections.
 The alternative source launcher was removed at the owner's request; see
 the [retirement receipt](../../.agents/research/native-launcher-retirement-20261102.json).
 See the [release receipt](../../.agents/research/release-748018.json).
@@ -184,7 +184,7 @@ special scenarios on the installed Release candidate. The receipt is
 `build/tmproject748-channel-list-20261101/owner-client-acceptance.json`.
 This is owner-reported client acceptance, not closure of every native evidence,
 measurement or partial-contract limit below. See the
-[current state](../current-state.md#local-candidate-after-r5) for local versus
+[November 2 baseline and local-client history](../current-state.md#november-2-baseline-and-local-client-history) for local versus
 published status.
 
 ## Recent integrated contracts and validation limits
@@ -217,6 +217,73 @@ agent-executed test, an exhaustive acceptance matrix, or a reason to promote
 unexercised catalog entries to `CLIENT_TESTED`. The sections below retain the
 limits of each proven flow; unresolved sale policy, legacy opcode and asset
 evidence must not be closed merely because the general session looked correct.
+
+### October 7 field compatibility follow-up
+
+Reviewed on 2026-11-09. `83a94da7` removed the legacy field initializer,
+input branch, and frame branch. The parent already used the compact branches
+with `FieldScene2`. The legacy bodies prove available source, but do not
+prove the effects appeared in a prior 7.48 build.
+
+| Flow | Removed legacy behavior | Restored source |
+| --- | --- | --- |
+| Ground click | Create, place, and animate the three marker effects | `PARIDADE_NATIVA`. Reuse meshes 316/317 and texture 232 for ground movement. [Native trace](../../.agents/research/client748/flows/movement/ground-click-marker.md) |
+| Ground route | Keep retrying the clicked destination | `MODERNIZACAO_COMPATIVEL`. Keep the latest click, continue at the last real step, and apply routes after send admission. [7.48 and KR traces](../../.agents/research/client748/flows/movement/deferred-route-intent.md) |
+| Zone music | Select the music track on entering a town or region | `PARIDADE_NATIVA`. Use the town, field, dungeon, and castle rules from `FUN_004776C3` with the existing BGM graph. |
+| Flash, skill 26 | Animate the full-screen fade panel | `MODERNIZACAO_COMPATIVEL`. Keep the black tint from the removed client code. Use the 10% and 90% timing points from `FUN_004776C3`. |
+| Kefra death | Advance the timed thunder, dust, and final poison effects | `PARIDADE_NATIVA`. Tick the nine bursts from `FUN_0047E49D` in the loaded boss room. The portal uses a [separate state contract](../protocol/kefra-portal.md). |
+
+`0x291` was removed with the old zone tick. Go binds the hometown from
+confirmed position. The missing client send does not disable hometown binding.
+The 2026-11-10 static follow-up traced the removed ambient branches in native
+`FUN_004776C3`. The current field tick has no equivalent for these triggers:
+
+- Sound 341, `Kheprafx.wav`, starts in dungeon sector `(18, 30)` and stops
+  on exit. The active audio file matches the native file.
+- The desert wind uses sound 304 and texture 193. Wind in the exposed snow
+  region uses sound 304 and texture 422.
+- A separate desert emitter sends eight moving pappus meshes per cycle,
+  about every two seconds. The native tick calls `FUN_004E7610` with type 3.
+  `TMSkillMagicArrow` still supports type 3 and mesh 505
+  (`Effect/pappus.msa`), but the field no longer calls it.
+- The outdoor tick emits floating pappus with texture 95. Sectors `(29, 22)`
+  and `(30, 22)` use texture 2 for that emitter.
+- At night or during the transition to night, the field emits paired
+  particles with textures 56 and 60 outside the snow region. The current
+  field weather path has no clock-driven transition to dusk or night.
+  Restore that trigger before relying on the native night states.
+
+The seven effect files above match the stock Portuguese files by SHA-256.
+Rain, snow, terrain lava and map-object dust still have separate emitters.
+Preserve those paths and the existing graphics settings.
+
+The native desert bounds are X `8..12` and Y `11..14`. In
+`TMGround::SetPos`, the upper X check compares Y to 12. Correct the bounds
+before restoring the desert triggers. Verify entry and exit, scene changes,
+and effect and sound settings in the game.
+
+The current source has separate implementations for the quest countdown,
+quiz event, premium firework, and drop list. The removed Mission panel lacked
+7.48 resources. The deleted AutoKick stub did not apply any filter, and Go
+does not send its opcode. These removals do not establish current regressions.
+
+Scope: field initializer, input, frame, and removed field entry points. The
+review compared the parent, commit, current source, and cached native 7.48
+exports. It did not cover every change in the commit. In-game acceptance is pending.
+
+### Continuous ground clicks at short range
+
+On 2026-11-11, the ground-click route adopted a 100 ms send interval.
+At speed 7, a two-tile route takes about 284 ms. The prior one-second
+interval could hold the next intent until well after the route ended.
+The field still plans near a step boundary. It retains the latest target
+and applies the route after the socket queue accepts it. Repeated samples
+of the same tile do not request a fresh replan.
+
+This is a compatible modernization of the existing 52-byte `0x366`
+contract. The server validates the route and advances authoritative
+steps at the character's speed. In-game verification of held ground clicks
+at two and three tiles remains pending.
 
 ## Memory safety and crash capture, 2026-10-17
 

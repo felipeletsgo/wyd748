@@ -61,6 +61,11 @@
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(ProjectDir)Dependencies\Directx\Lib</LibraryPath>
     <TargetName>WYD</TargetName>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(WydEnableD3dVtableTracing)'=='true'">
+    <OutDir>$(SolutionDir)build\TMProject748\$(Configuration)-PerfTrace\</OutDir>
+    <IntDir>$(SolutionDir)build\obj\TMProject748\$(Configuration)-PerfTrace\</IntDir>
+    <TargetName>WYD-PerfTrace</TargetName>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -162,7 +167,6 @@
     <ClInclude Include="internal\core\ServerChannelLabel.h" />
     <ClInclude Include="internal\core\ServerListAsset.h" />
     <ClInclude Include="internal\core\ServerStatus.h" />
-    <ClInclude Include="internal\platform\windows\AdapterIdentity.h" />
     <ClInclude Include="internal\render\mesh\DyePixelShader.h" />
     <ClInclude Include="internal\render\mesh\DyeTextureStages.h" />
     <ClInclude Include="internal\render\mesh\EffectVertexColor.h" />
@@ -433,7 +437,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="internal\platform\diagnostics\ClientDiagnostics.cpp" />
-    <ClCompile Include="internal\platform\diagnostics\PerfTrace.cpp" />
+    <ClCompile Include="internal\platform\diagnostics\PerfTrace.cpp">
+      <PreprocessorDefinitions Condition="'$(WydEnableD3dVtableTracing)'=='true'">WYD_ENABLE_D3D_VTABLE_TRACING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="internal\core\WYD748Assets.cpp" />
     <ClCompile Include="internal\core\WYD748Compat.cpp" />
     <ClCompile Include="internal\core\Basedef.cpp" />

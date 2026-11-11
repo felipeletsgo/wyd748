@@ -85,9 +85,6 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case MSG_UpdateEquip_Opcode:
         return OnPacketUpdateEquip((MSG_STANDARD*)buf);
         break;
-    case MSG_UpdateAffect_Opcode:
-        return OnPacketUpdateAffect((MSG_STANDARD*)buf);
-        break;
     case MSG_UpdateScore_Opcode:
         return OnPacketUpdateScore((MSG_STANDARD*)buf);
         break;
@@ -1248,8 +1245,11 @@ int TMHuman::OnPacketUpdateAffect(MSG_STANDARD* pStd)
 
         unsigned int dwServerTime = g_pTimerManager->GetServerTime();
 
-        // Opcode 0x3B9 is the native 7.48 16-entry icon/timer snapshot.  Use
-        // the packet member count so this handler cannot read a newer ABI tail.
+        if (!ReadGuardTimers(pStd, pStd->Size, pFScene->m_guardTimers))
+            return 0;
+        pFScene->m_guardTimerSync = GetTickCount64();
+
+        // The native array remains separate from the owner-only guard timers.
         for (int i = 0; i < _countof(pUpdateAffect->Affect); ++i)
         {
             if ((8 * pUpdateAffect->Affect[i].Time - 8 - (dwServerTime - pFScene->m_dwStartAffectTime[i]) / 1000) / 8 != pUpdateAffect->Affect[i].Time
@@ -1685,8 +1685,23 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
     if (g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
         return 1;
 
+    auto pScene = g_pCurrentScene;
+    if (m_cAurora == 1 && !m_cDie && pSetHpDam->Hp > 0 && pSetHpDam->Dam >= 0)
+    {
+        if (pScene->m_pEffectContainer && !g_bHideEffect &&
+            !effect_visibility::HidesActorEffects(m_cHide, m_cShadow, pScene->m_pMyHuman == this) &&
+            !effect_visibility::HidesBuffEffects(g_bHideSkillBuffEffect, g_bHideSkillBuffEffect2))
+        {
+            const TMVector3 position{ m_vecPosition.x, m_fHeight + ground_buff_visual::Lift, m_vecPosition.y };
+            pScene->m_pEffectContainer->AddChild(new TMEffectStart(position, 2, nullptr));
+        }
+        if (pSetHpDam->Dam == 0 && pSetHpDam->Hp == m_stScore.CurHP)
+            return 1;
+    }
+
     m_stScore.CurHP = pSetHpDam->Hp;
-    m_pProgressBar->SetCurrentProgress(pSetHpDam->Hp);
+    if (m_pProgressBar)
+        m_pProgressBar->SetCurrentProgress(pSetHpDam->Hp);
 
     TMFont3* pFont = nullptr;
     unsigned int dwColor = 0xFFFFFF00;
@@ -1747,8 +1762,6 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
             }
         }
     }
-
-    auto pScene = g_pCurrentScene;
 
     BASE_Get3DTo2DPos(m_vecPosition.x, m_fHeight + 1.0f, m_vecPosition.y, &nTX, &nTY);
     if (pFont)

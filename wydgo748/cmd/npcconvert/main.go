@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -270,13 +271,28 @@ func safeFileName(name string) string {
 }
 
 func main() {
-	in := flag.String("in", "", "input directory containing binary mob records (required)")
-	out := flag.String("out", "", "separate candidate JSON output directory (required)")
-	only := flag.String("only", "", "comma-separated exact input filenames; fail if any selected record cannot be converted")
-	flag.Parse()
-	if strings.TrimSpace(*in) == "" || strings.TrimSpace(*out) == "" {
-		log.Fatal("provide -in and -out explicitly")
+	if err := runWithFlagMode(os.Args[1:], os.Stdout, os.Stderr, flag.ExitOnError); err != nil {
+		log.Fatal(err)
 	}
+}
+
+func run(args []string, stdout, stderr io.Writer) error {
+	return runWithFlagMode(args, stdout, stderr, flag.ContinueOnError)
+}
+
+func runWithFlagMode(args []string, stdout, stderr io.Writer, mode flag.ErrorHandling) error {
+	flags := flag.NewFlagSet("npcconvert", mode)
+	flags.SetOutput(stderr)
+	in := flags.String("in", "", "input directory containing binary mob records (required)")
+	out := flags.String("out", "", "separate candidate JSON output directory (required)")
+	only := flags.String("only", "", "comma-separated exact input filenames; fail if any selected record cannot be converted")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*in) == "" || strings.TrimSpace(*out) == "" {
+		return fmt.Errorf("provide -in and -out explicitly")
+	}
+	logger := log.New(stderr, "", log.LstdFlags)
 	selected := make(map[string]bool)
 	if *only != "" {
 		for _, name := range strings.Split(*only, ",") {
@@ -286,10 +302,10 @@ func main() {
 
 	entries, err := os.ReadDir(*in)
 	if err != nil {
-		log.Fatalf("read input directory %s: %v", *in, err)
+		return fmt.Errorf("read input directory %s: %w", *in, err)
 	}
 	if err := os.MkdirAll(*out, 0o755); err != nil {
-		log.Fatalf("create output directory %s: %v", *out, err)
+		return fmt.Errorf("create output directory %s: %w", *out, err)
 	}
 
 	converted, skipped := 0, 0
@@ -311,13 +327,13 @@ func main() {
 		path := filepath.Join(*in, name)
 		b, err := os.ReadFile(path)
 		if err != nil {
-			log.Printf("SKIP %s: %v", name, err)
+			logger.Printf("SKIP %s: %v", name, err)
 			skipped++
 			continue
 		}
 		def, convertedReport, err := decodeNPC(name, b)
 		if err != nil {
-			log.Printf("SKIP %s: %v", name, err)
+			logger.Printf("SKIP %s: %v", name, err)
 			skipped++
 			continue
 		}
@@ -328,13 +344,13 @@ func main() {
 
 		data, err := json.MarshalIndent(def, "", "  ")
 		if err != nil {
-			log.Printf("SKIP %s: marshal: %v", name, err)
+			logger.Printf("SKIP %s: marshal: %v", name, err)
 			skipped++
 			continue
 		}
 		dst := filepath.Join(*out, safeFileName(name)+".json")
 		if err := os.WriteFile(dst, append(data, '\n'), 0o644); err != nil {
-			log.Printf("SKIP %s: write: %v", name, err)
+			logger.Printf("SKIP %s: write: %v", name, err)
 			skipped++
 			continue
 		}
@@ -343,17 +359,18 @@ func main() {
 			selected[name] = true
 		}
 	}
-	fmt.Printf("converted=%d (monster=%d npc=%d) skipped=%d -> %s\n",
+	fmt.Fprintf(stdout, "converted=%d (monster=%d npc=%d) skipped=%d -> %s\n",
 		converted, names[model.TipoMonstro], names[model.TipoNPC], skipped, *out)
 	if report.invalidItems > 0 {
-		fmt.Printf("removed invalid item indexes=%d (ItemList limit=%d)\n",
+		fmt.Fprintf(stdout, "removed invalid item indexes=%d (ItemList limit=%d)\n",
 			report.invalidItems, model.ItemListSize)
 	}
-	fmt.Printf("cleared corrupt legacy rewards: gold=%d exp=%d\n",
+	fmt.Fprintf(stdout, "cleared corrupt legacy rewards: gold=%d exp=%d\n",
 		report.discardedGold, report.discardedExp)
 	for name, done := range selected {
 		if !done {
-			log.Fatalf("selected record %q was not converted", name)
+			return fmt.Errorf("selected record %q was not converted", name)
 		}
 	}
+	return nil
 }

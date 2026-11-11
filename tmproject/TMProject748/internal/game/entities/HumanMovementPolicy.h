@@ -18,6 +18,19 @@ namespace transition_gate
     }
 }
 
+namespace ground_route
+{
+    constexpr bool MayReplan(bool moving, float progress, bool newClick,
+        bool lastStep, bool segmentReachesDestination)
+    {
+        if (!moving)
+            return true;
+        if (segmentReachesDestination || (!newClick && !lastStep))
+            return false;
+        return progress == 0.0f || progress >= 0.9f;
+    }
+}
+
 namespace route_bridge
 {
     constexpr int kRouteCells = 48;

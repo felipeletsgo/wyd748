@@ -84,6 +84,14 @@ Missing references fail initialization with their content path. Display text and
 other metadata never select templates. See [live NPC management](../protocol/npc-definitions.md)
 for channel scopes and the PostgreSQL editing contract.
 
+## Guard summon letters
+
+The Esther letter (3972) uses an item rule in `content/volatiles.json`.
+The guard draws nearby idle monsters and monsters targeting its owner.
+It takes their attacks while it stays near its owner in the same runtime.
+Scripted bosses and protected encounters keep their own targeting.
+This behavior is a `MODERNIZACAO_COMPATIVEL` that uses the current item and combat packets.
+
 ## Consumers outside the game server
 
 - `cmd/web-export` and `internal/webcatalog` read `catalog/` and

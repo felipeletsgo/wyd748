@@ -14,6 +14,12 @@ type homeCityStore struct {
 	saved *model.Account
 }
 
+func TestPlayerHomeCityDefaultsMissingCharacterStateToArmia(t *testing.T) {
+	if playerHomeCity(nil) != 0 || playerHomeCity(&model.Char{}) != 0 {
+		t.Fatal("missing character score did not retain the Armia default")
+	}
+}
+
 func (s *homeCityStore) SaveAccount(acc *model.Account) error {
 	if err := s.craftStore.SaveAccount(acc); err != nil {
 		return err

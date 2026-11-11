@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os/exec"
 	"strconv"
 	"time"
@@ -19,6 +20,12 @@ var ErrCursorExpired = errors.New("logreader: cursor expired")
 // each as one argv element; no shell is involved.
 type Journalctl struct {
 	Path string
+}
+
+type journalProcess interface {
+	StdoutPipe() (io.ReadCloser, error)
+	Start() error
+	Wait() error
 }
 
 type journalLine struct {
@@ -60,13 +67,20 @@ func journalArgs(unit string, r Request) []string {
 }
 
 func (j Journalctl) Read(ctx context.Context, unit string, r Request, scanLimit int) ([]Entry, bool, error) {
+	return j.read(ctx, unit, r, scanLimit, func(ctx context.Context, path string, args ...string) journalProcess {
+		return exec.CommandContext(ctx, path, args...)
+	})
+}
+
+func (j Journalctl) read(ctx context.Context, unit string, r Request, scanLimit int,
+	newProcess func(context.Context, string, ...string) journalProcess) ([]Entry, bool, error) {
 	path := j.Path
 	if path == "" {
 		path = "journalctl"
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, path, journalArgs(unit, r)...)
+	cmd := newProcess(ctx, path, journalArgs(unit, r)...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, false, err

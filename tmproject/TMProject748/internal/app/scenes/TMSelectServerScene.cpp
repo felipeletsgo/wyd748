@@ -14,38 +14,8 @@
 #include "ServerEndpoint.h"
 #include "ServerStatus.h"
 #include "ServerChannelLabel.h"
-#include "AdapterIdentity.h"
 #include "WYD748Assets.h"
 #include "../../application/SceneSafetyPolicy.h"
-
-void SwapLauncher()
-{
-	char szNewFileName[MAX_PATH] = { 0 };
-	char szOldFileName[MAX_PATH] = { 0 };
-	struct _stat64i32 buf0 {};
-	struct _stat64i32 buf1 {};
-	struct _stat64i32 buf2 {};
-	if (_stat64i32("WYDLauncher.exe", &buf0))
-	{
-		g_bTestServer = 1;
-		sprintf_s(szOldFileName, "TWYDLauncher.exe");
-		sprintf_s(szNewFileName, "TMPTWYDLauncher.exe");
-	}
-	else
-	{
-		sprintf_s(szOldFileName, "WYDLauncher.exe");
-		sprintf_s(szNewFileName, "TMPWYDLauncher.exe");
-	}
-
-	if (!_stat64i32(szNewFileName, &buf1))
-	{
-		if (!_stat64i32(szOldFileName, &buf2))
-			SetFileAttributes(szOldFileName, FILE_ATTRIBUTE_NORMAL);
-
-		if (CopyFileA(szNewFileName, szOldFileName, 0) == 1)
-			DeleteFileA(szNewFileName);
-	}
-}
 
 int IsCastle(int nServerIndex)
 {
@@ -388,7 +358,6 @@ int TMSelectServerScene::InitializeScene()
 		}
 
 
-		SwapLauncher();
 		return 1;
 	}
 	else
@@ -448,7 +417,7 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 				PostMessage(g_pApp->m_hWnd, 0x10u, 0, 0);
 		}
 		else if (m_pMessageBox->m_dwMessage == B_CREATE_ID)
-			ShellExecute(0, 0, g_pMessageStringTable[263], 0, 0, 3);
+			ShellExecuteA(g_pApp->m_hWnd, "open", AccountRegistration_Url, nullptr, nullptr, SW_SHOWMAXIMIZED);
 		break;
 	}
 
@@ -835,7 +804,6 @@ ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
 	// Protocol and compiled build identity are checked before authentication.
 	client_build::IdentifyLogin(stAccountLogin);
 
-	ReadFirstAdapterIdentity(stAccountLogin.AdapterName);
 
 	// The 7.48 login envelope has fixed 16/12-byte credential fields. Bounded
 	// copies preserve protocol/build identity at bytes 40/44 and prevent a long

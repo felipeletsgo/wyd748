@@ -296,29 +296,43 @@ func compositorScenario(materials ...model.Item) ([combineSlots]model.Item, [com
 	return items, pos, defs
 }
 
-// TestCompositorHandlerRunsWithFourMaterials cobre o handler inteiro, nao so a
-// formula: com os quatro materiais a composicao roda e consome tudo (o sorteio
-// decide apenas se a arma nova aparece).
+// TestCompositorHandlerRunsWithFourMaterials cobre o handler e os dois
+// resultados do sorteio sem depender da aleatoriedade global.
 func TestCompositorHandlerRunsWithFourMaterials(t *testing.T) {
-	material := compositorMaterial(5, 9)
-	items, pos, defs := compositorScenario(material, material, material, material)
+	for _, test := range []struct {
+		name       string
+		roll       int
+		resultItem uint16
+	}{
+		{name: "success", roll: 0, resultItem: 600},
+		{name: "failure", roll: 99},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			material := compositorMaterial(5, 9)
+			items, pos, defs := compositorScenario(material, material, material, material)
 
-	w, p, session, st := newCraftWorld(t, "Compositor", defs, 0)
-	w.gameplay = model.DefaultGameplayConfig()
-	placeItems(p.Char, items, pos)
+			w, p, session, st := newCraftWorld(t, "Compositor", defs, 0)
+			w.gameplay = model.DefaultGameplayConfig()
+			w.rng = fixedRNG{value: test.roll}
+			placeItems(p.Char, items, pos)
 
-	w.onCombineCompositor(session, buildCombinePacket(items, pos))
+			w.onCombineCompositor(session, buildCombinePacket(items, pos))
 
-	if st.saves != 1 {
-		t.Fatalf("deveria persistir uma vez, saves=%d", st.saves)
-	}
-	for slot := 2; slot < 6; slot++ {
-		if p.Char.Inv[slot].Index != 0 {
-			t.Errorf("material do slot %d nao foi consumido", slot)
-		}
-	}
-	if p.Char.Inv[1].Index != 0 {
-		t.Error("a joia nao foi consumida")
+			if st.saves != 1 {
+				t.Fatalf("deveria persistir uma vez, saves=%d", st.saves)
+			}
+			for slot := 2; slot < 6; slot++ {
+				if p.Char.Inv[slot].Index != 0 {
+					t.Errorf("material do slot %d nao foi consumido", slot)
+				}
+			}
+			if p.Char.Inv[1].Index != 0 {
+				t.Error("a joia nao foi consumida")
+			}
+			if got := p.Char.Inv[0].Index; got != test.resultItem {
+				t.Fatalf("item no slot da arma=%d, want %d", got, test.resultItem)
+			}
+		})
 	}
 }
 

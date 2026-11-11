@@ -36,6 +36,49 @@
 #include "TMEffectLevelUp.h"
 #include "TMCannon.h"
 #include "TMSkillExplosion2.h"
+#include "DirShow.h"
+#include "NewApp.h"
+
+void TMFieldScene::UpdateZoneMusic()
+{
+	if (!m_pMyHuman || !m_pGround || !g_pApp || !g_pApp->m_binactive || !g_pApp->m_pBGMManager)
+		return;
+
+	const POINT position{static_cast<LONG>(m_pMyHuman->m_vecPosition.x),
+		static_cast<LONG>(m_pMyHuman->m_vecPosition.y)};
+	const int tileX = position.x >> 7;
+	const int tileY = position.y >> 7;
+	const int dungeon = RenderDevice::m_bDungeon;
+	int track = 5;
+	if (g_bCastleWar2)
+		track = 10;
+	else if (m_pMyHuman->IsInTown())
+	{
+		const int village = BASE_GetVillage(position.x, position.y);
+		track = PtInRect(&rectTownInCastle, position) ? 8 :
+			village == 1 ? 3 : village == 3 ? 7 : 1;
+	}
+	else if (tileY < 26)
+	{
+		if (position.x >= 1665 && position.x <= 1791 && position.y >= 1537 && position.y <= 1919)
+			track = 6;
+		else if (dungeon == 3 || (tileX >= 27 && tileX <= 30 && tileY >= 21 && tileY <= 24))
+			track = 9;
+		else if (dungeon == 4 && m_pRemainText && m_pRemainText->IsVisible())
+			track = 5;
+		else
+			track = PtInRect(&g_rectField[0], position) ? 2 : 4;
+	}
+	else if (tileX > 8 && tileX < 16)
+		track = 7;
+	else if (tileX == 18 && tileY == 30)
+		track = 12;
+	else if (tileX >= 17 && tileX <= 19 && tileY >= 30)
+		track = 11;
+
+	if (DS_SOUND_MANAGER::m_nMusicIndex != track)
+		g_pApp->m_pBGMManager->PlayMusic(track);
+}
 
 void SetMinimapPos()
 {

@@ -198,7 +198,7 @@ void MovementTests(const std::function<void(bool, const char*)>& check)
 
     const auto movement = ReadClientSource("internal/game/entities/TMHumanMovement.cpp");
     const auto getRoute = source_contract::MaskCpp(
-        source_contract::Method(movement, "void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)"));
+        source_contract::Method(movement, "bool TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop, bool groundMove)"));
     check(!getRoute.empty() && getRoute.find("+ 6000") == std::string::npos &&
         Contains(getRoute, "transition_gate::HasElapsed(dwTime, pFScene->m_dwLastTeleport, 6000)"),
         "A15-09 GetRoute uses elapsed transition gates");

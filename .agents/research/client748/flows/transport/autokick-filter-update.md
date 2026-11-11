@@ -4,7 +4,7 @@ title: Atualização remota e consumo dos filtros AutoKick
 subsystem: transport
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-01
+updated: 2026-11-10
 ---
 
 # Atualização remota e consumo dos filtros AutoKick
@@ -164,14 +164,14 @@ tem quatro entradas e não corresponde aos cinco buffers de 96 bytes nem ao
 layout mínimo consumido pelo handler. Ela não é aceita como ABI de `0x2C8`.
 Não há asset associado.
 
-## Mapeamento atual
+## Current mapping
 
-### Source recompilável
+### Buildable source
 
-O dispatcher reconhece `0x2C8`, mas `TMFieldScene::OnPacketAutoKick` retorna
-zero e não executa inspeção do Windows. `STRUCT_AUTOKICK` permanece uma
-definição herdada sem uso vivo. Esse sink inerte é deliberadamente mais seguro
-que portar uma política remota sem produtor, contrato exato ou testes.
+Before `83a94da7`, the dispatcher routed `0x2C8` to the inert
+`TMFieldScene::OnPacketAutoKick` stub. The October 7 commit removed both
+the dispatch branch and the stub. Only the unused `STRUCT_AUTOKICK`
+definition remains in the current client source.
 
 ### WYD-Go
 
@@ -183,7 +183,7 @@ servidor não delega ao client a inspeção de processos, janelas ou arquivos.
 
 | Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
-| dispatch `0x2C8` | branch e caller confirmados | branch chama sink inerte | definição herdada divergente | sem produtor | `PARIDADE_NATIVA`, documentar |
+| dispatch `0x2C8` | branch e caller confirmados | branch e stub removidos em `83a94da7` | definição herdada divergente | sem produtor | `PARIDADE_NATIVA`, documentar |
 | filtros internos | cinco buffers de 96 bytes | não materializados | `4 x 128` incompatível | N/A | não portar ABI presumida |
 | inspeção AutoKick | TCP, arquivo e janelas no tick | desativada | código ausente/inativo | segurança server-side | não implementar |
 | logout após match | `0x215`, 4 s e saída virtual | fluxo geral de logout existe | N/A | `0x215` já é legado | não criar gatilho remoto |
@@ -194,7 +194,7 @@ servidor não delega ao client a inspeção de processos, janelas ou arquivos.
 - Não implementar o consumidor AutoKick nem um emissor `0x2C8`: isso
   introduziria inspeção remota do Windows sem configuração, política,
   necessidade server-side ou testes de integração.
-- Manter `OnPacketAutoKick` inerte e não usar `STRUCT_AUTOKICK` como wire/ABI.
+- Preserve the removal of the inert stub. Treat `STRUCT_AUTOKICK` as an unused legacy definition.
 - Não promover para `CONTRACT` até existir evidência do construtor/emissor que
   feche tamanho exato, padding e direção completa do protocolo.
 

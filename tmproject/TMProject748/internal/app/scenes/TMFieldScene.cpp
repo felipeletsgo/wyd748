@@ -490,7 +490,7 @@ TMFieldScene::TMFieldScene()
 
 	m_nYear = 0;
 	m_nDays = 0;
-	m_nBet = 1000;
+	m_nBet = gamble_bet::Minimum;
 	m_dwEventTime = 0;
 	m_dwLastClbuttonTime = 0;
 	m_bClbutton = 0;
@@ -734,7 +734,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if ((m_cGambleType != 1 && m_cGambleType != 2) ||
 			!m_pGambleStore || !m_pGambleStore->IsVisible() ||
-			m_cPendingGambleType != 0 || m_nBet < 1000 || m_nBet > 100000 ||
+			m_cPendingGambleType != 0 || !gamble_bet::IsValid(m_nBet) ||
 			pMobData->Coin < m_nBet)
 			return 1;
 
@@ -742,14 +742,15 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (!reel || !reel->IsVisible() || reel->m_dwStopTime || reel->m_bRoling)
 			return 1;
 
-		MSG_STANDARDPARM2 stParm2{};
-		stParm2.Header.ID = g_pObjectManager->m_dwCharID;
-		stParm2.Header.Type = MSG_DoJackpotBet_Opcode;
-		stParm2.Parm1 = m_cGambleType;
-		stParm2.Parm2 = m_nBet;
+		MSG_DoJackpotBet request{};
+		request.Header.ID = g_pObjectManager->m_dwCharID;
+		request.Header.Type = MSG_DoJackpotBet_Opcode;
+		request.GambleType = m_cGambleType;
+		request.Bet = m_nBet;
+		if (!SendOneMessage(reinterpret_cast<char*>(&request), sizeof(request)))
+			return 1;
 		m_cPendingGambleType = m_cGambleType;
 		m_dwGambleRequestTime = g_pTimerManager->GetServerTime();
-		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm2)->Type, reinterpret_cast<char*>(&stParm2), sizeof(stParm2)});
 
 		reel->m_dwBatCoin = m_nBet;
 		reel->SetRoll(true, 0, 0, 0, 3000);
@@ -2527,38 +2528,28 @@ ExtractedFlow TMFieldScene::OnHellStoreSelect(unsigned int& idwControlID, int& e
 // Extracted from TMFieldScene::OnControlEvent; behavior is unchanged.
 ExtractedFlow TMFieldScene::OnGambleButton(unsigned int& idwControlID, int& extractedResult)
 {
+	int step = 0;
 	switch (idwControlID)
 	{
 	case TMB_GAMBLE_LEFTX2:
-		m_nBet -= 10000;
-		if (m_nBet < 1000)
-			m_nBet = 1000;
+		step = -gamble_bet::LargeStep;
 		break;
 	case TMB_GAMBLE_LEFT:
-		m_nBet -= 1000;
-		if (m_nBet < 1000)
-			m_nBet = 1000;
+		step = -gamble_bet::Minimum;
 		break;
 	case TMB_GAMBLE_RIGHTX2:
-		if (g_pObjectManager->m_stMobData.Coin - m_nBet < 10000)
-			{ extractedResult = 1; return ExtractedFlow::Return; }
-		m_nBet += 10000;
-		if (m_nBet > 100000)
-			m_nBet = 100000;
+		step = gamble_bet::LargeStep;
 		break;
 	case TMB_GAMBLE_RIGHT:
-		if (g_pObjectManager->m_stMobData.Coin - m_nBet < 1000)
-			{ extractedResult = 1; return ExtractedFlow::Return; }
-		m_nBet += 1000;
-		if (m_nBet > 100000)
-			m_nBet = 100000;
+		step = gamble_bet::Minimum;
 		break;
 	}
 
+	m_nBet = gamble_bet::Adjust(m_nBet, step, g_pObjectManager->m_stMobData.Coin);
 	auto pText = static_cast<SText*>(m_pControlContainer->FindControl(TMT_GAMBLE_BETCOUNT));
 
 	char szText[128]{};
-	sprintf(szText, "%6d", m_nBet);
+	sprintf(szText, "%d", m_nBet);
 	if (pText)
 		pText->SetText(szText, 0);
 
@@ -3957,6 +3948,12 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 
 	switch (pStd->Type)
 	{
+	case MSG_UpdateAffect_Opcode:
+		// The private affect snapshot belongs to the field HUD. Deliver it
+		// directly to the local player instead of walking the actor tree.
+		if (m_pMyHuman && pStd->ID == m_pMyHuman->m_dwID)
+			m_pMyHuman->OnPacketUpdateAffect(pStd);
+		return 1;
 	case drop_list::ResultOpcode:
 		return OnDropSearchResult(buf, pStd->Size);
 	case MSG_CreateMob_Opcode:
@@ -4192,6 +4189,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// Consume the last completed entity hover pass before the base scene
 	// clears m_pMouseOverHuman and submits controls for this frame.
 	UpdateCompatObservedAffects();
+	UpdateFlashOverlay(dwServerTime);
 	UpdateWeatherEffects();
 	PumpGuildMarkDownloads();
 	if (m_pMyHuman && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible())
@@ -4229,6 +4227,8 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 			m_pMiniMapDir->GetGeomControl()->fAngle = m_pMyHuman->m_fAngle - 2.3561945f;
 	}
 	TMScene::FrameMove(dwServerTime);
+	UpdateZoneMusic();
+	UpdateKefraDeathEffects(dwServerTime);
 	UpdateGambleRequestTimeout();
 	UpdateDropSearch();
 	const auto statusRevision = BASE_PollHttpRequests();
@@ -4279,7 +4279,15 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	UpdateScoreButtonRepeat(dwServerTime);
 	UpdateCompatStatusTexts();
 	if (UpdateTeleportPrompt() == 1)
+	{
+		if (m_pMyHuman)
+			m_pMyHuman->ClearGroundMoveTarget();
+		UpdateGroundClickMarker(dwServerTime);
 		return 1;
+	}
+	if (m_pMyHuman)
+		m_pMyHuman->UpdateGroundMove(dwServerTime);
+	UpdateGroundClickMarker(dwServerTime);
 	UpdateAutoRun();
 	// The 7.48 HUD has its own lifecycle, but CC still needs the existing
 	// item/skill/attack scheduler after transition gates, once per frame.

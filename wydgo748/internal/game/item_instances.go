@@ -2873,6 +2873,13 @@ func (w *World) closeItemInstance(id string) {
 			w.clearPlayerInstanceIndex(memberID, id)
 		}
 	}
+	// Remove the runtime before publishing released drops. Otherwise players
+	// still resolve to the closing room while the drops already belong to the
+	// public world, so the visibility check hides their appearance packet.
+	delete(w.itemInstances, id)
+	delete(w.pendingInstanceMembers, id)
+	delete(w.pendingInstanceLeaders, id)
+	delete(w.magicChamberRunes, id)
 	// A reward dropped on the floor is private while its Water room exists.
 	// Once the room is definitively gone, release it to the public world so
 	// an uncollected fallback is not stranded behind a deleted RuntimeID.
@@ -2883,10 +2890,6 @@ func (w *World) closeItemInstance(id string) {
 		ground.InstanceID = ""
 		w.publishItemAppearance(ground, false)
 	}
-	delete(w.itemInstances, id)
-	delete(w.pendingInstanceMembers, id)
-	delete(w.pendingInstanceLeaders, id)
-	delete(w.magicChamberRunes, id)
 	w.markInstanceRuntimeDirty(id)
 	log.Printf("INSTANCE %q closed", id)
 }

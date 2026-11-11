@@ -157,7 +157,7 @@ func celestialInventoryHasItem(ch *model.Char, index uint16) bool {
 	if ch == nil || index == 0 {
 		return false
 	}
-	for i := range ch.Inv {
+	for i := 0; i < model.PlayerCarrySlots; i++ {
 		if ch.Inv[i].Index == index {
 			return true
 		}

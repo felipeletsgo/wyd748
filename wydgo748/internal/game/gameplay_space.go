@@ -221,7 +221,8 @@ func (w *World) playerCanAttackSummon(p *Player, m *Mob) bool {
 		return false
 	}
 	owner := w.playerByID(m.SummonerID)
-	if owner == nil || owner == p || owner.Party != nil && owner.Party == p.Party {
+	if owner == nil || owner == p || owner.Party != nil && owner.Party == p.Party ||
+		(m.guardKind == guardSophia && playerCurHP(owner.Char) > 0) {
 		return false
 	}
 	return w.canInitiatePvP(p, owner) && w.terrain.PvPZone(m.X, m.Y)

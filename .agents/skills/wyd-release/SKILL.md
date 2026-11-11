@@ -30,11 +30,11 @@ Historical receipts inform provenance but do not prove current host, feed, accou
 
 ## Client admission
 
-The server minimum must match every published client patch that raises the revision.
+Use these checks when a new client patch raises the server minimum.
 
-1. Read the last published revision from the latest launcher receipt.
-2. Set ClientBuildContract.h Revision and internal/wire/client_build.go MinimumClientBuildRevision to that value plus one.
-3. Keep the prefix and protocol; never lower, reuse, or wrap a revision.
+1. Read the live launcher feed. Check the last published revision against its receipt.
+2. Verify both source admission constants target that revision plus one. Follow the client admission rule in AGENTS.md.
+3. Keep the prefix and protocol. Never lower, wrap, or reuse a published revision.
 4. Run go test ./internal/wire and the client admission gate.
 5. For committed packaging, build the candidate and patch from the exact same client To commit.
 6. Publish and verify the patch before activating the matching server release.

@@ -8,6 +8,15 @@ import (
 	"wydgo/internal/model"
 )
 
+func TestGuildChangeAdmissionReportsPersistenceFailure(t *testing.T) {
+	f := criticalGuildJoinFixture(t, false)
+	before := f.actor.Session.QueuedPacketsForTest()
+	f.w.guildChangeAdmission(f.actor, errCriticalPersistenceFull)
+	if got := f.actor.Session.QueuedPacketsForTest(); got != before+1 {
+		t.Fatalf("admission failure queued %d packets, want one localized explanation", got-before)
+	}
+}
+
 func TestCriticalGuildMembershipSettlement(t *testing.T) {
 	for _, operation := range []string{"promotion", "expulsion", "succession", "alliance", "break-alliance", "war", "cancel-war"} {
 		for _, outcome := range []string{"commit", "rejection", "unknown", "stale"} {

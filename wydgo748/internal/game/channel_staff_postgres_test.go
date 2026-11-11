@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -14,6 +15,145 @@ import (
 	"wydgo/internal/store"
 	"wydgo/internal/wire"
 )
+
+func TestRemoteTeleportUsesPeerResultAndLocalFallback(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		body json.RawMessage
+		want string
+	}{
+		{name: "peer success", body: json.RawMessage(`{"code":"ok"}`), want: "ok"},
+		{name: "empty result", body: json.RawMessage(`{}`), want: "local"},
+		{name: "stale target", body: json.RawMessage(`{"code":"stale_target"}`), want: "local"},
+		{name: "invalid result", body: json.RawMessage(`[]`), want: "local"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			outbox := &ChannelOutbox{process: "staff-test", channel: 1, queue: make(chan store.ChannelMessage, 1)}
+			w := &World{outbox: outbox, remoteChannels: map[byte]bool{2: true}}
+			go func() {
+				message := <-outbox.queue
+				var request outboxPayload
+				if json.Unmarshal(message.Payload, &request) != nil {
+					return
+				}
+				raw, err := json.Marshal(outboxPayload{Request: request.Request, Body: test.body})
+				if err == nil {
+					outbox.deliverReply(raw)
+				}
+			}()
+			local := control.TeleportResult{Code: "local"}
+			got := w.remoteTeleport(context.Background(), "operator", control.TeleportCommand{}, local)
+			if got.Code != test.want {
+				t.Fatalf("remote teleport code=%q, want %q", got.Code, test.want)
+			}
+		})
+	}
+	local := control.TeleportResult{Code: "local"}
+	if got := (&World{}).remoteTeleport(context.Background(), "operator", control.TeleportCommand{}, local); got != local {
+		t.Fatalf("no-peer fallback=%+v, want %+v", got, local)
+	}
+}
+
+func remoteStaffOutbox() *ChannelOutbox {
+	return &ChannelOutbox{process: "remote-staff-test", channel: 1, queue: make(chan store.ChannelMessage, 1)}
+}
+
+func awaitRemoteStaffReply(t *testing.T, outbox *ChannelOutbox) store.ChannelMessage {
+	t.Helper()
+	select {
+	case message := <-outbox.queue:
+		if message.Kind != outboxReply || message.Target != 2 {
+			t.Fatalf("unexpected remote staff reply message: %+v", message)
+		}
+		return message
+	case <-time.After(time.Second):
+		t.Fatal("remote staff request did not reply")
+		return store.ChannelMessage{}
+	}
+}
+
+func TestRemoteStaffRequestHandlesOverviewPresenceKickAndTeleport(t *testing.T) {
+	t.Run("rejects malformed and oversized requests", func(t *testing.T) {
+		outbox := remoteStaffOutbox()
+		w := newZoneTestWorld()
+		w.outbox = outbox
+		payload := outboxPayload{Request: "invalid-request", ReplyTo: 2, Body: json.RawMessage("{")}
+		w.onRemoteStaffRequest(outboxStaffOverview, payload)
+		w.onRemoteStaffRequest(outboxStaffPresence, payload)
+		tooMany, _ := json.Marshal(make([]string, 51))
+		payload.Body = tooMany
+		w.onRemoteStaffRequest(outboxStaffPresence, payload)
+		payload.Body = json.RawMessage(`{}`)
+		w.onRemoteStaffRequest(outboxStaffKick, payload)
+		w.onRemoteStaffRequest(outboxStaffTeleport, payload)
+		if len(outbox.queue) != 0 {
+			t.Fatal("invalid remote staff command received a reply")
+		}
+	})
+
+	t.Run("overview", func(t *testing.T) {
+		outbox := remoteStaffOutbox()
+		w := newZoneTestWorld()
+		w.outbox = outbox
+		body, _ := json.Marshal(control.Query{})
+		w.onRemoteStaffRequest(outboxStaffOverview, outboxPayload{Request: "overview-request", ReplyTo: 2, Body: body})
+		message := awaitRemoteStaffReply(t, outbox)
+		var reply outboxPayload
+		var part overviewPart
+		if json.Unmarshal(message.Payload, &reply) != nil || json.Unmarshal(reply.Body, &part) != nil ||
+			reply.Request != "overview-request" || part.Players == nil {
+			t.Fatalf("overview reply=%+v part=%+v", reply, part)
+		}
+	})
+
+	t.Run("presence", func(t *testing.T) {
+		outbox := remoteStaffOutbox()
+		w, p, _ := handlerTestWorld(t)
+		w.outbox = outbox
+		p.Account.Name = "player"
+		body, _ := json.Marshal([]string{"player", "offline"})
+		w.onRemoteStaffRequest(outboxStaffPresence, outboxPayload{Request: "presence-request", ReplyTo: 2, Body: body})
+		message := awaitRemoteStaffReply(t, outbox)
+		var reply outboxPayload
+		var present map[string]bool
+		if json.Unmarshal(message.Payload, &reply) != nil || json.Unmarshal(reply.Body, &present) != nil ||
+			reply.Request != "presence-request" || !present["player"] || present["offline"] {
+			t.Fatalf("presence reply=%+v presence=%v", reply, present)
+		}
+	})
+
+	t.Run("kick", func(t *testing.T) {
+		outbox := remoteStaffOutbox()
+		w := newZoneTestWorld()
+		w.outbox = outbox
+		cmd := control.KickCommand{Version: 1, OperationID: "operation-0000001", Epoch: strings.Repeat("a", 32),
+			UID: "target-uid", Account: "player", ExpectedSessionID: 1, Reason: "verified report"}
+		body, _ := json.Marshal(remoteStaffCommand{Actor: "operator", Kick: cmd})
+		w.onRemoteStaffRequest(outboxStaffKick, outboxPayload{Request: "kick-request", ReplyTo: 2, Body: body})
+		message := awaitRemoteStaffReply(t, outbox)
+		var reply outboxPayload
+		var result control.KickResult
+		if json.Unmarshal(message.Payload, &reply) != nil || json.Unmarshal(reply.Body, &result) != nil || result.Code != "stale_target" {
+			t.Fatalf("remote kick result=%+v, reply=%+v", result, reply)
+		}
+	})
+
+	t.Run("teleport", func(t *testing.T) {
+		outbox := remoteStaffOutbox()
+		w := newZoneTestWorld()
+		w.outbox = outbox
+		cmd := control.TeleportCommand{Version: 1, OperationID: "operation-0000002", Epoch: strings.Repeat("b", 32),
+			UID: "target-uid", Account: "player", ExpectedSessionID: 1, Reason: "verified report", Destination: "armia"}
+		body, _ := json.Marshal(remoteStaffCommand{Actor: "operator", Teleport: cmd})
+		w.onRemoteStaffRequest(outboxStaffTeleport, outboxPayload{Request: "teleport-request", ReplyTo: 2, Body: body})
+		message := awaitRemoteStaffReply(t, outbox)
+		var reply outboxPayload
+		var result control.TeleportResult
+		if json.Unmarshal(message.Payload, &reply) != nil || json.Unmarshal(reply.Body, &result) != nil || result.Code != "stale_target" {
+			t.Fatalf("remote teleport result=%+v, reply=%+v", result, reply)
+		}
+	})
+}
 
 // W9 phase 5 on PostgreSQL: the staff panel of channel 1 lists a player of
 // the channel 2 process, sees the account online, and kicks it; a whisper

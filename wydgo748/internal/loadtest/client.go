@@ -217,6 +217,11 @@ func (b *bot) readLoop(ctx context.Context) error {
 			if ctx.Err() != nil || err == io.EOF {
 				return nil
 			}
+			if deadline, hasDeadline := ctx.Deadline(); hasDeadline && !time.Now().Before(deadline) {
+				if timeout, isTimeout := err.(stdnet.Error); isTimeout && timeout.Timeout() {
+					return nil
+				}
+			}
 			return err
 		}
 		if !ok || len(pkt) < wire.HeaderSize {

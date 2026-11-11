@@ -27,6 +27,10 @@ and older renderer paths stay within the signed range.
 
 ## Equipment bonuses from WYD KR
 
+The KR equipment catalog shipped in 7.48.108. See
+[release status](current-state.md#gameplay-changes-in-748109) for activation
+of the recovery formula below.
+
 Native 7.59 recovery runs every eight seconds. Each pulse restores the area
 base plus the total equipment index rounded down to a multiple of four.
 The area base is 200 normally, 500 on attribute `0x01`, and 1000 on
@@ -53,7 +57,11 @@ recovery bonus, 42 match the maximum MP bonus, and 25 have neither effect.
 Mithril Robe Boots 1353 through 1355 use `EF_REGENMP` values 30, 30, and 35.
 The KR client and this server multiply the recovery index by refinement.
 Mithril Robe Boots with a base index of 30 show 270 at +9. They contribute
-268 points to a pulse when equipped alone.
+268 points to a pulse when equipped alone. A normal area restores 468 MP
+with those boots, up to the amount missing.
+The MP and HP earrings use `EF_MPADD` and `EF_HPADD` to increase the
+respective maximum. Both grant 17% without refinement and 34% at +9.
+Changing the maximum with an earring leaves the pulse amount fixed.
 The audit also aligned other armor bonuses and 138 weapon rows, including
 Ancient variants.
 

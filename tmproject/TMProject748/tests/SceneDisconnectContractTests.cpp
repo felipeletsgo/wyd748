@@ -1808,7 +1808,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto markAddress = LoadSource("TMProject748/internal/ui/GuildMarkDownload.h");
     const auto markFieldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
     const auto worldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneWorld.cpp");
-    check(markAddress.find("\"http://wyd.forjago.com/patch/guildmark/\"") != std::string::npos &&
+    check(markAddress.find("\"https://wyd.forjago.com/patch/guildmark/\"") != std::string::npos &&
         socialSource.find("meusite.com") == std::string::npos &&
         socialSource.find("void TMFieldScene::PumpGuildMarkDownloads()") != std::string::npos &&
         source_contract::InOrder(socialSource.find("LoadGuildTexture", socialSource.find("void TMFieldScene::PumpGuildMarkDownloads()")),

@@ -541,9 +541,10 @@ CREATE DATABASE wydgo OWNER wydgo;
 \q
 ```
 
-Keep PostgreSQL on the local interface. Do not publish port 5432. The game
-server installs and validates schema v8 at boot. The Windows setup is documented
-in the [repository README](../../README.md#1-prerequisites).
+Keep PostgreSQL on the local interface. Do not publish port 5432. At boot, the
+game server installs or migrates and validates its declared schema version.
+See the [schema version in source](../../wydgo748/internal/store/postgres.go)
+and the [Windows prerequisites](../../README.md#1-prerequisites).
 
 ## Start the server
 
@@ -558,12 +559,10 @@ The game server reads the variable named by `database_url_env`; its default is
 the same default and accept a different name through their `-database-url-env`
 flag.
 
-Run the compiled `tm.exe` file. This is the fast method and the correct method
-for a real server. First build the file (refer to [Build the software](#build-the-software)).
-Then do this command:
+Build [the server executable](#build-the-software). From `wydgo748/`, run it.
 
 ```powershell
-./bin/tm.exe
+& ../build/server/tm.exe
 ```
 
 Use `go run` only for development. This command builds the code again at each
@@ -576,7 +575,7 @@ go run ./cmd/server
 The server reads the configuration from `data/config/server.txt`. A command-line flag
 replaces a data-file value. Examples: `-addr`, `-npcs`, and `-items`. The
 `-accounts` flag applies only to the explicit JSON development adapter. To see
-all the flags, do `./bin/tm.exe -h`.
+all the flags, run `../build/server/tm.exe -h`.
 
 The same `tm.exe` process can start the local administrative panel. If its
 assets were not built, the game listener continues but the console reports that
@@ -693,7 +692,7 @@ For recovery or automation, you can also use one of two standalone tools:
 - Use `account-create`, the local command-line tool:
 
   ```powershell
-  ./bin/account-create.exe
+  & ../build/server/account-create.exe
   ```
 
   Define `WYD_DATABASE_URL` in this terminal too. The environment inherited by
@@ -703,13 +702,13 @@ For recovery or automation, you can also use one of two standalone tools:
   terminal:
 
   ```powershell
-  ./bin/account-create.exe -username felipe
+  & ../build/server/account-create.exe -username felipe
   ```
 
 - Or start the HTTP API on loopback:
 
   ```powershell
-  ./bin/account-api.exe -addr 127.0.0.1:8080
+  & ../build/server/account-api.exe -addr 127.0.0.1:8080
   ```
 
   Create an account:

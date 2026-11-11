@@ -24,6 +24,69 @@
 #include "TMSkillThunderBolt.h"
 #include "TMSkillPoison.h"
 #include "TMFont3.h"
+#include "../../game/entities/EntitySafetyPolicy.h"
+
+void TMFieldScene::UpdateFlashOverlay(unsigned int now)
+{
+	if (!m_pFadePanel)
+		return;
+
+	unsigned int alpha = 0;
+	if (m_dwStartFlashTime && m_pMyHuman && !m_pMyHuman->m_cDie)
+	{
+		const unsigned int elapsed = now - m_dwStartFlashTime;
+		if (elapsed <= 0xFFFFFFFFu - human_timer::kBackwardTolerance)
+		{
+			const float progress = static_cast<float>(elapsed) / (std::max)(1.0f, m_fFlashTerm);
+			if (progress >= 1.0f)
+				m_dwStartFlashTime = 0;
+			else if (progress < 0.1f)
+				alpha = static_cast<unsigned int>(221.0f * sinf(progress * 15.707963f));
+			else if (progress < 0.9f)
+				alpha = 221;
+			else
+				alpha = static_cast<unsigned int>(221.0f * sinf((1.0f - progress) * 15.707963f));
+		}
+	}
+	else
+		m_dwStartFlashTime = 0;
+
+	m_pFadePanel->m_GCPanel.dwColor = alpha << 24;
+	m_pFadePanel->SetVisible(alpha != 0);
+}
+
+void TMFieldScene::UpdateKefraDeathEffects(unsigned int now)
+{
+	if (!m_nKhepraDieFlag)
+		return;
+
+	if (!m_pMyHuman || !m_pKhepraPortalEff1 || !m_pEffectContainer ||
+		(static_cast<int>(m_pMyHuman->m_vecPosition.x) >> 7) != 18 ||
+		(static_cast<int>(m_pMyHuman->m_vecPosition.y) >> 7) != 30)
+	{
+		m_nKhepraDieFlag = 0;
+		m_dwKhepraDieTime = 0;
+		return;
+	}
+	if (!human_timer::Elapsed(now, m_dwKhepraDieTime, 300))
+		return;
+
+	const float x = 2362.0f + static_cast<float>(rand() % 9);
+	const float z = 3927.0f + static_cast<float>(rand() % 9);
+	constexpr float height = -6.8f;
+	m_pEffectContainer->AddChild(new TMSkillThunderBolt({x, height, z}, 3));
+	for (const float offset : {0.0f, -0.3f, 0.3f})
+		m_pEffectContainer->AddChild(new TMEffectDust({x + offset, height, z + offset}, 50.0f, 0));
+
+	if (++m_nKhepraDieFlag == 10)
+	{
+		m_pEffectContainer->AddChild(new TMSkillPoison({2365.0f, -9.8f, 3930.0f}, 0xFFCC6666, 25, 1, 0));
+		m_nKhepraDieFlag = 0;
+		m_dwKhepraDieTime = 0;
+	}
+	else
+		m_dwKhepraDieTime += 300 + 100 * (rand() % 10 + 1);
+}
 
 void TMFieldScene::UpdatePhysicalAttack(unsigned int dwServerTime)
 {

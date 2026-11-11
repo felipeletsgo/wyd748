@@ -16,7 +16,7 @@ The current summaries, contracts and dated evidence have different owners. Start
 
 | Goal | Starting document |
 | --- | --- |
-| Resume work and distinguish local changes from the deployed release | [Current state](current-state.md) and [continuation record](../.agents/handoffs/project-continuation.md) |
+| Resume work and distinguish source changes from the deployed release | [Current state](current-state.md) |
 | Track current player-reported gameplay defects and acceptance checks | [Gameplay bug register](bug-register.md) |
 | Execute the disconnect, persistence, performance and gameplay correction queue | [Server correction plan](server/server-correction-plan.md) |
 | Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
@@ -39,7 +39,6 @@ The current summaries, contracts and dated evidence have different owners. Start
 | Maintain shared EN/PT resources and the launcher language preference | [Multilingual client](client/multilingual-client.md) |
 | Build and validate the server and client | [Build and integration](build-and-integration.md) |
 | Understand the attribute contract | [Score](SCORE.md) |
-| Check server state | [Server operations](server/operations.md) and code/tests in `wydgo748/` |
 | Track nonblocking critical persistence | [Critical persistence plan](server/critical-persistence-plan.md) |
 | Check current S2 recovery gaps and their acceptance criteria | [Current recovery queue](server/critical-persistence-plan.md#current-gaps-and-acceptance-criteria) and [October 7 closure audit](server/s2-closure-audit-2026-10-07.md) |
 | Handle persistence containment without unsafe replay/unlock | [Critical persistence operation](server/operations.md#critical-persistence-operation) |
@@ -76,7 +75,8 @@ Historical snapshots and dated plans are not live status reports. Code, tests,
 and evidence records take precedence over them;
 automated builds are not equivalent to validation in the client.
 The [parity handoff](../.agents/handoffs/client748-parity.md) is a historical
-snapshot, not the current work queue.
+snapshot. The [October continuation record](../.agents/handoffs/project-continuation.md)
+also describes a dated task.
 
 ## Organization
 

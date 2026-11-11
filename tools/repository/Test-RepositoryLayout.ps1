@@ -156,24 +156,55 @@ if ($UpdateMap) {
     $issues.Add('Inventory is outdated; run with -UpdateMap.')
 }
 
-# Local inline links: URLs, anchors, and fenced examples are not paths.
+# Check local paths and Markdown fragments outside fenced examples.
+$fencePattern = '(?ms)^[ \t]{0,3}(\x60{3,}|~{3,})[^\r\n]*\r?\n.*?^[ \t]{0,3}\1[^\r\n]*'
+$referencePrefix = (Join-Path $repoRoot 'references') + [IO.Path]::DirectorySeparatorChar
+$anchorCache = @{}
+function Get-MarkdownAnchors([string]$path) {
+    $body = [regex]::Replace([IO.File]::ReadAllText($path), $fencePattern, '')
+    $anchors = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $headings = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($match in [regex]::Matches($body, '(?i)<a\s+(?:id|name)=["''](?<id>[^"'']+)')) {
+        [void]$anchors.Add($match.Groups['id'].Value)
+    }
+    foreach ($match in [regex]::Matches($body, '(?m)^[ \t]{0,3}#{1,6}[ \t]+(?<text>[^\r\n]+)')) {
+        $heading = ($match.Groups['text'].Value -replace '\s+#+\s*$', '').Trim().ToLowerInvariant()
+        $slug = ($heading -replace '<[^>]+>', '' -replace '[^\p{L}\p{M}\p{N}_ -]', '').Replace(' ', '-')
+        $anchor = $slug
+        for ($suffix = 1; -not $headings.Add($anchor); $suffix++) {
+            $anchor = "$slug-$suffix"
+        }
+        [void]$anchors.Add($anchor)
+    }
+    return ,$anchors
+}
+
 foreach ($file in $documents) {
     $body = [IO.File]::ReadAllText($file.FullName)
     if ($body -match $obsoletePath) {
         $issues.Add("Reference to an obsolete project/path: $($file.FullName)")
     }
-    $body = [regex]::Replace($body, '(?ms)^```.*?^```[^\r\n]*', '')
+    $body = [regex]::Replace($body, $fencePattern, '')
     foreach ($match in [regex]::Matches($body, '\[[^\]\r\n]+\]\((?<target><[^>]+>|[^\s)]+)\)')) {
         $target = $match.Groups['target'].Value.Trim('<', '>')
-        if ($target -match '^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|#|/)') { continue }
-        $target = [Uri]::UnescapeDataString(($target -split '#', 2)[0])
-        if (-not $target) { continue }
-        $resolved = [IO.Path]::GetFullPath((Join-Path $file.DirectoryName $target))
+        if ($target -match '^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|/)') { continue }
+        $path, $fragment = $target -split '#', 2
+        $resolved = $file.FullName
+        if ($path) {
+            $resolved = [IO.Path]::GetFullPath((Join-Path $file.DirectoryName ([Uri]::UnescapeDataString($path))))
+        }
+        # Native evidence is optional and stays outside the tracked link inventory.
+        if ($resolved.StartsWith($referencePrefix, [StringComparison]::OrdinalIgnoreCase)) { continue }
+        $relativeSource = [IO.Path]::GetRelativePath($repoRoot, $file.FullName)
         if (-not (Test-Path -LiteralPath $resolved)) {
-            # Native evidence is optional in checkouts because references/ is local-only.
-            $referencePrefix = (Join-Path $repoRoot 'references') + [IO.Path]::DirectorySeparatorChar
-            if ($resolved.StartsWith($referencePrefix, [StringComparison]::OrdinalIgnoreCase)) { continue }
-            $issues.Add("Missing link in $([IO.Path]::GetRelativePath($repoRoot, $file.FullName)): $target")
+            $issues.Add("Missing link in $($relativeSource): $target")
+        } elseif ($fragment -and [IO.Path]::GetExtension($resolved) -eq '.md') {
+            if (-not $anchorCache.ContainsKey($resolved)) {
+                $anchorCache[$resolved] = Get-MarkdownAnchors $resolved
+            }
+            if (-not $anchorCache[$resolved].Contains([Uri]::UnescapeDataString($fragment))) {
+                $issues.Add("Missing Markdown fragment in $($relativeSource): $target")
+            }
         }
     }
 }
@@ -196,10 +227,11 @@ if ((Get-Item -LiteralPath $agentsPath).Length -gt $projectDocLimit) {
 }
 
 # Current operational examples must follow the active server output and patch range.
-foreach ($relativeBuildDocument in @('DOCS/build-and-integration.md', 'DOCS/server/operations.md')) {
+$obsoleteServerOutput = '(?im)(?:wydgo748[/\\]bin[/\\]|go\s+build\s+-o\s+(?:\.[/\\])?bin[/\\]|^\s*(?:&\s*)?\.[/\\]bin[/\\])'
+foreach ($relativeBuildDocument in @('README.md', 'DOCS/build-and-integration.md', 'DOCS/server/operations.md')) {
     $buildDocumentPath = Join-Path $repoRoot $relativeBuildDocument
     $buildDocument = [IO.File]::ReadAllText($buildDocumentPath)
-    if ($buildDocument -match '(?im)(?:wydgo748[/\\]bin[/\\]|go\s+build\s+-o\s+bin[/\\])') {
+    if ($buildDocument -match $obsoleteServerOutput) {
         $issues.Add("Build documentation contains a forbidden bin output path: $relativeBuildDocument")
     }
     if ($buildDocument -notmatch '(?im)build[/\\]server[/\\]tm\.exe') {
@@ -210,7 +242,7 @@ foreach ($relativeBuildDocument in @('DOCS/build-and-integration.md', 'DOCS/serv
 foreach ($relativeCurrentDocument in @('DOCS/WYD-WEB-PLATAFORM.md')) {
     $currentDocumentPath = Join-Path $repoRoot $relativeCurrentDocument
     $currentDocument = [IO.File]::ReadAllText($currentDocumentPath)
-    if ($currentDocument -match '(?im)(?:wydgo748[/\\]bin[/\\]|go\s+build\s+-o\s+bin[/\\])') {
+    if ($currentDocument -match $obsoleteServerOutput) {
         $issues.Add("Current documentation contains a forbidden bin output path: $relativeCurrentDocument")
     }
 }

@@ -7,7 +7,7 @@
 class TMSkillHolyTouch : public TMEffect
 {
 public:
-    TMSkillHolyTouch(TMVector3 vecPosition, int nType);
+    TMSkillHolyTouch(TMVector3 vecPosition, int nType, float groundHeight);
     ~TMSkillHolyTouch();
 
     // Avanca a apresentacao ate o fim de seu lifetime.

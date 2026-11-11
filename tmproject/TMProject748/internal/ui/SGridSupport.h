@@ -22,5 +22,5 @@ int WYD748_ResolveWireSlot(TMFieldScene* scene, const SGridControl* grid,
 bool WYD748_ResolveItemEndpoint(TMFieldScene* scene, SGridControlItem* item,
 	short& wireType, short& wirePos);
 bool WYD748_IsCenteredSingleCellGrid(const TMEGRIDTYPE gridType);
-float WYD748_GetGridMeshScale(const SGridControlItem* item);
+float WYD748_GetCursorMeshScale(const SGridControlItem* item);
 void WYD748_ApplyGridMeshScale(SGridControlItem* item);

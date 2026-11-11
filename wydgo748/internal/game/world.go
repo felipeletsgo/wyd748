@@ -146,12 +146,13 @@ func (w *World) saveAccountAsync(account *model.Account) error {
 
 // Player holds a session, account, selected character, and world ID in memory.
 type Player struct {
-	Session  *net.Session
-	Account  *model.Account
-	Char     *model.Char
-	CharSlot int
-	ID       uint16
-	InWorld  bool
+	guardTimers [2]time.Time
+	Session     *net.Session
+	Account     *model.Account
+	Char        *model.Char
+	CharSlot    int
+	ID          uint16
+	InWorld     bool
 	// Character-session labels; never persisted or shared by account slots.
 	TabText       string
 	TabColor      byte
@@ -317,6 +318,7 @@ type Mob struct {
 	SummonerID       uint16
 	SummonKind       byte
 	SummonRange      int
+	guardKind        guardKind
 	ExpiresAt        time.Time
 	Awake            bool
 	InstanceID       string
@@ -1509,6 +1511,7 @@ func (w *World) removeMobInstance(dead *Mob) {
 		}
 	}
 	w.unregisterMobSpatial(dead)
+	w.clearGuardTimer(dead)
 	delete(w.mobListIndex, dead.ID)
 	if !found {
 		return

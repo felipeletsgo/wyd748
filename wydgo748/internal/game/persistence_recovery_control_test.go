@@ -75,3 +75,43 @@ func TestPersistenceRecoveryStatusAndRecheck(t *testing.T) {
 		t.Fatalf("recheck with nothing quarantined: %+v", result)
 	}
 }
+
+func TestPersistenceRecoveryPublicAPIQueuesAndValidates(t *testing.T) {
+	w := &World{commands: make(chan command, 1)}
+	statusDone := make(chan struct {
+		status control.PersistenceRecoveryStatus
+		err    error
+	}, 1)
+	go func() {
+		status, err := w.PersistenceRecoveryStatus(context.Background())
+		statusDone <- struct {
+			status control.PersistenceRecoveryStatus
+			err    error
+		}{status: status, err: err}
+	}()
+	w.handle(<-w.commands)
+	status := <-statusDone
+	if status.err != nil || status.status.Version != 1 || len(status.status.Quarantined) != 0 {
+		t.Fatalf("status=%+v err=%v", status.status, status.err)
+	}
+	if _, err := w.PersistenceRecheck(context.Background(), "operator", control.PersistenceRecheckCommand{}, func() bool { return true }); err == nil {
+		t.Fatal("invalid recheck command was queued")
+	}
+	commandDone := make(chan struct {
+		result control.PersistenceRecheckResult
+		err    error
+	}, 1)
+	cmd := control.PersistenceRecheckCommand{Version: 1, OperationID: "operation-0000001", Reason: "review commit"}
+	go func() {
+		result, err := w.PersistenceRecheck(context.Background(), "operator", cmd, func() bool { return true })
+		commandDone <- struct {
+			result control.PersistenceRecheckResult
+			err    error
+		}{result: result, err: err}
+	}()
+	w.handle(<-w.commands)
+	got := <-commandDone
+	if got.err != nil || got.result.Code != "nothing_to_check" || got.result.OperationID != cmd.OperationID {
+		t.Fatalf("result=%+v err=%v", got.result, got.err)
+	}
+}

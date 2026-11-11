@@ -73,11 +73,23 @@ func TestPostgresNPCDefinitionsMigrationIsolationAndConcurrency(t *testing.T) {
 	seeds := []NPCDefinitionSeed{
 		{Definition: model.NPCDef{Name: "Shop", Gold: 10}, Active: true},
 		{Definition: model.NPCDef{Name: "shop", Gold: 20}, Active: true},
+		{Definition: model.NPCDef{Name: "Inactive", Gold: 30}, Active: false},
 	}
 	for _, channel := range []uint8{1, 2} {
 		if err := st.SyncNPCDefinitions(ctx, channel, seeds); err != nil {
 			t.Fatal(err)
 		}
+	}
+	loaded, err := st.LoadNPCDefinitions(ctx, 1)
+	if err != nil || len(loaded) != 2 {
+		t.Fatalf("active definitions: got %d records: %v", len(loaded), err)
+	}
+	loadedNames := make(map[string]NPCDefinitionRecord, len(loaded))
+	for _, entry := range loaded {
+		loadedNames[entry.Name] = entry
+	}
+	if loadedNames["Shop"].Channel != 1 || loadedNames["Shop"].Version == 0 || loadedNames["shop"].Channel != 1 || loadedNames["Inactive"].Name != "" {
+		t.Fatalf("active definitions returned wrong channel or inactive entries: %+v", loadedNames)
 	}
 	read := func(channel uint8, name string, gold uint32) NPCDefinitionRecord {
 		t.Helper()

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 // testBossConfig reproduz o encontro classico -- duas fases, escudo que cai com
@@ -423,6 +424,10 @@ func TestBossSkillDamageUsesMagicCoreAndGuardsInvalidInputs(t *testing.T) {
 	if damage := bossSkillDamage(m, p, skill); damage <= 1 {
 		t.Fatalf("nucleo magico do boss produziu dano=%d", damage)
 	}
+	w, _, _, _ := newBossTestWorld(t, testBossProfile(t), 1000)
+	if damage := w.bossSkillDamage(m, p, skill); damage <= 1 {
+		t.Fatalf("world boss skill calculation produced damage=%d", damage)
+	}
 	if bossSkillDamage(nil, p, skill) != 0 ||
 		bossSkillDamage(m, nil, skill) != 0 ||
 		bossSkillDamage(&Mob{}, p, skill) != 0 {
@@ -435,6 +440,47 @@ func TestBossSkillDamageUsesMagicCoreAndGuardsInvalidInputs(t *testing.T) {
 	m.Def.Score.Attack = 500
 	if damage := bossSkillDamage(m, p, model.SkillDef{}); damage <= 1 {
 		t.Fatalf("fallback para ataque fisico nao funcionou: %d", damage)
+	}
+}
+
+func TestMobHPPercentHandlesInvalidAndBoundaryValues(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		mob  *Mob
+		want int
+	}{
+		{name: "nil mob"},
+		{name: "missing definition", mob: &Mob{}},
+		{name: "zero maximum", mob: &Mob{Def: &model.NPCDef{Score: &model.Score{}}}},
+		{name: "empty health", mob: &Mob{HP: 0, Def: testNPCDef(model.Score{MaxHP: 100})}, want: 0},
+		{name: "partial health", mob: &Mob{HP: 37, Def: testNPCDef(model.Score{MaxHP: 100})}, want: 37},
+		{name: "full health", mob: &Mob{HP: 100, Def: testNPCDef(model.Score{MaxHP: 100})}, want: 100},
+		{name: "above maximum", mob: &Mob{HP: 120, Def: testNPCDef(model.Score{MaxHP: 100})}, want: 100},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := mobHPPercent(test.mob); got != test.want {
+				t.Fatalf("mob HP percent=%d, want %d", got, test.want)
+			}
+		})
+	}
+}
+
+func TestBossAnnouncementReachesOnlyVisibleMobViewers(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	mob := &Mob{ID: 1100, X: p.X, Y: p.Y, Def: bossTestNPC("Announcement", 100)}
+	w.registerMobSpatial(mob)
+	p.show(mob.ID)
+	before := p.Session.QueuedPacketsForTest()
+	w.announceToMobView(mob, "")
+	if p.Session.QueuedPacketsForTest() != before {
+		t.Fatal("empty boss message emitted a packet")
+	}
+	w.announceToMobView(mob, "The boss changes phase.")
+	if p.Session.QueuedPacketsForTest() != before+1 {
+		t.Fatal("visible mob viewer did not receive the boss message")
+	}
+	if got := wire.ParseHeader(nextPacket(t, p)).Type; got != wire.OpMessagePanel {
+		t.Fatalf("boss announcement opcode=0x%X, want message panel", got)
 	}
 }
 

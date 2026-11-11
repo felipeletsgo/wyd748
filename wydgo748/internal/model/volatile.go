@@ -427,16 +427,20 @@ type VolatileDestination struct {
 // VolatileSummon keeps contracts data-driven. Group distinguishes two
 // families/kingdoms without anticipating future Castle War rules.
 type VolatileSummon struct {
-	Group       string `json:"group"`
-	Name        string `json:"name"`
-	Face        uint16 `json:"face"`
-	Weapon      uint16 `json:"weapon,omitempty"`
-	Shield      uint16 `json:"shield,omitempty"`
-	Attack      uint32 `json:"attack"`
-	Defense     uint32 `json:"defense"`
-	HP          uint32 `json:"hp"`
-	MoveSpeed   uint8  `json:"moveSpeed"`
-	AttackRange int    `json:"attackRange"`
+	Group       string    `json:"group"`
+	Name        string    `json:"name"`
+	Face        uint16    `json:"face"`
+	Weapon      uint16    `json:"weapon,omitempty"`
+	Shield      uint16    `json:"shield,omitempty"`
+	Attack      uint32    `json:"attack"`
+	Defense     uint32    `json:"defense"`
+	HP          uint32    `json:"hp"`
+	MoveSpeed   uint8     `json:"moveSpeed"`
+	AttackRange int       `json:"attackRange"`
+	Tank        bool      `json:"tank,omitempty"`
+	Healer      bool      `json:"healer,omitempty"`
+	Armor       [5]uint16 `json:"armor,omitempty"`
+	Refinement  byte      `json:"refinement,omitempty"`
 }
 
 // ReplictionItem maps consumables A-E to equipment level and refinement cap.

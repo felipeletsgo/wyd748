@@ -70,6 +70,88 @@ func TestOXEventStartOpensArenaOnce(t *testing.T) {
 	}
 }
 
+func TestOXEventPublicAPIQueuesStatusAndCommand(t *testing.T) {
+	w := newZoneTestWorld()
+	w.commands = make(chan command, 1)
+
+	statusDone := make(chan struct {
+		status control.OXEventStatus
+		err    error
+	}, 1)
+	go func() {
+		status, err := w.OXEventStatus(context.Background())
+		statusDone <- struct {
+			status control.OXEventStatus
+			err    error
+		}{status: status, err: err}
+	}()
+	w.handle(<-w.commands)
+	status := <-statusDone
+	if status.err != nil || status.status.Phase != "inactive" || status.status.Version != 1 {
+		t.Fatalf("status=%+v err=%v", status.status, status.err)
+	}
+
+	if _, err := w.OXEventCommand(context.Background(), "operator", control.OXEventCommand{}, func() bool { return true }); err == nil {
+		t.Fatal("invalid command was queued")
+	}
+	commandDone := make(chan struct {
+		result control.OXEventResult
+		err    error
+	}, 1)
+	cmd := control.OXEventCommand{Version: 1, OperationID: "operation-public-api-000001", Action: "doors_open", Reason: "open doors"}
+	go func() {
+		result, err := w.OXEventCommand(context.Background(), "operator", cmd, func() bool { return true })
+		commandDone <- struct {
+			result control.OXEventResult
+			err    error
+		}{result: result, err: err}
+	}()
+	w.handle(<-w.commands)
+	got := <-commandDone
+	if got.err != nil || got.result.Code != "doors_unavailable" || got.result.OperationID != cmd.OperationID {
+		t.Fatalf("result=%+v err=%v", got.result, got.err)
+	}
+	if w.oxEventPending.Load() {
+		t.Fatal("OX event queue fence remained held")
+	}
+}
+
+func TestOXEventPublicAPIRejectsBusyAndCanceledRequests(t *testing.T) {
+	w := newZoneTestWorld()
+	w.commands = make(chan command, 1)
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := w.OXEventStatus(canceled); err != context.Canceled {
+		t.Fatalf("pre-canceled status error=%v", err)
+	}
+	w.oxEventPending.Store(true)
+	if _, err := w.OXEventStatus(context.Background()); err != control.ErrBusy {
+		t.Fatalf("pending status error=%v", err)
+	}
+	w.oxEventPending.Store(false)
+	w.commands <- command{}
+	if _, err := w.OXEventStatus(context.Background()); err != control.ErrBusy || w.oxEventPending.Load() {
+		t.Fatalf("full queue error=%v pending=%v", err, w.oxEventPending.Load())
+	}
+	<-w.commands
+
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := w.OXEventStatus(ctx)
+		done <- err
+	}()
+	queued := <-w.commands
+	stop()
+	if err := <-done; err != context.Canceled {
+		t.Fatalf("canceled queued status error=%v", err)
+	}
+	w.handle(queued)
+	if w.oxEventPending.Load() {
+		t.Fatal("canceled OX request kept the queue fence")
+	}
+}
+
 func oxTestPlayer(w *World, id uint16, x, y uint16) *Player {
 	p := addZonePlayer(w, id, x, y, 500)
 	p.Account.Name = fmt.Sprintf("ox-%d", id)
@@ -263,6 +345,19 @@ func TestOXSideOverridesGeometryAndFullWindow(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestClearOXSideMovesOnlyPlayersOnTheRequestedSide(t *testing.T) {
+	w, _ := colosseumWorld(t, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
+	left := oxTestPlayer(w, 1, 1300, 1500)
+	right := oxTestPlayer(w, 2, 1360, 1500)
+	outside := oxTestPlayer(w, 3, 1400, 1500)
+	moved := w.clearOXSide(oxSideO)
+	if moved != 1 || oxArena.contains(left.X, left.Y) || !oxSideX.contains(right.X, right.Y) ||
+		outside.X != 1400 || outside.Y != 1500 {
+		t.Fatalf("clear O side moved=%d positions left=(%d,%d) right=(%d,%d) outside=(%d,%d)",
+			moved, left.X, left.Y, right.X, right.Y, outside.X, outside.Y)
 	}
 }
 

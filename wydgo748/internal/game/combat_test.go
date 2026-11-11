@@ -29,6 +29,31 @@ func TestCombatAccuracyStartsAtOneHundredAndFallsWithDefenderEvasion(t *testing.
 	}
 }
 
+func TestPhysicalDamageWrappersHandleMissingInputsAndResolveValidTargets(t *testing.T) {
+	if got := playerHitsPlayer(nil, nil); got != 0 {
+		t.Fatalf("playerHitsPlayer(nil, nil) = %d, want 0", got)
+	}
+	if got := mobHitsPlayer(nil, nil); got != 0 {
+		t.Fatalf("mobHitsPlayer(nil, nil) = %d, want 0", got)
+	}
+	attacker := &Player{Char: &model.Char{Score: testScore(model.Score{Attack: 1000, Str: 100, Dex: 0, AttackRun: 0})}}
+	defender := &Player{Char: &model.Char{Score: testScore(model.Score{Defense: 0, Dex: 0})}}
+	if got := playerHitsPlayer(attacker, defender); got == 0 {
+		t.Fatal("valid player attack produced no damage against a zero-defense target")
+	}
+	mob := &Mob{Def: testNPCDef(model.Score{Attack: 1000, Str: 100, Dex: 0, Level: 10})}
+	if got := mobHitsPlayer(mob, defender.Char); got == 0 {
+		t.Fatal("valid monster attack produced no damage against a zero-defense target")
+	}
+	w := &World{rng: fixedRNG{value: 0}}
+	if got := w.playerHitsPlayer(attacker, defender); got == 0 {
+		t.Fatal("world player attack produced no damage against a zero-defense target")
+	}
+	if got := w.mobHitsPlayer(mob, defender.Char); got == 0 {
+		t.Fatal("world monster attack produced no damage against a zero-defense target")
+	}
+}
+
 func TestPhysicalFlagsUseNative748DoubleProgressionAndIndependentCritical(t *testing.T) {
 	ch := &model.Char{Score: testScore(model.Score{AttackRun: 0xF0, Critical: 255})}
 	progress := uint16(0)

@@ -135,7 +135,11 @@ public:
     void PlayAttackSound(ECHAR_MOTION eMotion, int nLR);
     void PlayPunchedSound(int nType, int nLR);
     void SetMotion(ECHAR_MOTION eMotion, float fAngle);
-    void GetRoute(IVector2 vecTarget, int nCount, int bStop);
+    bool GetRoute(IVector2 vecTarget, int nCount, int bStop, bool groundMove = false);
+    void SetGroundMoveTarget(IVector2 target);
+    void ClearGroundMoveTarget();
+    void UpdateGroundMove(unsigned int now);
+    bool HasGroundMoveTarget() const { return m_groundMovePending; }
     void GenerateRouteTable(int nSX, int nSY, char* pRouteBuffer, TMVector2* pRouteTable, int* pMaxRouteIndex);
     int ChangeRouteBuffer(int nSX, int nSY, TMVector2* pRouteTable, int* pMaxRouteIndex);
     void SetHandEffect(int nHandEffect);
@@ -335,6 +339,9 @@ public:
     int m_nLoop;
     unsigned int m_dwOldMovePacketTime;
     PendingMoveTarget m_pendingMoveTarget;
+    IVector2 m_groundMoveTarget{};
+    bool m_groundMovePending{};
+    bool m_groundMoveRetarget{};
     effect_emission::Clock m_manaEmission, m_avatarEmission, m_attackEmission, m_monsterEmission, m_animationEmission;
     unsigned int m_dwMoveToTime;
     unsigned int m_dwStartMoveTime;

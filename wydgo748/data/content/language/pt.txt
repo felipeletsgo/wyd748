@@ -1013,6 +1013,10 @@ _WG_Cannot_Reach_Ancient_Necromancer_Right_Now	Você não pode chegar ao Necroma
 _WG_Ancient_Necromancer_Awaits_Beyond_Gate_Prepare	O Necromante Ancestral aguarda além deste portão. Prepare-se.
 _WG_His_Servants_Rise_Faster_Than_Can	Os servos dele se erguem mais rápido do que você os enterra. Continue andando.
 _WG_Strike_Master_Not_Dead_Dead_Never	Ataque o mestre, não os mortos. Os mortos nunca acabam.
+_WG_Entrance_Casino	Entrada para o Cassino.
+_WG_Welcome_Casino	Bem-vindo ao Cassino!
+_WG_Casino_Guide_Dialogue	Posso levar você ao Cassino.
+_WG_Casino_Guide_Free_Travel	A viagem para o Cassino é gratuita.
 _WG_Black_Archmage_Summons_Ice_Storm	O Arquimago Negro invoca uma tempestade de gelo!
 _WG_Black_Archmage_Unleashes_His_Fury	O Arquimago Negro liberta sua fúria!
 _WG_Black_Archmage_Rises_From_Shadows	O Arquimago Negro surge das sombras!

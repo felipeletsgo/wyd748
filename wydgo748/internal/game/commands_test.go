@@ -79,6 +79,26 @@ func TestParryCommandReportsOneAuthoritativeMatchup(t *testing.T) {
 	}
 }
 
+func TestParryCommandHandlesBlankMissingAndNilInputs(t *testing.T) {
+	viewer, _ := networkedTestPlayer(1, "Viewer", 2100, 2100)
+	w := worldWithNetworkedPlayers(viewer)
+	before := viewer.Session.QueuedPacketsForTest()
+
+	w.sendParryMatchup(viewer.Session, viewer, " \t ")
+	w.sendParryMatchup(viewer.Session, viewer, "NotOnline")
+	if got := viewer.Session.QueuedPacketsForTest() - before; got != 2 {
+		t.Fatalf("blank/missing target sent %d packets, want two explanations", got)
+	}
+
+	before = viewer.Session.QueuedPacketsForTest()
+	w.sendParryMatchup(nil, viewer, "NotOnline")
+	w.sendParryMatchup(viewer.Session, nil, "NotOnline")
+	w.sendParryMatchup(viewer.Session, &Player{}, "NotOnline")
+	if got := viewer.Session.QueuedPacketsForTest(); got != before {
+		t.Fatalf("invalid caller inputs sent packets: %d -> %d", before, got)
+	}
+}
+
 func TestParseChatText(t *testing.T) {
 	pkt := make([]byte, 108)
 	copy(pkt[12:], "  /limparinv  \x00texto ignorado")

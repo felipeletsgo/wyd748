@@ -16,9 +16,11 @@ import (
 
 type sanctionTestStore struct {
 	*craftStore
-	state    store.SanctionState
-	stateErr error
-	added    []control.SanctionCommand
+	state         store.SanctionState
+	stateErr      error
+	listErr       error
+	added         []control.SanctionCommand
+	revokeChanged bool
 }
 
 func (s *sanctionTestStore) AddSanction(_ context.Context, actor string, cmd control.SanctionCommand) (control.Sanction, bool, error) {
@@ -38,10 +40,13 @@ func (s *sanctionTestStore) RevokeSanction(_ context.Context, id int64, account,
 	if id != 1 {
 		return control.Sanction{}, false, control.ErrUnknownSanction
 	}
-	return control.Sanction{ID: id, Account: account, Kind: kind, RevokedBy: actor}, true, nil
+	return control.Sanction{ID: id, Account: account, Kind: kind, RevokedBy: actor}, s.revokeChanged, nil
 }
 
 func (s *sanctionTestStore) ListSanctions(context.Context, string, int) ([]control.Sanction, time.Time, error) {
+	if s.listErr != nil {
+		return nil, time.Time{}, s.listErr
+	}
 	return []control.Sanction{}, time.Now(), nil
 }
 
@@ -102,6 +107,36 @@ func TestSanctionBanDisconnectsAndBlocksLogin(t *testing.T) {
 	}
 	if message, banned := w.admitSanctions("player", store.SanctionState{BanUntil: store.PermanentSanction}, clock.Now()); !banned || !strings.Contains(message, "permanently") {
 		t.Fatal(message)
+	}
+}
+
+func TestApplySanctionStateReachesEveryChannel(t *testing.T) {
+	first, firstPlayer, _ := handlerTestWorld(t)
+	second, secondPlayer, _ := handlerTestWorld(t)
+	firstPlayer.Account.Name = "player"
+	secondPlayer.Account.Name = "player"
+	first.channel, second.channel = 1, 2
+	bans, mutes := make(map[string]time.Time), make(map[string]time.Time)
+	first.staffOps.bans, second.staffOps.bans = bans, bans
+	first.staffOps.mutes, second.staffOps.mutes = mutes, mutes
+	cluster := &ChannelCluster{worlds: []*World{first, second}, active: first}
+	first.cluster, second.cluster = cluster, cluster
+	first.clock = newFakeClock(time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC))
+	second.clock = first.clock
+	until := first.now().Add(30 * time.Minute)
+
+	if affected := first.applySanctionState("PLAYER", store.SanctionState{MuteUntil: until}, control.SanctionMute); affected != 2 {
+		t.Fatalf("affected sessions=%d, want both channels", affected)
+	}
+	if cluster.active != first || firstPlayer.Session.IsClosed() || secondPlayer.Session.IsClosed() ||
+		first.staffOps.mutes["player"] != until || second.staffOps.mutes["player"] != until {
+		t.Fatal("cluster sanction did not restore ownership or shared mute state")
+	}
+	if got := panelText(t, firstPlayer); got != "You have been muted until 2026-10-21 12:30 UTC." {
+		t.Fatalf("channel one mute message=%q", got)
+	}
+	if got := panelText(t, secondPlayer); got != "You have been muted until 2026-10-21 12:30 UTC." {
+		t.Fatalf("channel two mute message=%q", got)
 	}
 }
 
@@ -190,6 +225,56 @@ func TestApplySanctionPersistsBeforeLiveEffect(t *testing.T) {
 	revoke := control.SanctionRevokeCommand{Version: 1, Account: "player", Kind: control.SanctionMute, Reason: "appeal accepted"}
 	if r, _ := w.RevokeSanction(context.Background(), "operator", 9, revoke, func() bool { return true }); r.Code != "unknown_sanction" {
 		t.Fatal(r)
+	}
+}
+
+func TestRevokeSanctionPersistsAndRefreshesLiveMute(t *testing.T) {
+	w, p, base := handlerTestWorld(t)
+	p.Account.Name = "player"
+	clock := newFakeClock(time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC))
+	w.clock = clock
+	setSanctionEntry(&w.staffOps.mutes, "player", clock.Now().Add(time.Hour), clock.Now())
+	backend := &sanctionTestStore{craftStore: base, revokeChanged: true}
+	w.store = backend
+	w.commands = make(chan command, 4)
+	stop := make(chan struct{})
+	defer close(stop)
+	go runStaffQueue(w, stop)
+	cmd := control.SanctionRevokeCommand{Version: 1, Account: "player", Kind: control.SanctionMute, Reason: "appeal accepted"}
+
+	result, err := w.RevokeSanction(context.Background(), "operator", 1, cmd, func() bool { return true })
+	if err != nil || result.Code != "ok" || result.Replayed || result.Live != "applied" || result.Sanction.ID != 1 {
+		t.Fatalf("revoke result=%+v err=%v", result, err)
+	}
+	if _, muted := activeUntil(w.staffOps.mutes, "player", clock.Now()); muted {
+		t.Fatal("live mute remained after revoke refresh")
+	}
+	if got := panelText(t, p); got != "Your chat mute has been lifted." {
+		t.Fatalf("mute lift message=%q", got)
+	}
+	backend.revokeChanged = false
+	result, err = w.RevokeSanction(context.Background(), "operator", 1, cmd, func() bool { return true })
+	if err != nil || result.Code != "ok" || !result.Replayed {
+		t.Fatalf("replayed revoke result=%+v err=%v", result, err)
+	}
+}
+
+func TestRevokeSanctionRejectsBeforeStorageWhenInvalidOrUnauthorized(t *testing.T) {
+	w, _, _ := handlerTestWorld(t)
+	valid := control.SanctionRevokeCommand{Version: 1, Account: "player", Kind: control.SanctionMute, Reason: "reviewed"}
+	if _, err := w.RevokeSanction(context.Background(), "operator", 1, control.SanctionRevokeCommand{}, func() bool { return true }); err == nil {
+		t.Fatal("accepted invalid revoke command")
+	}
+	if _, err := w.RevokeSanction(context.Background(), "operator", 0, valid, func() bool { return true }); err == nil {
+		t.Fatal("accepted zero sanction ID")
+	}
+	if result, err := w.RevokeSanction(context.Background(), "operator", 1, valid, func() bool { return true }); err != control.ErrSanctionsUnavailable || result.Code != "" {
+		t.Fatalf("missing backend result=%+v err=%v", result, err)
+	}
+	backend := &sanctionTestStore{craftStore: &craftStore{}}
+	w.store = backend
+	if result, err := w.RevokeSanction(context.Background(), "operator", 1, valid, func() bool { return false }); err != nil || result.Code != "capability_required" {
+		t.Fatalf("unauthorized revoke result=%+v err=%v", result, err)
 	}
 }
 
@@ -441,5 +526,67 @@ func TestStaffReceiptBudgetsArePerKindAndExpire(t *testing.T) {
 	extra.OperationID = "operation-extra-001"
 	if r := w.scheduleNotice("operator", extra, allow); r.Code != "ok" || w.staffOps.receiptCount["notice"] != 1 || w.staffOps.receiptCount["shutdown"] != 1 {
 		t.Fatal("expired receipts were not evicted", r.Code, w.staffOps.receiptCount)
+	}
+}
+
+func TestStaffPublicSanctionAndNoticeRoutes(t *testing.T) {
+	w, _, base := handlerTestWorld(t)
+	if _, err := w.AccountSanctions(context.Background(), "player"); !errors.Is(err, control.ErrSanctionsUnavailable) {
+		t.Fatalf("missing sanction backend returned %v", err)
+	}
+	backend := &sanctionTestStore{craftStore: base}
+	w.store = backend
+	if _, err := w.AccountSanctions(context.Background(), ""); err == nil {
+		t.Fatal("invalid account key was accepted")
+	}
+	listErr := errors.New("sanction database unavailable")
+	backend.listErr = listErr
+	if _, err := w.AccountSanctions(context.Background(), "player"); !errors.Is(err, listErr) {
+		t.Fatalf("sanction store error was lost: %v", err)
+	}
+	backend.listErr = nil
+
+	w.commands = make(chan command, 1)
+	stop := make(chan struct{})
+	defer close(stop)
+	go runStaffQueue(w, stop)
+
+	view, err := w.AccountSanctions(context.Background(), "player")
+	if err != nil || view.Version != 1 || view.Account != "player" || view.AsOf.IsZero() || len(view.Sanctions) != 0 {
+		t.Fatalf("sanctions view = %+v, err = %v", view, err)
+	}
+	notices, err := w.Notices(context.Background())
+	if err != nil || notices.Version != 1 || notices.AsOf.IsZero() || len(notices.Notices) != 0 {
+		t.Fatalf("initial notice view = %+v, err = %v", notices, err)
+	}
+
+	if _, err := w.ScheduleNotice(context.Background(), "operator", control.NoticeCommand{}, func() bool { return true }); err == nil {
+		t.Fatal("invalid scheduled notice was accepted")
+	}
+	cmd := control.NoticeCommand{Version: 1, OperationID: "operation-0000001", Message: "Server event starts now!", RepeatCount: 1}
+	result, err := w.ScheduleNotice(context.Background(), "operator", cmd, func() bool { return true })
+	if err != nil || result.Code != "ok" || result.Delivered != 1 || len(result.View.Notices) != 0 {
+		t.Fatalf("schedule notice result = %+v, err = %v", result, err)
+	}
+
+	w.staffOps.request = func(string) {}
+	status, err := w.ShutdownStatus(context.Background())
+	if err != nil || status.Version != 1 || !status.Available || status.Scheduled {
+		t.Fatalf("initial shutdown status = %+v, err = %v", status, err)
+	}
+	shutdown := control.ShutdownCommand{Version: 1, OperationID: "operation-0000008", Action: "schedule",
+		Mode: control.ShutdownModeRestart, DelaySeconds: 120, Reason: "public route test"}
+	shutdownResult, err := w.ShutdownCommand(context.Background(), "operator", shutdown, func() bool { return true })
+	if err != nil || shutdownResult.Code != "ok" || !shutdownResult.Status.Scheduled || shutdownResult.Status.Mode != control.ShutdownModeRestart {
+		t.Fatalf("schedule shutdown result = %+v, err = %v", shutdownResult, err)
+	}
+	status, err = w.ShutdownStatus(context.Background())
+	if err != nil || !status.Scheduled || status.SecondsRemaining <= 0 || status.SecondsRemaining > 120 {
+		t.Fatalf("scheduled shutdown status = %+v, err = %v", status, err)
+	}
+	cancel := control.ShutdownCommand{Version: 1, OperationID: "operation-0000009", Action: "cancel", Reason: "public route test"}
+	shutdownResult, err = w.ShutdownCommand(context.Background(), "operator", cancel, func() bool { return true })
+	if err != nil || shutdownResult.Code != "ok" || shutdownResult.Status.Scheduled {
+		t.Fatalf("cancel shutdown result = %+v, err = %v", shutdownResult, err)
 	}
 }

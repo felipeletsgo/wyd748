@@ -1,6 +1,6 @@
 #include "pch.h"
 // Widget control; split from SControl.h/.cpp. Include "SControl.h" for the whole library.
-#include "SGrid.h"
+#include "SGridSupport.h"
 #include "SControl.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
@@ -78,9 +78,7 @@ void SCursor::FrameMove2(stGeomList* pDrawList, TMVector2 ivParenPos, int inPare
 			m_GeomItem.nPosY = m_nPosY + m_pAttachedItem->GetPos().y;
 
 			m_GeomItem.nLayer = m_GCPanel.nLayer;
-			// PickupItem applies the same complete-AABB containment used by every 1x1
-			// receptacle. Copying the geometry preserves that fScale on the cursor;
-			// replacing it with 1.5 made dragged models invade adjacent cells.
+			m_GeomItem.fScale = m_fAttachedMeshScale;
 
 			unsigned int dwServerTime = g_pTimerManager->GetServerTime() % 3000;
 			m_GeomItem.fAngle = ((float)dwServerTime * 6.28f) / 3000.0f;
@@ -136,6 +134,7 @@ int SCursor::AttachItem(SGridControlItem* pItem)
 
 	m_eStyle = ECursorStyle::TMC_CURSOR_PICKUP;
 	m_pAttachedItem = pItem;
+	m_fAttachedMeshScale = WYD748_GetCursorMeshScale(pItem);
 	return 1;
 }
 

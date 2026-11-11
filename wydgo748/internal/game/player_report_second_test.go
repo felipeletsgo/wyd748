@@ -8,6 +8,7 @@ import (
 	"time"
 	"wydgo/internal/data"
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 func TestFreezeSpiralIncludesSummonBesidePlayerTarget(t *testing.T) {
@@ -162,6 +163,74 @@ func TestAuraOfLifeCannotResurrectMobVictim(t *testing.T) {
 	w.tickPlayerAffects(w.now())
 	if playerCurHP(p.Char) <= 1 {
 		t.Fatal("Aura stopped healing living characters")
+	}
+}
+
+func TestAuraOfLifePublishesRecoveryAtFullHP(t *testing.T) {
+	owner, ownerSession := networkedTestPlayer(1, "Knight", 2100, 2100)
+	observer, observerSession := networkedTestPlayer(2, "Observer", 2101, 2100)
+	hidden, hiddenSession := networkedTestPlayer(3, "Unaware", 2101, 2100)
+	observer.show(owner.ID)
+	w := worldWithNetworkedPlayers(owner, observer, hidden)
+	now := w.now()
+	maxHP := playerMaxHP(owner.Char)
+	setPlayerCurHP(owner.Char, maxHP)
+	owner.Char.Affects[0] = model.Affect{
+		Type: 17, Level: 100, Value: 100, ExpiresAt: now.Add(17 * time.Second), NextTick: now,
+	}
+
+	assertRecovery := func(packets [][]byte, hp uint32, displayedHeal uint16, wantVitals bool) {
+		t.Helper()
+		count := 1
+		if wantVitals {
+			count++
+		}
+		if len(packets) != count {
+			t.Fatalf("got %d packets, want %d", len(packets), count)
+		}
+		pkt := packets[0]
+		header := wire.ParseHeader(pkt)
+		if len(pkt) != 20 || header.Type != wire.OpSetHpDam || header.ID != owner.ID ||
+			binary.LittleEndian.Uint32(pkt[12:16]) != hp || binary.LittleEndian.Uint16(pkt[16:18]) != displayedHeal {
+			t.Fatalf("unexpected Aura of Life recovery packet: %x", pkt)
+		}
+		if wantVitals && wire.ParseHeader(packets[1]).Type != wire.OpSetHpMp {
+			t.Fatalf("expected authoritative vitals after recovery: %x", packets[1])
+		}
+	}
+	w.tickPlayerAffects(now)
+	assertRecovery(labelPackets(t, ownerSession), maxHP, 150, false)
+	assertRecovery(labelPackets(t, observerSession), maxHP, 150, false)
+	w.tickPlayerAffects(now.Add(7 * time.Second))
+	if ownerSession.QueuedPacketsForTest() != 0 || observerSession.QueuedPacketsForTest() != 0 {
+		t.Fatal("recovery repeated before the next tick")
+	}
+
+	setPlayerCurHP(owner.Char, maxHP-25)
+	w.tickPlayerAffects(now.Add(8 * time.Second))
+	if playerCurHP(owner.Char) != maxHP {
+		t.Fatal("Aura did not restore the missing HP")
+	}
+	assertRecovery(labelPackets(t, ownerSession), maxHP, 150, true)
+	assertRecovery(labelPackets(t, observerSession), maxHP, 150, true)
+	if hiddenSession.QueuedPacketsForTest() != 0 {
+		t.Fatal("recovery reached an observer without visibility")
+	}
+
+	setPlayerCurHP(owner.Char, 0)
+	w.tickPlayerAffects(now.Add(16 * time.Second))
+	if ownerSession.QueuedPacketsForTest() != 0 || observerSession.QueuedPacketsForTest() != 0 || playerCurHP(owner.Char) != 0 {
+		t.Fatal("dead character received recovery")
+	}
+
+	setPlayerCurHP(owner.Char, maxHP)
+	w.tickPlayerAffects(now.Add(24 * time.Second))
+	for _, packets := range [][][]byte{labelPackets(t, ownerSession), labelPackets(t, observerSession)} {
+		for _, pkt := range packets {
+			if wire.ParseHeader(pkt).Type == wire.OpSetHpDam {
+				t.Fatal("expired Aura published recovery")
+			}
+		}
 	}
 }
 

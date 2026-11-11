@@ -149,9 +149,12 @@ The native dispatcher `FUN_00492e7d` routes the attack frame to
 `FUN_00489a3e`. The signed skill index is at offset 24. At
 `0x0048a7e5`–`0x0048a881`, Growth (13) anchors the effect at the caster's
 position plus 0.5 on Y and calls `FUN_004e5650` with variant 1. This variant
-uses billboard texture 2 tinted `0xffaa77ff`, a ground shade tinted
-`0x55553388`, and sound 158. At `0x0048d3b3`–`0x0048d3dd`, Cancellation
+uses billboard texture 2 tinted `0xffaa77ff` for 2 seconds and a ground shade
+tinted `0x55553388` for 3 seconds. It plays sound 158. At
+`0x0048d3b3`–`0x0048d3dd`, Cancellation
 (100) looks up and plays sound 156. Both paths run during attack dispatch.
+The native affect projection `FUN_0052433d` has no persistent visual for
+Growth affect 14 or the separate Bigger affect 35.
 
 The local attack preview and remote attack packets use the existing
 `ShouldDispatchVisuals` guard. The adapted handler uses
@@ -162,7 +165,15 @@ The server keeps authority for buff application and removal. No wire or
 resource mapping changes. Sound IDs 156 and 158 use the existing
 `effect06.wav` and `effect08.wav` in both asset sets.
 
+The owner reported that Growth applied but did not show the cast effect.
+The published 7.48.108 executable contains the Growth selector and constructor
+call at `0x004d3daf` and `0x004d78bb`. Its manual area request, also used by
+C.C. buff casts, replayed a preview with `Header.Size` still zero. `TMScene`
+rejected the preview before attack dispatch. The server echo for the caster
+does not replay ordinary cast effects. Set the length in `SelectEnvelope`
+before the preview or socket send. The socket already wrote this same length.
+
 Decision: `PARIDADE_NATIVA`. Restore the two verified cast effects using the
 existing implementations. The Ghidra exports and matching PE instructions
 verify the skill selectors, constructor variant, and sound slot.
-Actual playback for the caster and an observer remains pending.
+Verify the corrected build with a manual cast, a C.C. cast, and an observer.

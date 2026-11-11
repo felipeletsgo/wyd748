@@ -4,7 +4,7 @@ title: Persistent buff scales, particles, and material colors
 subsystem: combat
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-31
+updated: 2026-11-09
 ---
 
 # Persistent buff visuals
@@ -80,7 +80,7 @@ death/hide guards, cleanup paths, and pointer reuse are retained.
 ## Wire, ABI, and resources
 
 No wire or ABI changes. Texture IDs, mesh IDs, constructors, and scene ownership
-are existing contracts. No assets were replaced or added. Ground-plane textures
+are existing contracts. The initial audit did not replace assets. Ground-plane textures
 are Skill Amp `93`, Aurora/Shadow `94`; Protector uses mesh `32`, Critical Armor
 mesh `2838`/texture `413`, Soul mesh `2839`.
 
@@ -215,7 +215,8 @@ The owner reported the Skill Amp plane at mid-shin and selected foot height.
 Classification: `MODERNIZACAO_COMPATIVEL`. The plane keeps its native texture,
 1.5 scale, fade, color and terrain anchor, including mounts. Its lift changes
 from the native `0.4` to `0.05`, the lift of the existing field ground decals.
-No packet, affect or server state changes. Visual acceptance remains pending.
+The owner reaffirmed this exception on 2026-11-09. Visual acceptance remains
+pending.
 
 ## Transformed player buff visuals (2026-10-31)
 
@@ -227,6 +228,74 @@ stayed null and every restart was skipped. Players (ID 1..999) now keep these
 objects in every form; monsters keep the native class gate. Classification:
 `MODERNIZACAO_COMPATIVEL`. No packet, affect or server state changes. Visual
 acceptance remains pending.
+
+## Native buff placement (2026-11-09)
+
+Use native 7.48 for buff visuals. Keep the owner-selected Skill Amp placement
+at `0.05` above terrain and its native scale of `1.5` on all axes.
+
+The following corrections are `PARIDADE_NATIVA`. They use existing render
+paths and keep the wire, affect state, lifetimes, and scene ownership.
+
+| Visual | Corrected parameter | Native evidence |
+| --- | --- | --- |
+| Lightning Storm (affect 22) | Follow the skin at its X/Z and Y plus `1.2`, with scale `1.0` on foot and `1.3` mounted. | `FUN_00506f9d`, steady-state follow and PE float at `0x005A4678`. The purple crystal uses its own ground anchor and scale. |
+| Magic Shield, Rescue, Elemental | Lift both mesh copies by `0.1` for the −45° layers and by `0.2` for the −90° layers. The positive-angle layers sit below the anchor. | `FUN_004e8ac8`, paired render calls. |
+| Cancellation (affect 32) | Use opposite inclinations in the second rotation argument of meshes 501 and 502. Restore the stock texture at slot 202. | `FUN_004e8ac8`, float bits `0xBF060A92` and `0x3F060A92`. |
+| Enchant Frost (affect 27) | Create the persistent flare at one effect length along the weapon. | `FUN_004da607`, weapon transform at offset `0x2c` with length from `0x28e8`. |
+| Fire Attack (skill 17) | Tint its weapon particles white. | Deferred event in `FUN_00506f9d` sets the flag at `0x28f0`. `FUN_004da607` uses `0xFFFFFFFF` for that flag. |
+
+The Portuguese 7.48 asset corpus supplies `Effect/cancel.wys`. The restored
+file has SHA256 `12AB3F666ABBE9D30D3C81AE9408E5E57A24E7D0201F990289DA7AFEE00B35A3`.
+Both textures decode to 32 × 128 DXT3 with four complete mip levels.
+The effect table and the two Cancellation meshes match the stock files byte
+for byte. The Portuguese asset corpus is separate from the analyzed PE.
+
+STATICALLY VERIFIED: compared the anchors, scales, layers, and particle tint
+above. Checked the asset header, mip sizes, paths, and stock hashes.
+AUTOMATED TESTED: Release/x86 build with `-NoDeploy`, asset audit, architecture,
+socket receive, and crash capture suites passed. CLIENT-TESTED: pending.
+
+## Aura of Life ground effects and recovery (2026-11-09)
+
+`FUN_00489a3e` dispatches skill 5 to the type 2 start ring and sound 151.
+`FUN_0052433d` sets the Aurora flag for affect 17. `FUN_00506f9d` creates
+and follows a bright texture-94 plane with scale `1.5`, fade 2, rotation
+period 3000 ms, and tint `0x33333333`. It removes the plane when the affect
+ends. The stock and active files match for mesh 703 and textures 54 and 94.
+
+The supplied 7.59 server decompilation, `sub_55F990`, case 17, uses a
+living-actor check. It multicasts `0x18A` after recovery, including when
+the clamped gain is zero. W2PP corroborates the zero-gain notification.
+The 7.48 client handler `FUN_0052cbaa` reads two signed WORDs at offsets 12
+and 14, and draws a blue number only for positive gain.
+
+Classification `MODERNIZACAO_COMPATIVEL`. Use the adapted `MSG_SetHpDam`
+form already accepted by the client. The server sends a 20-byte
+S-to-C packet with the subject ID in the header, signed 32-bit HP at
+offset 12, and a signed 16-bit display value at offset 16. HP fits in
+the signed range. Retain the authoritative vitals sync on HP changes
+and the eight-second interval.
+
+Send to the owner and observers that have materialized the actor in the
+same gameplay space. Play a scene-owned, finite start ring on a recovery
+notification while Aurora is active and visible. The ring reuses the
+native cast visual. Native `0x18A` updates HP and draws the number.
+Death and expiry stop new pulses. Scene teardown removes existing rings.
+
+The owner requested the full calculated heal as the blue number, even
+at full HP. Send `Level/2 + Value` in the display field within its signed
+range. Keep the HP field capped at maximum HP.
+
+Use the owner-selected `0.05` terrain lift for Aura of Life, Skill Amp, and
+Shadow planes. Use it for the Aura of Life cast and recovery rings, and
+for the ground plane of Holy Touch, Rescue, and Growth.
+
+STATICALLY VERIFIED: traced both visual paths and the recovery notification.
+AUTOMATED TESTED: Release/x86 build and recovery tests passed. Tests cover
+owner and observer delivery, display with zero or partial actual gain,
+death, and expiry.
+CLIENT-TESTED: pending, including movement, mounts, and relogin.
 
 ## Gaps
 

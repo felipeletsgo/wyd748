@@ -917,7 +917,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 		// imported 7.59 initializer instead expects IDs 90400+, which do not exist
 		// in FieldScene2.bin and made Affect_Main return before drawing any buff.
 		m_pMiniPanel = static_cast<SPanel*>(pNativeMainMenuPanel);
-		for (int affectIndex = 0; affectIndex < 16; ++affectIndex)
+		for (int affectIndex = 0; affectIndex < static_cast<int>(kOwnerAffectIconCount); ++affectIndex)
 		{
 			m_pAffectIcon[affectIndex] = new SPanel(200, 0.0f, 0.0f, 23.0f, 23.0f,
 				0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
@@ -1354,9 +1354,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pDescPanel->m_bSelectEnable = 0;
 			m_pDescPanel->SetVisible(0);
 		}
-		// TMP_FADEOUT is a full-screen legacy panel.  The native 7.48 transition
-		// eventually disables it, but the compact frame path has no fade state
-		// machine; leaving it selectable intercepts every world click invisibly.
+		// The Flash overlay covers the screen and must never capture world input.
 		m_pFadePanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_FADEOUT));
 		if (m_pFadePanel)
 		{
@@ -1433,6 +1431,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pSun->InitObject();
 		m_pEffectContainer->AddChild(m_pSun);
 	}
+	InitializeGroundClickMarker();
 	m_pSky = new TMSky();
 	if (m_pSky)
 	{
@@ -1696,7 +1695,7 @@ void TMFieldScene::PositionCompatGamblePanel()
 	m_pGambleStore->SetPos(
 		viewportCenterX - m_pGambleStore->m_nWidth * 0.5f + 10.0f,
 		viewportCenterY - m_pGambleStore->m_nHeight * 0.5f);
-	// Reserve separate bounds for localized BET/APOSTA and the six-digit amount.
+	// Reserve separate bounds for localized BET/APOSTA and the seven-digit amount.
 	if (auto label = m_pControlContainer->FindControl(6409))
 	{
 		label->SetPos(RenderDevice::UiPx(45.0f), RenderDevice::UiPx(316.0f));
@@ -2140,16 +2139,23 @@ int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 	}
 
 	int visibleCount = 0;
-	for (int affectIndex = 0; affectIndex < 16; ++affectIndex)
+	const auto now = GetTickCount64();
+	constexpr int nativeCount = static_cast<int>(kUpdateAffectCount);
+	constexpr int iconCount = static_cast<int>(kOwnerAffectIconCount);
+	for (int slot = 0; slot < iconCount; ++slot)
 	{
+		// Keep the guard next to the orb when normal buffs fill the row.
+		const int affectIndex = (slot + nativeCount) % iconCount;
 		SPanel* pIcon = m_pAffectIcon[affectIndex];
 		if (!pIcon)
 			continue;
 
-		const unsigned char affectType =
-			static_cast<unsigned char>(m_pMyHuman->m_stAffect[affectIndex].Type);
-		const int nativeTime = m_pMyHuman->m_stAffect[affectIndex].Time;
-		const bool active = affectType < 41
+		const int guardIndex = affectIndex - nativeCount;
+		const bool isGuard = guardIndex >= 0;
+		const auto affectType = isGuard ? 0 : static_cast<unsigned char>(m_pMyHuman->m_stAffect[affectIndex].Type);
+		const int nativeTime = isGuard ? 0 : m_pMyHuman->m_stAffect[affectIndex].Time;
+		const int guardSeconds = isGuard ? guard_buff::SecondsRemaining(m_guardTimers[guardIndex], m_guardTimerSync, now) : 0;
+		const bool active = isGuard ? guardSeconds > 0 : affectType < 41
 			&& ((affectIndex != 0 && affectType != 0) || (affectIndex == 0 && nativeTime > 0));
 		if (!active)
 		{
@@ -2158,9 +2164,9 @@ int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 			continue;
 		}
 
-		const int secondsLeft = nativeTime * 8
+		const int secondsLeft = isGuard ? guardSeconds : nativeTime * 8
 			- static_cast<int>((dwServerTime - m_dwStartAffectTime[affectIndex]) / 1000);
-		pIcon->m_GCPanel.nTextureIndex = g_AffectSkillType[affectType];
+		pIcon->m_GCPanel.nTextureIndex = isGuard ? (guardIndex == 0 ? 3 : 27) : g_AffectSkillType[affectType];
 		pIcon->m_GCPanel.nLayer = 29;
 		pIcon->SetPos(pNativeAffectAnchor->m_nPosX + pNativeAffectAnchor->m_nWidth
 			+ 3.0f + static_cast<float>(visibleCount) * (pIcon->m_nWidth + 3.0f), 5.0f);
@@ -2170,13 +2176,23 @@ int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 		{
 			char timeText[128]{};
 			char affectText[128]{};
-			GetTimeString(timeText, secondsLeft, nativeTime, affectIndex);
-			sprintf_s(affectText, "%s : %s", g_pAffectTable[affectType], timeText);
+			constexpr const char* guardNames[] = {"Asder", "Sophia"};
+			if (isGuard)
+				sprintf_s(timeText, "%02d:%02d", guardSeconds / 60, guardSeconds % 60);
+			else
+				GetTimeString(timeText, secondsLeft, nativeTime, affectIndex);
+			const char* name = isGuard ? guardNames[guardIndex] : g_pAffectTable[affectType];
+			sprintf_s(affectText, "%s : %s", name, timeText);
 			m_pAffectDesc->SetText(affectText, 0);
 			m_pAffectDesc->SetPos(pIcon->m_nPosX, pIcon->m_nPosY + 40.0f);
 			m_pAffectDesc->SetVisible(1);
 		}
 
+		if (isGuard)
+		{
+			pIcon->SetVisible(1);
+			continue;
+		}
 		if (!m_dwAffectBlinkTime[affectIndex] && secondsLeft <= 10 && secondsLeft > 1)
 			m_dwAffectBlinkTime[affectIndex] = dwServerTime;
 		else if (!m_dwAffectBlinkTime[affectIndex] || secondsLeft >= 10)
